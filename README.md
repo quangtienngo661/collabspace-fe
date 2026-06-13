@@ -65,13 +65,27 @@ Clone và khởi động backend từ repo [collabspace](https://github.com/leng
 git clone https://github.com/lengocanh2005it/collabspace.git
 cd collabspace
 
-# 2. Chuẩn bị file .env cho từng service
-#    Copy từ .env.example ở mỗi thư mục service và infrastructure/docker/
-#    (Xem README của backend để biết chi tiết)
+# 2. Chuẩn bị file .env cho tất cả service
+# Copy tự động các file .env.example sang .env trên Windows PowerShell:
+Get-ChildItem -Recurse -Filter .env.example | ForEach-Object { Copy-Item $_.FullName ($_.DirectoryName + "\.env") }
 
-# 3. Build và khởi động toàn bộ stack
+# Mở Docker Desktop (phải chạy sẵn) trước khi chạy lệnh tiếp theo
+
+# 3. Khởi tạo Database tạm để migrate & seed
 cd infrastructure/docker
+docker compose -f docker-compose.yml -f docker-compose.db.yml up -d
+cd ../..
+Start-Sleep -Seconds 10 # Chờ DB khởi động
 
+# 4. Chạy script migrate database và tạo dữ liệu giả (Seed)
+./scripts/migrate.sh
+./scripts/seed.sh
+# Hoặc trên PowerShell:
+# wsl ./scripts/migrate.sh
+# wsl ./scripts/seed.sh
+
+# 5. Build và khởi động toàn bộ stack với API Gateway
+cd infrastructure/docker
 docker compose `
   -f docker-compose.yml `
   -f docker-compose.db.yml `
@@ -86,9 +100,9 @@ Chờ 1–2 phút để các NestJS service compile xong, sau đó kiểm tra:
 # Kiểm tra container đang chạy
 docker ps
 
-# Kiểm tra API Gateway
+# Kiểm tra API Gateway (dùng trình duyệt truy cập url này cũng được)
 curl http://localhost/api/v1/auth/health/ready
-# Kết quả: {"status":"ok","..."}
+# Kết quả mong muốn: {"status":"ok","..."}
 ```
 
 Khi tất cả container ở trạng thái `healthy`, backend đã sẵn sàng.
