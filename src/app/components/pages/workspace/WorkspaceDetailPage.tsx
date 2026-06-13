@@ -1,0 +1,305 @@
+import { useMemo, useState } from "react";
+import { useParams, useNavigate } from "react-router";
+import { UserPlus, Trash2, MoreHorizontal, FolderOpen, Settings, Users, RefreshCw, ArrowLeft } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../ui/tabs";
+import { Button } from "../../ui/button";
+import { Card } from "../../ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../ui/dialog";
+import { Input } from "../../ui/input";
+import { Label } from "../../ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../ui/dropdown-menu";
+import { workspaceApi } from "../../../api/workspaceApi";
+import { usersApi } from "../../../api/usersApi";
+import { RoleBadge } from "../../shared/StatusBadge";
+import { UserAvatar } from "../../shared/UserAvatar";
+import { EmptyState, ErrorState } from "../../shared/EmptyState";
+import { useAsyncData } from "../../../hooks/useAsyncData";
+import type { WorkspaceMember } from "../../../api/types";
+import { toast } from "sonner";
+
+export function WorkspaceDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("member");
+  const [settings, setSettings] = useState({ name: "", description: "" });
+  const [saving, setSaving] = useState(false);
+
+  const workspaceState = useAsyncData(async () => {
+    if (!id) throw new Error("Workspace id is missing");
+    const workspace = await workspaceApi.get(id);
+    setSettings({ name: workspace.name, description: workspace.description });
+    return workspace;
+  }, [id]);
+
+  const projectsState = useAsyncData(
+    () => id ? workspaceApi.listProjects(id) : Promise.resolve([]),
+    [id],
+  );
+
+  const membersState = useAsyncData<WorkspaceMember[]>(async () => {
+    if (!id) return [];
+    const members = await workspaceApi.members(id);
+    const profiles = await usersApi.bulk(members.map(member => member.userId));
+    const profileByUserId = new Map(profiles.map(profile => [profile.userId, profile]));
+    return members.map(member => ({ ...member, profile: profileByUserId.get(member.userId) }));
+  }, [id]);
+
+  const invitationsState = useAsyncData(
+    () => id ? workspaceApi.invitations(id) : Promise.resolve([]),
+    [id],
+  );
+
+  const ws = workspaceState.data?.id === id ? workspaceState.data : null;
+  const wsProjects = projectsState.data ?? [];
+  const members = membersState.data ?? [];
+  const invitations = invitationsState.data ?? [];
+  const error = workspaceState.error || projectsState.error || membersState.error || invitationsState.error;
+
+  const memberRows = useMemo(() => {
+    const regularMembers = members.map(member => {
+      const fallbackName = "Unknown User";
+      return {
+        ...member,
+        user: member.profile ?? {
+          id: member.userId,
+          userId: member.userId,
+          name: fallbackName,
+          avatar: fallbackName.slice(0, 2).toUpperCase(),
+          role: member.role === "owner" ? "admin" : member.role,
+          status: "offline" as const,
+          title: "",
+          department: "",
+          joinedAt: member.joinedAt,
+        },
+      };
+    });
+
+    const pendingMembers = invitations.map(invitation => ({
+      id: invitation.id,
+      userId: "",
+      workspaceId: id!,
+      role: "member",
+      joinedAt: invitation.createdAt,
+      user: {
+        id: invitation.id,
+        userId: "",
+        name: invitation.email,
+        email: invitation.email,
+        avatar: "?",
+        role: "member",
+        status: "pending" as const,
+        title: "Pending Invitation",
+        department: "",
+        joinedAt: invitation.createdAt,
+      },
+    }));
+
+    return [...regularMembers, ...pendingMembers];
+  }, [members, invitations, id]);
+
+  async function handleInvite() {
+    if (!id) return;
+    if (!inviteEmail) { toast.error("Email is required"); return; }
+    try {
+      await workspaceApi.invite(id, inviteEmail);
+      toast.success(`Invitation sent to ${inviteEmail}`);
+      setInviteEmail("");
+      setInviteOpen(false);
+      void invitationsState.reload();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Unable to send invitation");
+    }
+  }
+
+  async function saveSettings() {
+    if (!id) return;
+    setSaving(true);
+    try {
+      const updated = await workspaceApi.update(id, settings);
+      workspaceState.setData(updated);
+      toast.success("Workspace settings saved");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Unable to save workspace");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (workspaceState.loading && !ws) {
+    return <div className="p-6 text-sm text-slate-400">Loading workspace...</div>;
+  }
+
+  if (!ws && workspaceState.error) {
+    return (
+      <div className="p-6 space-y-4">
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/workspaces")}>
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Workspaces
+        </Button>
+        <ErrorState title="Workspace not found" description={workspaceState.error} />
+      </div>
+    );
+  }
+
+  if (!ws) {
+    return (
+      <div className="p-6 space-y-4">
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/workspaces")}>
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Workspaces
+        </Button>
+        <div className="text-slate-400">Workspace not found</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 md:p-6 space-y-6">
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-indigo-500 flex items-center justify-center text-white font-bold text-xl">{ws.name[0]}</div>
+          <div>
+            <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">{ws.name}</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{ws.description || "No description"}</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { void workspaceState.reload(); void projectsState.reload(); void membersState.reload(); void invitationsState.reload(); }}>
+            <RefreshCw className="w-3.5 h-3.5" /> Refresh
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate(`/workspaces/${id}/projects`)}>
+            <FolderOpen className="w-3.5 h-3.5" /> Projects
+          </Button>
+        </div>
+      </div>
+
+      {error && <ErrorState title="Some workspace data could not load" description={error} />}
+
+      <Tabs defaultValue="members">
+        <TabsList className="bg-slate-100 dark:bg-slate-800">
+          <TabsTrigger value="members" className="gap-1.5"><Users className="w-3.5 h-3.5" />Members</TabsTrigger>
+          <TabsTrigger value="projects" className="gap-1.5"><FolderOpen className="w-3.5 h-3.5" />Projects</TabsTrigger>
+          <TabsTrigger value="settings" className="gap-1.5"><Settings className="w-3.5 h-3.5" />Settings</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="members" className="mt-4">
+          <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex gap-0 flex-col">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+              <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{memberRows.length} Members</span>
+              <Button size="sm" className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setInviteOpen(true)}>
+                <UserPlus className="w-3.5 h-3.5" /> Invite
+              </Button>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-slate-200 dark:border-slate-700 hover:bg-transparent">
+                  <TableHead className="text-xs text-slate-500">Member</TableHead>
+                  <TableHead className="text-xs text-slate-500">Department</TableHead>
+                  <TableHead className="text-xs text-slate-500">Role</TableHead>
+                  <TableHead className="text-xs text-slate-500">Status</TableHead>
+                  <TableHead className="w-10" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {memberRows.map(member => (
+                  <TableRow key={member.id} className="border-slate-100 dark:border-slate-700">
+                    <TableCell>
+                      <div className="flex items-center gap-2.5 my-[5px] mx-[5px]" >
+                        <UserAvatar user={member.user} size="sm" showPresence />
+                        <div>
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{member.user.name}</p>
+                          <p className="text-xs text-slate-400">{member.user.email}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-slate-600 dark:text-slate-400">{member.user.department || "N/A"}</TableCell>
+                    <TableCell><RoleBadge role={member.role === "owner" ? "admin" : member.role} /></TableCell>
+                    <TableCell><span className="text-xs capitalize text-slate-500">{member.user.status}</span></TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="w-7 h-7"><MoreHorizontal className="w-4 h-4" /></Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem disabled>Change role unavailable</DropdownMenuItem>
+                          <DropdownMenuItem disabled className="text-red-600 dark:text-red-400">
+                            <Trash2 className="w-4 h-4 mr-2" /> Remove unavailable
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="projects" className="mt-4">
+          {wsProjects.length === 0 ? (
+            <EmptyState icon={FolderOpen} title="No projects yet" description="Create your first project to start managing tasks." action={{ label: "New Project", onClick: () => navigate(`/workspaces/${id}/projects`) }} />
+          ) : (
+            <div className="grid md:grid-cols-2 gap-4">
+              {wsProjects.map(p => (
+                <Card key={p.id} className="p-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/workspaces/${id}/projects/${p.id}`)}>
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{p.name}</h3>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${p.status === "active" ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" : "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400"}`}>{p.status}</span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">{p.description || "No description"}</p>
+                  <p className="text-xs text-slate-400">{p.taskCount} tasks · Created {p.createdAt || "N/A"}</p>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="settings" className="mt-4">
+          <Card className="p-6 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 space-y-4">
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Workspace Settings</h2>
+            <div className="space-y-1.5">
+              <Label>Workspace Name</Label>
+              <Input value={settings.name} onChange={event => setSettings(prev => ({ ...prev, name: event.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Description</Label>
+              <Input value={settings.description} onChange={event => setSettings(prev => ({ ...prev, description: event.target.value }))} />
+            </div>
+            <div className="pt-2 flex gap-2">
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={saveSettings} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
+              <Button size="sm" variant="destructive" disabled title="Backend does not expose DELETE /workspaces/:id">Delete Unavailable</Button>
+            </div>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Invite Member</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Email address</Label>
+              <Input type="email" placeholder="colleague@company.com" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Role</Label>
+              <Select value={inviteRole} onValueChange={setInviteRole} disabled>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="member">Member</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-400">Backend invite currently accepts email only.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
+            <Button onClick={handleInvite} className="bg-blue-600 hover:bg-blue-700 text-white">Send Invitation</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
