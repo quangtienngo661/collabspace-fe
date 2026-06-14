@@ -6,8 +6,6 @@ import { AppShell } from "./components/layout/AppShell";
 import { LoginPage } from "./components/pages/auth/LoginPage";
 import { RegisterPage } from "./components/pages/auth/RegisterPage";
 import { OtpPage } from "./components/pages/auth/OtpPage";
-import { ForgotPasswordPage } from "./components/pages/auth/ForgotPasswordPage";
-import { ResetPasswordPage } from "./components/pages/auth/ResetPasswordPage";
 import { DashboardPage } from "./components/pages/DashboardPage";
 import { WorkspaceListPage } from "./components/pages/workspace/WorkspaceListPage";
 import { WorkspaceDetailPage } from "./components/pages/workspace/WorkspaceDetailPage";
@@ -44,8 +42,8 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/otp" element={<OtpPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/forgot-password" element={<Navigate to="/login" replace />} />
+        <Route path="/reset-password" element={<Navigate to="/login" replace />} />
         <Route path="/403" element={<ForbiddenPage />} />
         <Route path="/admin" element={<AdminRoute><AdminPage dark={dark} onToggleDark={() => setDark(d => !d)} /></AdminRoute>} />
         <Route path="/admin/health" element={<AdminRoute><HealthPage dark={dark} onToggleDark={() => setDark(d => !d)} /></AdminRoute>} />
