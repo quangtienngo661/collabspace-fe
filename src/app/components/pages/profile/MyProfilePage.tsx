@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Eye, EyeOff, Key, LogOut, Monitor, Save, Settings, User } from "lucide-react";
+import { Eye, EyeOff, Key, Save, Settings, User } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../ui/tabs";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
@@ -8,17 +8,21 @@ import { Label } from "../../ui/label";
 import { Card } from "../../ui/card";
 import { Switch } from "../../ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../ui/table";
 import { UserAvatar } from "../../shared/UserAvatar";
 import { PresenceDot, RoleBadge } from "../../shared/StatusBadge";
-import { ConfirmDialog } from "../../shared/ConfirmDialog";
-import { ErrorState } from "../../shared/EmptyState";
 import { toast } from "sonner";
 import { useAuth } from "../../../auth/AuthContext";
 import { authApi } from "../../../api/authApi";
 import { usersApi } from "../../../api/usersApi";
 import type { User as DomainUser, UserPreferences, UserStatus } from "../../../api/types";
-import { useAsyncData } from "../../../hooks/useAsyncData";
+
+const SESSIONS_TAB_UNAVAILABLE = "sessions";
+
+function resolveProfileTab(tab: string | null) {
+  if (tab === SESSIONS_TAB_UNAVAILABLE) return "profile";
+  if (tab === "profile" || tab === "preferences" || tab === "password") return tab;
+  return "profile";
+}
 
 const defaultPreferences: UserPreferences = {
   dateFormat: "YYYY-MM-DD",
@@ -48,18 +52,11 @@ function fallbackUser(email?: string): DomainUser {
   };
 }
 
-function formatDate(value: string) {
-  if (!value) return "N/A";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "N/A" : date.toLocaleString();
-}
-
 export function MyProfilePage() {
   const [searchParams] = useSearchParams();
-  const defaultTab = searchParams.get("tab") || "profile";
+  const defaultTab = resolveProfileTab(searchParams.get("tab"));
   const navigate = useNavigate();
-  const { authUser, profile, preferences, session, refresh, logout, setPreferences } = useAuth();
-  const sessionsState = useAsyncData(() => authApi.sessions(), []);
+  const { authUser, profile, preferences, refresh, logout, setPreferences } = useAuth();
   const currentUser = profile ?? fallbackUser(authUser?.email);
 
   const [profileForm, setProfileForm] = useState({
@@ -74,8 +71,6 @@ export function MyProfilePage() {
   const [prefs, setPrefs] = useState<UserPreferences>(preferences ?? defaultPreferences);
   const [pw, setPw] = useState({ current: "", newPw: "", confirm: "" });
   const [showPw, setShowPw] = useState(false);
-  const [revokeFamilyId, setRevokeFamilyId] = useState<string | null>(null);
-  const [logoutOthersOpen, setLogoutOthersOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
@@ -171,35 +166,6 @@ export function MyProfilePage() {
     }
   }
 
-  async function revokeSession() {
-    if (!revokeFamilyId) return;
-    try {
-      await authApi.revokeSession(revokeFamilyId);
-      setRevokeFamilyId(null);
-      await sessionsState.reload();
-      toast.success("Session revoked");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to revoke session");
-    }
-  }
-
-  async function logoutOthers() {
-    if (!session?.refreshToken) {
-      toast.error("Refresh token is not available");
-      return;
-    }
-    try {
-      await authApi.logoutOthers(session.refreshToken);
-      setLogoutOthersOpen(false);
-      await sessionsState.reload();
-      toast.success("Other sessions logged out");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to logout other sessions");
-    }
-  }
-
-  const activeSessions = (sessionsState.data ?? []).filter(item => item.isActive);
-
   return (
     <div className="space-y-6 p-4 md:p-6">
       <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">Account Settings</h1>
@@ -208,7 +174,6 @@ export function MyProfilePage() {
         <TabsList className="bg-slate-100 dark:bg-slate-800">
           <TabsTrigger value="profile"><User className="mr-1.5 size-3.5" />Profile</TabsTrigger>
           <TabsTrigger value="preferences"><Settings className="mr-1.5 size-3.5" />Preferences</TabsTrigger>
-          <TabsTrigger value="sessions"><Monitor className="mr-1.5 size-3.5" />Sessions</TabsTrigger>
           <TabsTrigger value="password"><Key className="mr-1.5 size-3.5" />Password</TabsTrigger>
         </TabsList>
 
@@ -361,95 +326,6 @@ export function MyProfilePage() {
               </Button>
             </Card>
           </div>
-        </TabsContent>
-
-        <TabsContent value="sessions" className="mt-4">
-          <Card className="border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
-            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-700">
-              <div>
-                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{activeSessions.length} Active Sessions</p>
-                <p className="text-xs text-slate-400">Refresh token sessions returned by auth-service</p>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
-                onClick={() => setLogoutOthersOpen(true)}
-              >
-                <LogOut className="size-3.5" /> Logout Others
-              </Button>
-            </div>
-            {sessionsState.error ? (
-              <ErrorState title="Unable to load sessions" description={sessionsState.error} />
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-700">
-                    <TableHead className="text-xs text-slate-500">Device</TableHead>
-                    <TableHead className="hidden text-xs text-slate-500 md:table-cell">Location</TableHead>
-                    <TableHead className="hidden text-xs text-slate-500 md:table-cell">Last Active</TableHead>
-                    <TableHead className="w-24" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sessionsState.loading && activeSessions.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="py-8 text-center text-sm text-slate-500">Loading sessions...</TableCell>
-                    </TableRow>
-                  ) : activeSessions.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="py-8 text-center text-sm text-slate-500">No active sessions returned.</TableCell>
-                    </TableRow>
-                  ) : activeSessions.map(activeSession => (
-                    <TableRow key={activeSession.id} className="border-slate-100 dark:border-slate-700">
-                      <TableCell>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <Monitor className="size-4 shrink-0 text-slate-400" />
-                            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{activeSession.device}</p>
-                            {activeSession.current && <span className="rounded bg-green-100 px-1.5 py-0.5 text-[10px] text-green-700 dark:bg-green-900/40 dark:text-green-300">Current</span>}
-                          </div>
-                          <p className="pl-6 text-xs text-slate-400">{activeSession.browser} - {activeSession.ip}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden text-sm text-slate-500 md:table-cell">{activeSession.location}</TableCell>
-                      <TableCell className="hidden text-sm text-slate-500 md:table-cell">{formatDate(activeSession.lastActive)}</TableCell>
-                      <TableCell>
-                        {!activeSession.current && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                            onClick={() => setRevokeFamilyId(activeSession.familyId)}
-                          >
-                            Revoke
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </Card>
-          <ConfirmDialog
-            open={!!revokeFamilyId}
-            onOpenChange={open => { if (!open) setRevokeFamilyId(null); }}
-            title="Revoke Session"
-            description="This refresh token family will be revoked immediately."
-            confirmLabel="Revoke"
-            onConfirm={() => void revokeSession()}
-            destructive
-          />
-          <ConfirmDialog
-            open={logoutOthersOpen}
-            onOpenChange={setLogoutOthersOpen}
-            title="Logout All Other Sessions"
-            description="All other devices will be logged out. Your current session will remain active."
-            confirmLabel="Logout Others"
-            onConfirm={() => void logoutOthers()}
-            destructive
-          />
         </TabsContent>
 
         <TabsContent value="password" className="mt-4">
