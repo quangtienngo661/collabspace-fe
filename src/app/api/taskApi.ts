@@ -29,14 +29,14 @@ export const taskApi = {
   async updateDetails(taskId: string, input: { title: string; description?: string }): Promise<void> {
     await apiRequest(`/tasks/${taskId}/details`, {
       method: "PATCH",
-      body: { taskId, title: input.title, description: input.description ?? "" },
+      body: { title: input.title, description: input.description ?? "" },
     });
   },
 
   async updateStatus(taskId: string, status: TaskStatus): Promise<void> {
     await apiRequest(`/tasks/${taskId}/status`, {
       method: "PATCH",
-      body: { taskId, status },
+      body: { status },
     });
   },
 

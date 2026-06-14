@@ -64,12 +64,9 @@ export function MyProfilePage() {
 
   const [profileForm, setProfileForm] = useState({
     name: currentUser.name,
-    title: currentUser.title,
-    department: currentUser.department,
+    username: currentUser.username ?? "",
     status: currentUser.status,
     bio: currentUser.bio ?? "",
-    location: currentUser.location ?? "",
-    timezone: currentUser.timezone ?? "UTC",
   });
   const [prefs, setPrefs] = useState<UserPreferences>(preferences ?? defaultPreferences);
   const [pw, setPw] = useState({ current: "", newPw: "", confirm: "" });
@@ -82,12 +79,9 @@ export function MyProfilePage() {
     if (!profile) return;
     setProfileForm({
       name: profile.name,
-      title: profile.title,
-      department: profile.department,
+      username: profile.username ?? "",
       status: profile.status,
       bio: profile.bio ?? "",
-      location: profile.location ?? "",
-      timezone: profile.timezone ?? "UTC",
     });
   }, [profile]);
 
@@ -100,11 +94,8 @@ export function MyProfilePage() {
       await usersApi.updateMe({
         fullName: profileForm.name,
         displayName: profileForm.name,
-        jobTitle: profileForm.title,
-        department: profileForm.department,
+        username: profileForm.username,
         bio: profileForm.bio,
-        location: profileForm.location,
-        timezone: profileForm.timezone,
       });
       await usersApi.updateStatus(profileForm.status);
       await refresh(true);
@@ -222,12 +213,12 @@ export function MyProfilePage() {
                   <Input value={profileForm.name} onChange={e => setProfileForm(prev => ({ ...prev, name: e.target.value }))} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Job Title</Label>
-                  <Input value={profileForm.title} onChange={e => setProfileForm(prev => ({ ...prev, title: e.target.value }))} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Department</Label>
-                  <Input value={profileForm.department} onChange={e => setProfileForm(prev => ({ ...prev, department: e.target.value }))} />
+                  <Label>Username</Label>
+                  <Input 
+                    value={profileForm.username} 
+                    onChange={e => setProfileForm(prev => ({ ...prev, username: e.target.value }))} 
+                    placeholder="^[a-z0-9._-]+$"
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Email</Label>
@@ -246,14 +237,7 @@ export function MyProfilePage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
-                  <Label>Location</Label>
-                  <Input value={profileForm.location} onChange={e => setProfileForm(prev => ({ ...prev, location: e.target.value }))} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Timezone</Label>
-                  <Input value={profileForm.timezone} onChange={e => setProfileForm(prev => ({ ...prev, timezone: e.target.value }))} />
-                </div>
+
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label>Bio</Label>
                   <Input value={profileForm.bio} onChange={e => setProfileForm(prev => ({ ...prev, bio: e.target.value }))} />

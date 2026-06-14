@@ -28,11 +28,11 @@ export const authApi = {
     });
   },
 
-  async resendVerificationOtp(userId: string) {
+  async resendVerificationOtp(email: string) {
     return apiRequest("/auth/resend-verification-otp", {
       auth: false,
       method: "POST",
-      body: { userId },
+      body: { email },
     });
   },
 
