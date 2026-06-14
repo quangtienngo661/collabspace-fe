@@ -86,14 +86,7 @@ export function LoginPage() {
               <Checkbox id="remember" />
               <Label htmlFor="remember" className="text-xs text-slate-400 cursor-pointer">Remember me</Label>
             </div>
-            <button
-              type="button"
-              className="text-xs text-slate-500 cursor-not-allowed"
-              title="Password reset is not available yet"
-              onClick={() => toast.info("Password reset is not available in this demo yet")}
-            >
-              Forgot password?
-            </button>
+            <Link to="/forgot-password" className="text-xs text-blue-400 hover:text-blue-300">Forgot password?</Link>
           </div>
 
           <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={loading}>
