@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router";
-import { Search, Bell, ChevronRight, Menu, Sun, Moon, User, Settings, Key, LogOut, ClipboardList, MessageSquare, Building2, AlertTriangle, type LucideIcon } from "lucide-react";
+import { Search, Bell, ChevronRight, Menu, Sun, Moon, User, Settings, Key, LogOut, Monitor, ClipboardList, MessageSquare, Building2, AlertTriangle, type LucideIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
@@ -189,6 +189,7 @@ export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuItem onClick={() => navigate("/profile")}><User className="w-4 h-4 mr-2" />My Profile</DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate("/profile?tab=preferences")}><Settings className="w-4 h-4 mr-2" />Preferences</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigate("/profile?tab=sessions")}><Monitor className="w-4 h-4 mr-2" />Sessions</DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate("/profile?tab=password")}><Key className="w-4 h-4 mr-2" />Change Password</DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogout} className="text-red-600 dark:text-red-400"><LogOut className="w-4 h-4 mr-2" />Logout</DropdownMenuItem>
