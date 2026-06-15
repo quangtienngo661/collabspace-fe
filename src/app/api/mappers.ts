@@ -1,10 +1,4 @@
 import type {
-  ActivityItem,
-  AdminAuthUser,
-  AdminPermission,
-  AdminRole,
-  AdminUserAggregate,
-  AdminWorkspace,
   ApiUserStatus,
   Attachment,
   AuthUser,
@@ -76,8 +70,6 @@ export function mapUserProfile(raw: AnyRecord, auth?: Partial<AuthUser>): User {
     role,
     roles: auth?.roles,
     status: apiStatusToUi(raw.status),
-    title: raw.jobTitle ?? "",
-    department: raw.department ?? "",
     joinedAt: raw.createdAt ?? "",
     displayName: raw.displayName ?? null,
     username: raw.username ?? null,
@@ -99,8 +91,6 @@ export function mapUserSummary(raw: AnyRecord): User {
     avatarUrl: raw.avatarUrl ?? null,
     role: "member",
     status: apiStatusToUi(raw.status),
-    title: raw.jobTitle ?? "",
-    department: raw.department ?? "",
     joinedAt: raw.createdAt ?? "",
     displayName: raw.displayName ?? null,
     username: raw.username ?? null,
@@ -129,8 +119,8 @@ export function mapWorkspace(raw: AnyRecord): Workspace {
     name,
     slug: raw.slug ?? slugify(name),
     description: raw.description ?? "",
-    memberCount: raw.memberCount ?? raw.members?.length ?? 0,
-    projectCount: raw.projectCount ?? raw.projects?.length ?? 0,
+    memberCount: raw.memberCount ?? raw.member_count ?? raw.members?.length ?? 0,
+    projectCount: raw.projectCount ?? raw.project_count ?? raw.projects?.length ?? 0,
     createdAt: raw.createdAt ?? raw.created_at ?? "",
     updatedAt: raw.updatedAt ?? raw.updated_at,
     ownerId: raw.ownerId ?? raw.owner_id ?? "",
@@ -157,7 +147,7 @@ export function mapProject(raw: AnyRecord, workspaceId?: string): Project {
     status: raw.is_deleted ? "archived" : raw.status ?? "active",
     createdAt: raw.createdAt ?? raw.created_at ?? "",
     updatedAt: raw.updatedAt ?? raw.updated_at,
-    taskCount: raw.taskCount ?? 0,
+    taskCount: raw.taskCount ?? raw.task_count ?? 0,
     createdBy: raw.createdBy ?? raw.created_by,
   };
 }
@@ -242,85 +232,21 @@ export function mapComment(raw: AnyRecord): Comment {
   };
 }
 
-export function mapActivityItem(raw: AnyRecord): ActivityItem {
-  return {
-    id: raw.id ?? `${raw.type}-${raw.occurredAt}`,
-    type: raw.type ?? "unknown",
-    actorId: raw.actorId ?? null,
-    actorName: raw.actorName ?? null,
-    actorAvatarUrl: raw.actorAvatarUrl ?? null,
-    summary: raw.summary ?? "",
-    meta: raw.meta ?? {},
-    occurredAt: raw.occurredAt ?? raw.createdAt ?? "",
-  };
-}
-
-export function mapAdminRole(raw: AnyRecord): AdminRole {
-  return {
-    id: raw.id,
-    name: raw.name,
-    description: raw.description ?? "",
-    permissions: raw.permissions ?? [],
-  };
-}
-
-export function mapAdminPermission(raw: AnyRecord): AdminPermission {
-  return {
-    id: raw.id,
-    name: raw.name,
-    description: raw.description ?? "",
-  };
-}
-
-export function mapAdminAuthUser(raw: AnyRecord): AdminAuthUser {
-  return {
-    id: raw.id,
-    email: raw.email ?? "",
-    emailVerified: Boolean(raw.emailVerified),
-    isActive: raw.isActive !== false,
-    lastLoginAt: raw.lastLoginAt ?? null,
-    createdAt: raw.createdAt ?? "",
-    roles: raw.roles ?? [],
-  };
-}
-
-export function mapAdminUserAggregate(raw: AnyRecord): AdminUserAggregate {
-  return {
-    ...mapAdminAuthUser(raw),
-    fullName: raw.fullName ?? null,
-    displayName: raw.displayName ?? null,
-    username: raw.username ?? null,
-    avatarUrl: raw.avatarUrl ?? null,
-    bio: raw.bio ?? null,
-  };
-}
-
-export function mapAdminWorkspace(raw: AnyRecord): AdminWorkspace {
-  return {
-    id: raw.id,
-    name: raw.name ?? "Untitled",
-    description: raw.description ?? "",
-    ownerId: raw.ownerId ?? raw.owner_id ?? "",
-    memberCount: raw.memberCount ?? 0,
-    createdAt: raw.createdAt ?? raw.created_at ?? "",
-    updatedAt: raw.updatedAt ?? raw.updated_at,
-  };
-}
-
 export function mapNotification(raw: AnyRecord): Notification {
   const status = String(raw.status ?? "").toUpperCase();
   const targetType = String(raw.targetType ?? "").toLowerCase();
   const targetId = raw.targetId;
   const metadata = (raw.metadata ?? {}) as Record<string, unknown>;
-  const workspaceId = (metadata.workspaceId as string | undefined) ?? (targetType === "workspace" ? targetId : undefined);
   const invitationId = metadata.invitationId as string | undefined;
   const link =
     invitationId
       ? `/invitations?id=${invitationId}`
       : targetType === "task" && targetId
-        ? `/workspaces/${workspaceId ?? ""}/projects`
+        ? metadata.projectId
+          ? `/workspaces/${metadata.workspaceId ?? ""}/projects/${metadata.projectId}`
+          : `/workspaces/${metadata.workspaceId ?? targetId}`
         : targetType === "workspace" && targetId
-          ? `/invitations?workspaceId=${targetId}`
+          ? `/workspaces/${targetId}`
           : "/notifications";
 
   return {
@@ -333,7 +259,7 @@ export function mapNotification(raw: AnyRecord): Notification {
     archived: status === "ARCHIVED",
     createdAt: raw.createdAt ?? "",
     link,
-    targetId: targetId ?? null,
+    targetId,
     targetType: targetType || null,
     metadata,
   };

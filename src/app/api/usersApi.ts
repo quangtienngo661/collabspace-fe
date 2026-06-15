@@ -1,5 +1,5 @@
 import { apiRequest } from "./httpClient";
-import { mapPreferences, mapUserProfile, mapUserSummary, uiStatusToApi } from "./mappers";
+import { apiStatusToUi, mapPreferences, mapUserProfile, mapUserSummary, uiStatusToApi } from "./mappers";
 import type { AuthUser, User, UserPreferences, UserStatus } from "./types";
 
 export const usersApi = {
@@ -40,6 +40,11 @@ export const usersApi = {
       method: "PATCH",
       body: { status: uiStatusToApi(status), lastSeenAt: new Date().toISOString() },
     });
+  },
+
+  async status(): Promise<UserStatus> {
+    const raw = await apiRequest<{ status: string }>("/users/me/status");
+    return apiStatusToUi(raw.status);
   },
 
   async list(params: { q?: string; limit?: number; offset?: number } = {}): Promise<{ items: User[]; total: number }> {

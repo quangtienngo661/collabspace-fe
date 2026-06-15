@@ -3,8 +3,6 @@ import { NavLink, useNavigate } from "react-router";
 import {
   Activity,
   Bell,
-  Building2,
-  Megaphone,
   ChevronRight,
   Database,
   FileText,
@@ -43,9 +41,7 @@ interface AdminWorkspaceLayoutProps {
 }
 
 const adminNavItems = [
-  { label: "Access Control", description: "Roles and permissions", icon: ShieldCheck, to: "/admin", end: true },
-  { label: "Workspaces", description: "Force delete / join", icon: Building2, to: "/admin/workspaces" },
-  { label: "Broadcast", description: "System notifications", icon: Megaphone, to: "/admin/broadcast" },
+  { label: "Platform Management", description: "Roles, users, workspaces", icon: Settings2, to: "/admin", end: true },
   { label: "System Health", description: "Services and queues", icon: Activity, to: "/admin/health" },
 ];
 
@@ -65,8 +61,6 @@ function fallbackUser(email?: string): User {
     avatar: (email ?? "A").slice(0, 2).toUpperCase(),
     role: "admin",
     status: "online",
-    title: "",
-    department: "",
     joinedAt: "",
   };
 }
@@ -75,8 +69,8 @@ export function AdminWorkspaceLayout({ title, description, children, action, dar
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const { authUser, profile, logout } = useAuth();
-  const notificationsState = useAsyncData(() => notificationsApi.list().then(r => r.notifications), []);
-  const adminNotifications = (notificationsState.data ?? []).filter(n => !n.archived).slice(0, 5);
+  const notificationsState = useAsyncData<{ notifications: Notification[]; total: number; unreadCount: number }>(() => notificationsApi.list(), []);
+  const adminNotifications = (notificationsState.data?.notifications ?? []).filter(n => !n.archived).slice(0, 5);
   const unreadCount = adminNotifications.filter(n => !n.read).length;
   const currentUser = profile ?? fallbackUser(authUser?.email);
 

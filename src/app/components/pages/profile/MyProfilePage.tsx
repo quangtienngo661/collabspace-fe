@@ -42,8 +42,6 @@ function fallbackUser(email?: string): DomainUser {
     avatar: (email ?? "U").slice(0, 2).toUpperCase(),
     role: "member",
     status: "offline",
-    title: "",
-    department: "",
     joinedAt: "",
   };
 }

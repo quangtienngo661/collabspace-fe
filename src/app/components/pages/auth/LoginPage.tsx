@@ -35,7 +35,7 @@ export function LoginPage() {
       const isAdmin = await login(email, password);
       setLoading(false);
       toast.success("Welcome back");
-      navigate(isAdmin ? "/admin" : "/dashboard");
+      navigate("/dashboard");
     } catch (error) {
       setLoading(false);
       toast.error(error instanceof Error ? error.message : "Unable to sign in");

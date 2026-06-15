@@ -33,7 +33,7 @@ export function OtpPage() {
   }
 
   async function resend() {
-    if (!email || email === "your email address") { setError("Missing email. Please register again."); return; }
+    if (!email || email === "your email address") { setError("Missing email address. Please register again."); return; }
     try {
       await authApi.resendVerificationOtp(email);
       toast.success("Verification code resent");

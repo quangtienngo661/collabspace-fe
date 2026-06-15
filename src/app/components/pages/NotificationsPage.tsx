@@ -1,24 +1,25 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Archive, Bell, Building2, Check, ClipboardList, MessageSquare, AlertTriangle, AtSign, type LucideIcon } from "lucide-react";
+import { Archive, Bell, Building2, Check, ClipboardList, MessageSquare, AlertTriangle, type LucideIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { EmptyState, ErrorState } from "../shared/EmptyState";
-import { cn } from "../ui/utils";
 import { notificationsApi } from "../../api/notificationsApi";
 import { workspaceApi } from "../../api/workspaceApi";
+import { toast } from "sonner";
 import type { Notification } from "../../api/types";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { timeAgo } from "../../utils/format";
-import { toast } from "sonner";
+import { cn } from "../ui/utils";
+
 
 const notificationIconMap: Record<string, LucideIcon> = {
   task_assigned: ClipboardList,
   taskassigned: ClipboardList,
   comment_added: MessageSquare,
   commentadded: MessageSquare,
-  comment_mentioned: AtSign,
-  commentmentioned: AtSign,
+  comment_mentioned: MessageSquare,
+  commentmentioned: MessageSquare,
   workspace_invited: Building2,
   workspaceinvited: Building2,
   system_alert: AlertTriangle,
@@ -42,60 +43,62 @@ function normalizedType(type: string) {
   return type.toLowerCase().replace(/[^a-z0-9]+/g, "_");
 }
 
-function invitationIdFromNotification(n: Notification): string | undefined {
-  const metaId = n.metadata?.invitationId;
-  return typeof metaId === "string" ? metaId : undefined;
-}
-
-interface NotifItemProps {
-  n: Notification;
-  onMarkRead: (id: string) => Promise<void>;
-  onReload: () => void;
-}
-
-function NotifItem({ n, onMarkRead, onReload }: NotifItemProps) {
+function NotifItem({ n, onRefresh }: { n: Notification; onRefresh: () => void }) {
+  const [loading, setLoading] = useState(false);
+  const [actionDone, setActionDone] = useState<'accepted' | 'rejected' | null>(null);
   const navigate = useNavigate();
   const type = normalizedType(n.type);
   const Icon = notificationIconMap[type] || Bell;
-  const invitationId = invitationIdFromNotification(n);
-  const isInvite = type.includes("workspace_invited");
+
+  async function handleMarkRead() {
+    try {
+      setLoading(true);
+      await notificationsApi.markRead(n.id);
+      onRefresh();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to mark as read");
+      setLoading(false);
+    }
+  }
 
   async function handleAccept() {
-    if (!invitationId) {
-      navigate("/invitations");
-      return;
-    }
+    if (!n.targetId) return;
     try {
-      const result = await workspaceApi.acceptInvitation(invitationId);
-      await onMarkRead(n.id);
-      toast.success("Invitation accepted");
-      onReload();
-      if (result.workspaceId) navigate(`/workspaces/${result.workspaceId}`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to accept invitation");
+      setLoading(true);
+      await workspaceApi.acceptInvitation(n.targetId);
+      toast.success("Invitation accepted!");
+      setActionDone('accepted');
+      await notificationsApi.markRead(n.id);
+      onRefresh();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to accept invitation");
+      setLoading(false);
     }
   }
 
   async function handleReject() {
-    if (!invitationId) {
-      toast.error("Invitation id missing — open Invitations page and enter the id from your invite");
-      return;
-    }
+    if (!n.targetId) return;
     try {
-      await workspaceApi.rejectInvitation(invitationId);
-      await onMarkRead(n.id);
-      toast.success("Invitation declined");
-      onReload();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to reject invitation");
+      setLoading(true);
+      await workspaceApi.rejectInvitation(n.targetId);
+      toast.success("Invitation rejected");
+      setActionDone('rejected');
+      await notificationsApi.markRead(n.id);
+      onRefresh();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to reject invitation");
+      setLoading(false);
     }
   }
 
   return (
-    <div className={cn(
-      "flex gap-3 border-b border-slate-100 px-4 py-3.5 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/30",
-      !n.read && "bg-blue-50/50 dark:bg-blue-900/10",
-    )}>
+    <div 
+      onClick={() => navigate(n.link)}
+      className={cn(
+        "flex gap-3 border-b border-slate-100 px-4 py-3.5 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/30 cursor-pointer",
+        !n.read && "bg-blue-50/50 dark:bg-blue-900/10",
+      )}
+    >
       <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300">
         <Icon className="size-5" />
       </span>
@@ -111,21 +114,38 @@ function NotifItem({ n, onMarkRead, onReload }: NotifItemProps) {
           </div>
           {!n.read && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-blue-500" />}
         </div>
-        <div className="mt-2 flex flex-wrap gap-2">
+        <div className="mt-3 flex gap-2" onClick={e => e.stopPropagation()}>
+          {type === "workspace_invited" && !n.read && !actionDone && (
+            <>
+              <Button size="sm" variant="default" disabled={loading} onClick={handleAccept}>Accept</Button>
+              <Button size="sm" variant="outline" disabled={loading} onClick={handleReject}>Reject</Button>
+            </>
+          )}
+          {actionDone === 'accepted' && (
+            <span className="text-xs font-semibold text-green-600 dark:text-green-400 self-center">Accepted</span>
+          )}
+          {actionDone === 'rejected' && (
+            <span className="text-xs font-semibold text-red-600 dark:text-red-400 self-center">Rejected</span>
+          )}
           {!n.read && (
             <button
               type="button"
-              onClick={() => void onMarkRead(n.id)}
-              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+              disabled={loading}
+              onClick={handleMarkRead}
+              className="flex cursor-pointer items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
             >
               <Check className="size-3" /> Mark read
             </button>
           )}
-          {isInvite && !n.read && (
-            <>
-              <button type="button" onClick={() => void handleAccept()} className="text-xs text-green-600 hover:text-green-700">Accept</button>
-              <button type="button" onClick={() => void handleReject()} className="text-xs text-red-500 hover:text-red-600">Decline</button>
-            </>
+          {!n.archived && (
+            <button
+              type="button"
+              disabled
+              title="Archive endpoint is not exposed by the backend yet"
+              className="flex cursor-not-allowed items-center gap-1 text-xs text-slate-400"
+            >
+              <Archive className="size-3" /> Archive
+            </button>
           )}
         </div>
       </div>
@@ -135,39 +155,27 @@ function NotifItem({ n, onMarkRead, onReload }: NotifItemProps) {
 
 export function NotificationsPage() {
   const [typeFilter, setTypeFilter] = useState("all");
-  const notificationsState = useAsyncData(
-    () => notificationsApi.list().then(r => ({ notifications: r.notifications, unreadCount: r.unreadCount })),
-    [],
-  );
+  const [markAllLoading, setMarkAllLoading] = useState(false);
+  const notificationsState = useAsyncData<{ notifications: Notification[]; total: number; unreadCount: number }>(() => notificationsApi.list(), []);
   const notifs = notificationsState.data?.notifications ?? [];
   const active = notifs.filter(n => !n.archived);
   const archived = notifs.filter(n => n.archived);
   const unread = active.filter(n => !n.read);
 
-  async function markRead(id: string) {
-    await notificationsApi.markRead(id);
-    notificationsState.setData(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        unreadCount: Math.max(0, prev.unreadCount - 1),
-        notifications: prev.notifications.map(n => n.id === id ? { ...n, read: true } : n),
-      };
-    });
-  }
-
-  async function markAllRead() {
-    try {
-      await notificationsApi.markAllRead();
-      await notificationsState.reload();
-      toast.success("All notifications marked as read");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to mark all as read");
-    }
-  }
-
   function filtered(list: Notification[]) {
     return list.filter(n => typeFilter === "all" || normalizedType(n.type) === typeFilter);
+  }
+
+  async function handleMarkAllRead() {
+    try {
+      setMarkAllLoading(true);
+      await notificationsApi.markAllRead();
+      notificationsState.reload();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to mark all as read");
+    } finally {
+      setMarkAllLoading(false);
+    }
   }
 
   return (
@@ -176,7 +184,7 @@ export function NotificationsPage() {
         <div className="min-w-0">
           <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">Notifications</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {notificationsState.loading ? "Loading notifications..." : `${notificationsState.data?.unreadCount ?? unread.length} unread`}
+            {notificationsState.loading ? "Loading notifications..." : `${unread.length} unread`}
           </p>
         </div>
         <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:justify-end">
@@ -195,8 +203,8 @@ export function NotificationsPage() {
           <Button
             size="sm"
             variant="outline"
-            disabled={unread.length === 0}
-            onClick={() => void markAllRead()}
+            disabled={markAllLoading || unread.length === 0}
+            onClick={handleMarkAllRead}
             className="h-8 w-full min-w-0 shrink gap-1.5 text-xs sm:w-auto sm:shrink-0"
           >
             <Check className="size-3.5" />
@@ -207,7 +215,7 @@ export function NotificationsPage() {
 
       {notificationsState.error ? (
         <ErrorState
-          title="Notifications unavailable"
+          title="Could not load notifications"
           description={notificationsState.error}
           className="rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"
         />
@@ -228,9 +236,7 @@ export function NotificationsPage() {
                 <EmptyState icon={Bell} title="Loading notifications..." />
               ) : filtered(unread).length === 0 ? (
                 <EmptyState icon={Bell} title="All caught up" description="You have no unread notifications." />
-              ) : filtered(unread).map(n => (
-                <NotifItem key={n.id} n={n} onMarkRead={markRead} onReload={() => void notificationsState.reload()} />
-              ))}
+              ) : filtered(unread).map(n => <NotifItem key={n.id} n={n} onRefresh={notificationsState.reload} />)}
             </div>
           </TabsContent>
 
@@ -238,9 +244,7 @@ export function NotificationsPage() {
             <div className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
               {filtered(active).length === 0 ? (
                 <EmptyState icon={Bell} title="No notifications" description="The backend returned no active notifications." />
-              ) : filtered(active).map(n => (
-                <NotifItem key={n.id} n={n} onMarkRead={markRead} onReload={() => void notificationsState.reload()} />
-              ))}
+              ) : filtered(active).map(n => <NotifItem key={n.id} n={n} onRefresh={notificationsState.reload} />)}
             </div>
           </TabsContent>
 
@@ -248,9 +252,7 @@ export function NotificationsPage() {
             <div className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
               {filtered(archived).length === 0 ? (
                 <EmptyState icon={Archive} title="No archived notifications" />
-              ) : filtered(archived).map(n => (
-                <NotifItem key={n.id} n={n} onMarkRead={markRead} onReload={() => void notificationsState.reload()} />
-              ))}
+              ) : filtered(archived).map(n => <NotifItem key={n.id} n={n} onRefresh={notificationsState.reload} />)}
             </div>
           </TabsContent>
         </Tabs>

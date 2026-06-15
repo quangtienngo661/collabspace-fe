@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { cn } from "../../ui/utils";
 import { taskApi } from "../../../api/taskApi";
 import { workspaceApi } from "../../../api/workspaceApi";
-import { useWorkspaceMemberUsers } from "../../../hooks/useWorkspaceMemberUsers";
+import { usersApi } from "../../../api/usersApi";
 import { initials } from "../../../api/mappers";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 import type { Task, TaskStatus } from "../../../api/types";
@@ -130,9 +130,13 @@ export function KanbanBoardPage() {
     [wsId, pid],
   );
 
-  const { data: memberUsers } = useWorkspaceMemberUsers(wsId);
-  const users = memberUsers?.map(u => ({ userId: u.id, name: u.name })) ?? [];
+  const usersState = useAsyncData(async () => {
+    if (!wsId) return [];
+    const members = await workspaceApi.members(wsId);
+    return usersApi.bulk(members.map(m => m.userId));
+  }, [wsId]);
   const taskList = taskState.data ?? [];
+  const users = (usersState.data ?? []).map(u => ({ userId: u.id, name: u.name }));
 
   const filteredTasks = taskList.filter(t => {
     const matchSearch = !search || t.title.toLowerCase().includes(search.toLowerCase());

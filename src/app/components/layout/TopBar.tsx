@@ -10,8 +10,9 @@ import { UserAvatar } from "../shared/UserAvatar";
 import { toast } from "sonner";
 import { useAuth } from "../../auth/AuthContext";
 import { notificationsApi, NotificationsUnavailableError } from "../../api/notificationsApi";
+import { usersApi } from "../../api/usersApi";
 import { useAsyncData } from "../../hooks/useAsyncData";
-import type { Notification } from "../../api/types";
+import type { Notification, UserStatus } from "../../api/types";
 import { timeAgo } from "../../utils/format";
 
 function isUuid(str: string) {
@@ -41,7 +42,7 @@ interface TopBarProps {
 export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { profile, logout } = useAuth();
+  const { profile, logout, setProfile } = useAuth();
   const [notifOpen, setNotifOpen] = useState(false);
   
   const { data: workspaces } = useAsyncData(() => {
@@ -58,11 +59,8 @@ export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
     return import("../../api/workspaceApi").then(m => m.workspaceApi.listProjects(wsId));
   }, [wsId]);
 
-  const { data: notifData, error: notifError, setData: setNotifs, reload: reloadNotifs } = useAsyncData<Notification[]>(
-    () => notificationsApi.list().then(r => r.notifications),
-    [],
-  );
-  const notifs = notifData ?? [];
+  const { data: notifData, error: notifError, setData: setNotifs } = useAsyncData<{ notifications: Notification[]; total: number; unreadCount: number }>(() => notificationsApi.list(), []);
+  const notifs = notifData?.notifications ?? [];
 
   const breadcrumbs = location.pathname.split("/").filter(Boolean).map(p => {
     if (ROUTE_MAP[p]) return ROUTE_MAP[p];
@@ -81,16 +79,27 @@ export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
   async function markAllRead() {
     try {
       await notificationsApi.markAllRead();
-      setNotifs(prev => (prev ?? []).map(n => ({ ...n, read: true })));
-      void reloadNotifs();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to mark all as read");
+      setNotifs(prev => prev ? { ...prev, notifications: prev.notifications.map(n => ({ ...n, read: true })), unreadCount: 0 } : prev);
+      toast.success("All marked as read");
+    } catch (e: any) {
+      toast.error("Failed to mark all as read");
     }
   }
 
   async function handleLogout() {
     await logout();
     navigate("/login");
+  }
+
+  async function handleStatusChange(status: UserStatus) {
+    if (!profile) return;
+    try {
+      await usersApi.updateStatus(status);
+      setProfile({ ...profile, status });
+      toast.success(`Status updated to ${status}`);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update status");
+    }
   }
 
   const unreadNotifs = notifs.filter(n => !n.read && !n.archived);
@@ -151,7 +160,7 @@ export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
           <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700">
             {notifError && (
               <div className="px-4 py-6 text-center text-xs text-slate-500">
-                {notifError.includes(new NotificationsUnavailableError().message) ? "Notifications API unavailable" : notifError}
+                {notifError.includes(new NotificationsUnavailableError().message) ? "Could not load notifications" : notifError}
               </div>
             )}
             {!notifError && notifs.filter(n => !n.archived).slice(0, 8).map(n => {
@@ -195,14 +204,22 @@ export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
             <span className="hidden md:block text-xs font-medium text-slate-700 dark:text-slate-300">{profile?.name ?? "User"}</span>
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem onClick={() => navigate("/profile")}><User className="w-4 h-4 mr-2" />My Profile</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => navigate("/profile?tab=preferences")}><Settings className="w-4 h-4 mr-2" />Preferences</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => navigate("/profile?tab=sessions")}><Monitor className="w-4 h-4 mr-2" />Sessions</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => navigate("/profile?tab=password")}><Key className="w-4 h-4 mr-2" />Change Password</DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleLogout} className="text-red-600 dark:text-red-400"><LogOut className="w-4 h-4 mr-2" />Logout</DropdownMenuItem>
-        </DropdownMenuContent>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={() => navigate("/profile")}><User className="w-4 h-4 mr-2" />My Profile</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/profile?tab=preferences")}><Settings className="w-4 h-4 mr-2" />Preferences</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/profile?tab=sessions")}><Monitor className="w-4 h-4 mr-2" />Sessions</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/profile?tab=password")}><Key className="w-4 h-4 mr-2" />Change Password</DropdownMenuItem>
+            
+            <DropdownMenuSeparator />
+            <div className="px-2 py-1.5 text-xs font-medium text-slate-500">Status</div>
+            <DropdownMenuItem onClick={() => void handleStatusChange("online")}><span className="w-2 h-2 rounded-full bg-green-500 mr-2"/>Online</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void handleStatusChange("busy")}><span className="w-2 h-2 rounded-full bg-red-500 mr-2"/>Busy</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void handleStatusChange("away")}><span className="w-2 h-2 rounded-full bg-amber-500 mr-2"/>Away</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void handleStatusChange("offline")}><span className="w-2 h-2 rounded-full border-2 border-slate-300 dark:border-slate-500 mr-2"/>Offline</DropdownMenuItem>
+            
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout} className="text-red-600 dark:text-red-400"><LogOut className="w-4 h-4 mr-2" />Logout</DropdownMenuItem>
+          </DropdownMenuContent>
       </DropdownMenu>
     </header>
   );

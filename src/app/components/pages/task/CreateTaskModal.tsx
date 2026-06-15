@@ -7,8 +7,10 @@ import { Textarea } from "../../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { toast } from "sonner";
 import { taskApi } from "../../../api/taskApi";
+import { workspaceApi } from "../../../api/workspaceApi";
+import { usersApi } from "../../../api/usersApi";
 import type { Task } from "../../../api/types";
-import { useWorkspaceMemberUsers } from "../../../hooks/useWorkspaceMemberUsers";
+import { useAsyncData } from "../../../hooks/useAsyncData";
 
 interface CreateTaskModalProps {
   open: boolean;
@@ -24,7 +26,12 @@ export function CreateTaskModal({ open, onClose, workspaceId, projectId = null, 
   const [form, setForm] = useState({ title: "", description: "", priority: "medium", status: "todo", assigneeId: UNASSIGNED_VALUE });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const { data: memberUsers } = useWorkspaceMemberUsers(workspaceId);
+  const { data: memberUsers } = useAsyncData(async () => {
+    const members = await workspaceApi.members(workspaceId);
+    const ids = members.map(member => member.userId).filter(Boolean);
+    if (ids.length === 0) return [];
+    return usersApi.bulk(ids);
+  }, [workspaceId]);
   const users = memberUsers?.map(u => ({ id: u.id, name: u.name })) ?? [];
 
   // BUG-006 fix: reset form khi dialog đóng
