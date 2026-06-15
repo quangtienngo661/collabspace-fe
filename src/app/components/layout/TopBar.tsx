@@ -13,7 +13,7 @@ import { notificationsApi } from "../../api/notificationsApi";
 import { navigateFromNotification } from "../../utils/notificationNavigation";
 import { usersApi } from "../../api/usersApi";
 import { useAsyncData } from "../../hooks/useAsyncData";
-import type { Notification, User, UserStatus } from "../../api/types";
+import type { Notification, User as DomainUser, UserStatus } from "../../api/types";
 import { timeAgo } from "../../utils/format";
 
 function isUuid(str: string) {
@@ -48,7 +48,7 @@ export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [searchResults, setSearchResults] = useState<User[]>([]);
+  const [searchResults, setSearchResults] = useState<DomainUser[]>([]);
   
   const { data: workspaces } = useAsyncData(() => {
     // Only fetch if we are on a workspace route
