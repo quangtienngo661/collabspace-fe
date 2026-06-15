@@ -231,6 +231,17 @@ Admin-0 (adminApi) → Admin-1/2 (AdminPage RBAC + users) → Admin-3 (workspace
 
 ---
 
+### Mismatch FE↔BE đã sửa (2026-06)
+
+| # | Vấn đề | Sửa |
+|---|--------|-----|
+| M1 | Invite accept/reject dùng `targetId` (workspaceId) | `getNotificationInvitationId()` → `metadata.invitationId` |
+| M2 | Activity API dùng `skip` | Đổi sang `offset` (workspace + task) |
+| M3 | Task activity parse `{ items, total }` + field BE | `mapActivityTimelineItem`, `TaskActivity.tsx` |
+| M4 | Dashboard activity field ảo (`user`, `action`) | Dùng `actorName`, `summary`, `occurredAt` |
+
+---
+
 ## Phase 4 — Hiển thị sai / thiếu dữ liệu
 
 Không crash nhưng UI **lệch contract** hoặc **gây hiểu nhầm**.

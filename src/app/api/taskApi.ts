@@ -1,6 +1,6 @@
 import { apiRequest } from "./httpClient";
-import { mapAttachment, mapComment, mapTask } from "./mappers";
-import type { Attachment, Comment, Task, TaskStatus } from "./types";
+import { mapActivityTimelineItem, mapAttachment, mapComment, mapTask } from "./mappers";
+import type { ActivityTimelineItem, Attachment, Comment, Task, TaskStatus } from "./types";
 
 export const taskApi = {
   async list(params: { workspaceId: string; projectId?: string; status?: string; assigneeId?: string }): Promise<{ tasks: Task[]; total: number }> {
@@ -74,7 +74,16 @@ export const taskApi = {
     });
   },
 
-  async getActivity(taskId: string, skip = 0, limit = 20): Promise<any[]> {
-    return apiRequest<any[]>(`/tasks/${taskId}/activity?skip=${skip}&limit=${limit}`);
+  async getActivity(
+    taskId: string,
+    offset = 0,
+    limit = 20,
+  ): Promise<{ items: ActivityTimelineItem[]; total: number }> {
+    const res = await apiRequest<any>(`/tasks/${taskId}/activity?offset=${offset}&limit=${limit}`);
+    if (Array.isArray(res)) {
+      return { items: res.map(mapActivityTimelineItem), total: res.length };
+    }
+    const items = (res?.items ?? []).map(mapActivityTimelineItem);
+    return { items, total: res?.total ?? items.length };
   },
 };

@@ -5,6 +5,7 @@ import { Button } from "../ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { EmptyState, ErrorState } from "../shared/EmptyState";
 import { notificationsApi } from "../../api/notificationsApi";
+import { getNotificationInvitationId } from "../../api/mappers";
 import { workspaceApi } from "../../api/workspaceApi";
 import { toast } from "sonner";
 import type { Notification } from "../../api/types";
@@ -49,6 +50,7 @@ function NotifItem({ n, onRefresh }: { n: Notification; onRefresh: () => void })
   const navigate = useNavigate();
   const type = normalizedType(n.type);
   const Icon = notificationIconMap[type] || Bell;
+  const invitationId = getNotificationInvitationId(n);
 
   async function handleMarkRead() {
     try {
@@ -62,14 +64,20 @@ function NotifItem({ n, onRefresh }: { n: Notification; onRefresh: () => void })
   }
 
   async function handleAccept() {
-    if (!n.targetId) return;
+    if (!invitationId) {
+      toast.error("Invitation id missing from notification");
+      return;
+    }
     try {
       setLoading(true);
-      await workspaceApi.acceptInvitation(n.targetId);
+      const result = await workspaceApi.acceptInvitation(invitationId);
       toast.success("Invitation accepted!");
-      setActionDone('accepted');
+      setActionDone("accepted");
       await notificationsApi.markRead(n.id);
       onRefresh();
+      if (result.workspaceId) {
+        navigate(`/workspaces/${result.workspaceId}`);
+      }
     } catch (e: any) {
       toast.error(e.message || "Failed to accept invitation");
       setLoading(false);
@@ -77,10 +85,13 @@ function NotifItem({ n, onRefresh }: { n: Notification; onRefresh: () => void })
   }
 
   async function handleReject() {
-    if (!n.targetId) return;
+    if (!invitationId) {
+      toast.error("Invitation id missing from notification");
+      return;
+    }
     try {
       setLoading(true);
-      await workspaceApi.rejectInvitation(n.targetId);
+      await workspaceApi.rejectInvitation(invitationId);
       toast.success("Invitation rejected");
       setActionDone('rejected');
       await notificationsApi.markRead(n.id);
@@ -115,7 +126,7 @@ function NotifItem({ n, onRefresh }: { n: Notification; onRefresh: () => void })
           {!n.read && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-blue-500" />}
         </div>
         <div className="mt-3 flex gap-2" onClick={e => e.stopPropagation()}>
-          {type === "workspace_invited" && !n.read && !actionDone && (
+          {type === "workspace_invited" && invitationId && !n.read && !actionDone && (
             <>
               <Button size="sm" variant="default" disabled={loading} onClick={handleAccept}>Accept</Button>
               <Button size="sm" variant="outline" disabled={loading} onClick={handleReject}>Reject</Button>

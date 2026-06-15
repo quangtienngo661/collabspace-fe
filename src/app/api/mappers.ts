@@ -3,6 +3,7 @@ import type {
   AdminPermission,
   AdminRole,
   AdminUserAggregate,
+  ActivityTimelineItem,
   AdminWorkspace,
   ApiUserStatus,
   Attachment,
@@ -218,6 +219,29 @@ export function mapTask(raw: AnyRecord): Task {
     attachmentCount: raw.attachmentCount ?? attachments.length,
     commentCount: raw.commentCount ?? 0,
   };
+}
+
+export function mapActivityTimelineItem(raw: AnyRecord): ActivityTimelineItem {
+  return {
+    id: raw.id,
+    actorId: raw.actorId ?? null,
+    actorName: raw.actorName ?? "Someone",
+    actorAvatarUrl: raw.actorAvatarUrl ?? null,
+    type: raw.type ?? "",
+    summary: raw.summary ?? "",
+    occurredAt: raw.occurredAt ?? raw.timestamp ?? "",
+    meta: raw.meta,
+  };
+}
+
+export function getNotificationInvitationId(
+  notification: Pick<Notification, "metadata" | "targetId">,
+): string | null {
+  const invitationId = notification.metadata?.invitationId;
+  if (typeof invitationId === "string" && invitationId.trim()) {
+    return invitationId.trim();
+  }
+  return null;
 }
 
 export function mapComment(raw: AnyRecord): Comment {

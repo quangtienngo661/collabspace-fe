@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { CheckSquare, Users, Bell, FolderOpen, Plus, UserPlus, TrendingUp, Clock, RefreshCw, Activity } from "lucide-react";
+import { CheckSquare, Users, Bell, FolderOpen, Plus, UserPlus, TrendingUp, Clock, RefreshCw } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
@@ -11,6 +11,7 @@ import { EmptyState, ErrorState } from "../shared/EmptyState";
 import { workspaceApi } from "../../api/workspaceApi";
 import { taskApi } from "../../api/taskApi";
 import { notificationsApi } from "../../api/notificationsApi";
+import { initials } from "../../api/mappers";
 import { useAuth } from "../../auth/AuthContext";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import type { Notification, Task } from "../../api/types";
@@ -38,12 +39,17 @@ export function DashboardPage() {
   );
 
   const notificationsState = useAsyncData<{ notifications: Notification[]; total: number; unreadCount: number }>(() => notificationsApi.list(), []);
-  const activityState = useAsyncData(() => activeWorkspace ? workspaceApi.getActivity(activeWorkspace.id) : Promise.resolve([]), [activeWorkspace?.id]);
+  const activityState = useAsyncData(
+    () => activeWorkspace
+      ? workspaceApi.getActivity(activeWorkspace.id)
+      : Promise.resolve({ items: [], total: 0 }),
+    [activeWorkspace?.id],
+  );
 
   const tasks = tasksState.data ?? [];
   const projects = projectsState.data ?? [];
   const notifications = notificationsState.data?.notifications ?? [];
-  const activity = (activityState.data ?? []).slice(0, 6);
+  const activity = (activityState.data?.items ?? []).slice(0, 6);
 
   const chartData = useMemo(() => {
     return statuses.map(status => ({
@@ -150,36 +156,27 @@ export function DashboardPage() {
                   <p className="py-8 text-center text-sm text-slate-400">No activity yet</p>
                 ) : activity.map(act => (
                   <div key={act.id} className="flex items-start gap-2.5">
-                    {act.user ? (
-                      <UserAvatar
-                        user={{
-                          id: act.user.id,
-                          userId: act.user.id,
-                          name: act.user.name ?? "Someone",
-                          email: "",
-                          avatar: (act.user.name ?? "S").slice(0, 2).toUpperCase(),
-                          avatarUrl: act.user.avatarUrl,
-                          role: "member",
-                          status: "offline",
-                          title: "",
-                          department: "",
-                          joinedAt: "",
-                        }}
-                        size="xs"
-                      />
-                    ) : (
-                      <div className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
-                        <Activity className="w-3 h-3 text-slate-400" />
-                      </div>
-                    )}
+                    <UserAvatar
+                      user={{
+                        id: act.actorId ?? act.id,
+                        userId: act.actorId ?? act.id,
+                        name: act.actorName,
+                        email: "",
+                        avatar: initials(act.actorName),
+                        avatarUrl: act.actorAvatarUrl,
+                        role: "member",
+                        status: "offline",
+                        joinedAt: "",
+                      }}
+                      size="xs"
+                    />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-slate-700 dark:text-slate-300">
-                        <span className="font-medium">{act.user?.name ?? "Someone"}</span>
+                        <span className="font-medium">{act.actorName}</span>
                         {" "}
-                        <span>{act.action}</span>
+                        <span>{act.summary}</span>
                       </p>
-                      {act.details && <p className="text-[10px] text-slate-500 mt-0.5 truncate">{act.details}</p>}
-                      <p className="text-[10px] text-slate-400 mt-0.5">{timeAgo(act.timestamp)}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">{timeAgo(act.occurredAt)}</p>
                     </div>
                   </div>
                 ))}

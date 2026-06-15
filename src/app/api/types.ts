@@ -123,6 +123,17 @@ export interface Task {
   commentCount: number;
 }
 
+export interface ActivityTimelineItem {
+  id: string;
+  actorId: string | null;
+  actorName: string;
+  actorAvatarUrl: string | null;
+  type: string;
+  summary: string;
+  occurredAt: string;
+  meta?: Record<string, unknown>;
+}
+
 export interface Comment {
   id: string;
   taskId: string;

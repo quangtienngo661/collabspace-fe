@@ -1,6 +1,6 @@
 import { apiRequest } from "./httpClient";
-import { mapProject, mapWorkspace, mapWorkspaceMember } from "./mappers";
-import type { Project, Workspace, WorkspaceMember } from "./types";
+import { mapActivityTimelineItem, mapProject, mapWorkspace, mapWorkspaceMember } from "./mappers";
+import type { ActivityTimelineItem, Project, Workspace, WorkspaceMember } from "./types";
 
 export const workspaceApi = {
   async list(): Promise<Workspace[]> {
@@ -43,7 +43,7 @@ export const workspaceApi = {
     });
   },
 
-  async acceptInvitation(invitationId: string) {
+  async acceptInvitation(invitationId: string): Promise<{ status: string; workspaceId: string }> {
     return apiRequest(`/invitations/${invitationId}/accept`, {
       method: "POST",
     });
@@ -72,8 +72,16 @@ export const workspaceApi = {
     await apiRequest(`/workspaces/${workspaceId}/projects/${projectId}`, { method: "DELETE" });
   },
 
-  async getActivity(workspaceId: string, skip = 0, limit = 20): Promise<any[]> {
-    const res = await apiRequest<any>(`/workspaces/${workspaceId}/activity?skip=${skip}&limit=${limit}`);
-    return Array.isArray(res) ? res : (res?.items ?? []);
+  async getActivity(
+    workspaceId: string,
+    offset = 0,
+    limit = 20,
+  ): Promise<{ items: ActivityTimelineItem[]; total: number }> {
+    const res = await apiRequest<any>(`/workspaces/${workspaceId}/activity?offset=${offset}&limit=${limit}`);
+    if (Array.isArray(res)) {
+      return { items: res.map(mapActivityTimelineItem), total: res.length };
+    }
+    const items = (res?.items ?? []).map(mapActivityTimelineItem);
+    return { items, total: res?.total ?? items.length };
   },
 };
