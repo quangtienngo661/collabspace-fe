@@ -21,6 +21,7 @@ export const workspaceApi = {
   },
 
   async members(id: string): Promise<WorkspaceMember[]> {
+    if (!id) return [];
     const rows = await apiRequest<any[]>(`/workspaces/${id}/members`);
     return rows.map(row => mapWorkspaceMember(row));
   },
@@ -29,9 +30,9 @@ export const workspaceApi = {
     const rows = await apiRequest<any[]>(`/workspaces/${id}/invitations`);
     return rows.map(row => ({
       id: row.id,
-      email: row.invitee_email,
+      email: row.invitee_email ?? row.inviteeEmail ?? row.email,
       status: row.status,
-      createdAt: row.created_at,
+      createdAt: row.created_at ?? row.createdAt,
     }));
   },
 
@@ -39,6 +40,18 @@ export const workspaceApi = {
     return apiRequest(`/workspaces/${id}/invite`, {
       method: "POST",
       body: { email },
+    });
+  },
+
+  async acceptInvitation(invitationId: string) {
+    return apiRequest(`/invitations/${invitationId}/accept`, {
+      method: "POST",
+    });
+  },
+
+  async rejectInvitation(invitationId: string) {
+    return apiRequest(`/invitations/${invitationId}/reject`, {
+      method: "POST",
     });
   },
 
@@ -57,5 +70,10 @@ export const workspaceApi = {
 
   async deleteProject(workspaceId: string, projectId: string): Promise<void> {
     await apiRequest(`/workspaces/${workspaceId}/projects/${projectId}`, { method: "DELETE" });
+  },
+
+  async getActivity(workspaceId: string, skip = 0, limit = 20): Promise<any[]> {
+    const res = await apiRequest<any>(`/workspaces/${workspaceId}/activity?skip=${skip}&limit=${limit}`);
+    return Array.isArray(res) ? res : (res?.items ?? []);
   },
 };

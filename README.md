@@ -90,8 +90,9 @@ docker compose `
   -f docker-compose.yml `
   -f docker-compose.db.yml `
   -f docker-compose.traefik.yml `
-  -f docker-compose.override.yml `
   up --build -d
+
+> 💡 **Mẹo:** Nếu bạn chỉ code Frontend và không cần sửa Backend, **ĐỪNG** thêm `-f docker-compose.override.yml` vào lệnh trên. Chạy backend ở chế độ production (không override) sẽ giúp các service khởi động rất nhanh và ổn định.
 ```
 
 Chờ 1–2 phút để các NestJS service compile xong, sau đó kiểm tra:

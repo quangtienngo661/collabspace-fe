@@ -71,8 +71,8 @@ export function AdminWorkspaceLayout({ title, description, children, action, dar
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const { authUser, profile, logout } = useAuth();
-  const notificationsState = useAsyncData(() => notificationsApi.list(), []);
-  const adminNotifications = (notificationsState.data ?? []).filter(n => !n.archived).slice(0, 5);
+  const notificationsState = useAsyncData<{ notifications: Notification[]; total: number; unreadCount: number }>(() => notificationsApi.list(), []);
+  const adminNotifications = (notificationsState.data?.notifications ?? []).filter(n => !n.archived).slice(0, 5);
   const unreadCount = adminNotifications.filter(n => !n.read).length;
   const currentUser = profile ?? fallbackUser(authUser?.email);
 

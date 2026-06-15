@@ -21,9 +21,24 @@ async function available<T>(request: Promise<T>): Promise<T> {
 }
 
 export const notificationsApi = {
-  async list(): Promise<Notification[]> {
-    const result = await available(apiRequest<{ notifications?: any[] } | any[]>("/notifications"));
-    const rows = Array.isArray(result) ? result : result.notifications ?? [];
-    return rows.map(mapNotification);
+  async list(params?: { skip?: number; limit?: number }): Promise<{ notifications: Notification[]; total: number; unreadCount: number }> {
+    const search = new URLSearchParams();
+    if (params?.skip !== undefined) search.set("skip", params.skip.toString());
+    if (params?.limit !== undefined) search.set("limit", params.limit.toString());
+    
+    const result = await available(apiRequest<{ notifications: any[]; total: number; unreadCount: number }>(`/notifications?${search}`));
+    return {
+      notifications: (result.notifications ?? []).map(mapNotification),
+      total: result.total ?? 0,
+      unreadCount: result.unreadCount ?? 0,
+    };
+  },
+
+  async markRead(id: string): Promise<void> {
+    await apiRequest(`/notifications/${id}/read`, { method: "PATCH" });
+  },
+
+  async markAllRead(): Promise<void> {
+    await apiRequest(`/notifications/read-all`, { method: "PATCH" });
   },
 };

@@ -123,8 +123,8 @@ export function mapWorkspace(raw: AnyRecord): Workspace {
     name,
     slug: raw.slug ?? slugify(name),
     description: raw.description ?? "",
-    memberCount: raw.memberCount ?? raw.members?.length ?? 0,
-    projectCount: raw.projectCount ?? raw.projects?.length ?? 0,
+    memberCount: raw.memberCount ?? raw.member_count ?? raw.members?.length ?? 0,
+    projectCount: raw.projectCount ?? raw.project_count ?? raw.projects?.length ?? 0,
     createdAt: raw.createdAt ?? raw.created_at ?? "",
     updatedAt: raw.updatedAt ?? raw.updated_at,
     ownerId: raw.ownerId ?? raw.owner_id ?? "",
@@ -151,7 +151,7 @@ export function mapProject(raw: AnyRecord, workspaceId?: string): Project {
     status: raw.is_deleted ? "archived" : raw.status ?? "active",
     createdAt: raw.createdAt ?? raw.created_at ?? "",
     updatedAt: raw.updatedAt ?? raw.updated_at,
-    taskCount: raw.taskCount ?? 0,
+    taskCount: raw.taskCount ?? raw.task_count ?? 0,
     createdBy: raw.createdBy ?? raw.created_by,
   };
 }
@@ -195,7 +195,7 @@ export function mapTask(raw: AnyRecord): Task {
     title: raw.title ?? "Untitled Task",
     description: raw.description ?? "",
     status,
-    priority: (raw.priority ?? null) as Priority | null,
+    priority: raw.priority ? (String(raw.priority).toLowerCase() as Priority) : null,
     assigneeId: raw.assigneeId ?? null,
     creatorId: raw.createdBy?.userId ?? raw.creatorId ?? "",
     createdBy: raw.createdBy,
@@ -247,6 +247,7 @@ export function mapNotification(raw: AnyRecord): Notification {
     archived: status === "ARCHIVED",
     createdAt: raw.createdAt ?? "",
     link,
+    targetId,
   };
 }
 

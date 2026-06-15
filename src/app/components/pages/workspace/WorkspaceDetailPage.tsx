@@ -72,7 +72,6 @@ export function WorkspaceDetailPage() {
           role: member.role === "owner" ? "admin" : member.role,
           status: "offline" as const,
           title: "",
-          department: "",
           joinedAt: member.joinedAt,
         },
       };
@@ -93,7 +92,6 @@ export function WorkspaceDetailPage() {
         role: "member",
         status: "pending" as const,
         title: "Pending Invitation",
-        department: "",
         joinedAt: invitation.createdAt,
       },
     }));
@@ -196,7 +194,6 @@ export function WorkspaceDetailPage() {
               <TableHeader>
                 <TableRow className="border-slate-200 dark:border-slate-700 hover:bg-transparent">
                   <TableHead className="text-xs text-slate-500">Member</TableHead>
-                  <TableHead className="text-xs text-slate-500">Department</TableHead>
                   <TableHead className="text-xs text-slate-500">Role</TableHead>
                   <TableHead className="text-xs text-slate-500">Status</TableHead>
                   <TableHead className="w-10" />
@@ -214,7 +211,6 @@ export function WorkspaceDetailPage() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-slate-600 dark:text-slate-400">{member.user.department || "N/A"}</TableCell>
                     <TableCell><RoleBadge role={member.role === "owner" ? "admin" : member.role} /></TableCell>
                     <TableCell><span className="text-xs capitalize text-slate-500">{member.user.status}</span></TableCell>
                     <TableCell>

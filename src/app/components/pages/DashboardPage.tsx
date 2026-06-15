@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { CheckSquare, Users, Bell, FolderOpen, Plus, UserPlus, TrendingUp, Clock, RefreshCw } from "lucide-react";
+import { CheckSquare, Users, Bell, FolderOpen, Plus, UserPlus, TrendingUp, Clock, RefreshCw, Activity } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
@@ -37,10 +37,13 @@ export function DashboardPage() {
     [activeWorkspace?.id],
   );
 
-  const notificationsState = useAsyncData<Notification[]>(() => notificationsApi.list(), []);
+  const notificationsState = useAsyncData<{ notifications: Notification[]; total: number; unreadCount: number }>(() => notificationsApi.list(), []);
+  const activityState = useAsyncData(() => activeWorkspace ? workspaceApi.getActivity(activeWorkspace.id) : Promise.resolve([]), [activeWorkspace?.id]);
+
   const tasks = tasksState.data ?? [];
   const projects = projectsState.data ?? [];
-  const notifications = notificationsState.data ?? [];
+  const notifications = notificationsState.data?.notifications ?? [];
+  const activity = (activityState.data ?? []).slice(0, 6);
 
   const chartData = useMemo(() => {
     return statuses.map(status => ({
@@ -64,15 +67,12 @@ export function DashboardPage() {
     { label: "Projects", value: projects.length, icon: FolderOpen, color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-900/20" },
   ];
 
-  const activity = [...tasks]
-    .sort((a, b) => new Date(b.updatedAt ?? b.createdAt).getTime() - new Date(a.updatedAt ?? a.createdAt).getTime())
-    .slice(0, 6);
-
   function reloadAll() {
     void workspacesState.reload();
     void projectsState.reload();
     void tasksState.reload();
     void notificationsState.reload();
+    void activityState.reload();
   }
 
   function addCreatedTask(task: Task) {
@@ -141,21 +141,24 @@ export function DashboardPage() {
               </ResponsiveContainer>
             </Card>
 
-            <Card className="min-w-0 p-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">Recent Activity</h2>
-              <div className="space-y-3">
-                {activity.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-slate-400">No task activity yet</p>
-                ) : activity.map(task => (
-                  <div key={task.id} className="flex items-start gap-2.5">
-                    {task.createdBy ? (
+            <Card className="min-w-0 p-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex flex-col h-[280px]">
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3 shrink-0">Recent Activity</h2>
+              <div className="space-y-3 overflow-y-auto pr-2">
+                {activityState.loading ? (
+                  <p className="py-8 text-center text-sm text-slate-400">Loading activity...</p>
+                ) : activity.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-slate-400">No activity yet</p>
+                ) : activity.map(act => (
+                  <div key={act.id} className="flex items-start gap-2.5">
+                    {act.user ? (
                       <UserAvatar
                         user={{
-                          id: task.createdBy.userId,
-                          userId: task.createdBy.userId,
-                          name: task.createdBy.displayName || task.createdBy.fullName,
-                          avatar: (task.createdBy.displayName || task.createdBy.fullName).slice(0, 2).toUpperCase(),
-                          avatarUrl: task.createdBy.avatarUrl,
+                          id: act.user.id,
+                          userId: act.user.id,
+                          name: act.user.name ?? "Someone",
+                          email: "",
+                          avatar: (act.user.name ?? "S").slice(0, 2).toUpperCase(),
+                          avatarUrl: act.user.avatarUrl,
                           role: "member",
                           status: "offline",
                           title: "",
@@ -164,14 +167,19 @@ export function DashboardPage() {
                         }}
                         size="xs"
                       />
-                    ) : null}
+                    ) : (
+                      <div className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                        <Activity className="w-3 h-3 text-slate-400" />
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-slate-700 dark:text-slate-300">
-                        <span className="font-medium">{task.createdBy?.displayName || task.createdBy?.fullName || "A teammate"}</span>
-                        {" updated "}
-                        <span className="text-blue-600 dark:text-blue-400">{task.title}</span>
+                        <span className="font-medium">{act.user?.name ?? "Someone"}</span>
+                        {" "}
+                        <span>{act.action}</span>
                       </p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">{timeAgo(task.updatedAt ?? task.createdAt)}</p>
+                      {act.details && <p className="text-[10px] text-slate-500 mt-0.5 truncate">{act.details}</p>}
+                      <p className="text-[10px] text-slate-400 mt-0.5">{timeAgo(act.timestamp)}</p>
                     </div>
                   </div>
                 ))}
@@ -188,7 +196,7 @@ export function DashboardPage() {
               {myTasks.length === 0 ? (
                 <p className="py-8 text-center text-sm text-slate-400">No tasks assigned to you</p>
               ) : myTasks.map(task => (
-                <div key={task.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer" onClick={() => navigate(`/workspaces/${task.workspaceId}/projects/${task.projectId ?? "tasks"}`)}>
+                <div key={task.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer" onClick={() => task.projectId ? navigate(`/workspaces/${task.workspaceId}/projects/${task.projectId}`) : navigate(`/workspaces/${task.workspaceId}`)}>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{task.title}</p>
                     <p className="text-xs text-slate-400">{task.dueDate ? `Due ${task.dueDate}` : "No due date from backend"}</p>

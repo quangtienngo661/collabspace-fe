@@ -37,8 +37,8 @@ export interface User {
   role: Role;
   roles?: string[];
   status: UserStatus;
-  title: string;
-  department: string;
+  title?: string;
+  department?: string;
   joinedAt: string;
   displayName?: string | null;
   username?: string | null;
@@ -159,6 +159,7 @@ export interface Notification {
   archived: boolean;
   createdAt: string;
   link: string;
+  targetId?: string;
 }
 
 export interface Session {

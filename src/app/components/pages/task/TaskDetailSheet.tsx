@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { X, Edit2, Check } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader } from "../../ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../ui/tabs";
 import { StatusBadge, PriorityBadge } from "../../shared/StatusBadge";
 import { UserAvatar } from "../../shared/UserAvatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
+import { TaskComments } from "./TaskComments";
+import { TaskActivity } from "./TaskActivity";
 import { cn } from "../../ui/utils";
 import { toast } from "sonner";
 import { taskApi } from "../../../api/taskApi";
@@ -104,66 +107,89 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated }: TaskDetailSh
           </button>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <p className="text-xs text-slate-400 uppercase tracking-wider">Status</p>
-              <Select value={task.status} onValueChange={handleStatusChange}>
-                <SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="TODO">To Do</SelectItem>
-                  <SelectItem value="DOING">In Progress</SelectItem>
-                  <SelectItem value="DONE">Done</SelectItem>
-                </SelectContent>
-              </Select>
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <Tabs defaultValue="details" className="flex-1 flex flex-col h-full overflow-hidden">
+            <div className="px-5 pt-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
+              <TabsList className="bg-transparent border-b-0 p-0 h-auto gap-4">
+                <TabsTrigger value="details" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-blue-500 rounded-none pb-2 text-sm font-medium px-0">Details</TabsTrigger>
+                <TabsTrigger value="comments" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-blue-500 rounded-none pb-2 text-sm font-medium px-0">
+                  Comments
+                  {task.commentCount > 0 && <span className="ml-1.5 rounded-full bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-500">{task.commentCount}</span>}
+                </TabsTrigger>
+                <TabsTrigger value="activity" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-blue-500 rounded-none pb-2 text-sm font-medium px-0">Activity</TabsTrigger>
+              </TabsList>
             </div>
-            <div className="space-y-1">
-              <p className="text-xs text-slate-400 uppercase tracking-wider">Priority</p>
-              <PriorityBadge priority={task.priority} className="mt-2" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-slate-400 uppercase tracking-wider">Assignee</p>
-              <Select value={task.assigneeId || UNASSIGNED_VALUE} onValueChange={handleAssigneeChange}>
-                <SelectTrigger className="h-8 text-xs w-full"><SelectValue placeholder="Unassigned" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={UNASSIGNED_VALUE}>Unassigned</SelectItem>
-                  {users.map(u => (
-                    <SelectItem key={u.userId} value={u.userId}>{u.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {assignee && <p className="text-[10px] text-slate-400">{assignee.displayName || assignee.fullName}</p>}
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-slate-400 uppercase tracking-wider">Created by</p>
-              {creator && (
-                <div className="flex items-center gap-1.5 mt-1">
-                  <UserAvatar
-                    user={{
-                      id: creator.userId,
-                      userId: creator.userId,
-                      name: creator.displayName || creator.fullName,
-                      email: creator.email,
-                      avatar: initials(creator.displayName || creator.fullName),
-                      avatarUrl: creator.avatarUrl,
-                      role: "member",
-                      status: "offline",
-                      title: "",
-                      department: "",
-                      joinedAt: "",
-                    }}
-                    size="xs"
-                  />
-                  <span className="text-xs text-slate-600 dark:text-slate-400">{creator.displayName || creator.fullName}</span>
-                </div>
-              )}
-            </div>
-          </div>
 
-          <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-            <p className="text-xs text-slate-400 uppercase tracking-wider mb-2">Description</p>
-            <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{task.description || <span className="text-slate-400 italic">No description</span>}</p>
-          </div>
+            <TabsContent value="details" className="flex-1 overflow-y-auto m-0">
+              <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-xs text-slate-400 uppercase tracking-wider">Status</p>
+                  <Select value={task.status} onValueChange={handleStatusChange}>
+                    <SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="TODO">To Do</SelectItem>
+                      <SelectItem value="DOING">In Progress</SelectItem>
+                      <SelectItem value="DONE">Done</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-slate-400 uppercase tracking-wider">Priority</p>
+                  <PriorityBadge priority={task.priority} className="mt-2" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-slate-400 uppercase tracking-wider">Assignee</p>
+                  <Select value={task.assigneeId || UNASSIGNED_VALUE} onValueChange={handleAssigneeChange}>
+                    <SelectTrigger className="h-8 text-xs w-full"><SelectValue placeholder="Unassigned" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={UNASSIGNED_VALUE}>Unassigned</SelectItem>
+                      {users.map(u => (
+                        <SelectItem key={u.userId} value={u.userId}>{u.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {assignee && <p className="text-[10px] text-slate-400">{assignee.displayName || assignee.fullName}</p>}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-slate-400 uppercase tracking-wider">Created by</p>
+                  {creator && (
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <UserAvatar
+                        user={{
+                          id: creator.userId,
+                          userId: creator.userId,
+                          name: creator.displayName || creator.fullName,
+                          email: creator.email,
+                          avatar: initials(creator.displayName || creator.fullName),
+                          avatarUrl: creator.avatarUrl,
+                          role: "member",
+                          status: "offline",
+                          title: "",
+                          department: "",
+                          joinedAt: "",
+                        }}
+                        size="xs"
+                      />
+                      <span className="text-xs text-slate-600 dark:text-slate-400">{creator.displayName || creator.fullName}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+                <p className="text-xs text-slate-400 uppercase tracking-wider mb-2">Description</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{task.description || <span className="text-slate-400 italic">No description</span>}</p>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="comments" className="flex-1 overflow-hidden m-0">
+              <TaskComments taskId={task.id} />
+            </TabsContent>
+
+            <TabsContent value="activity" className="flex-1 overflow-hidden m-0">
+              <TaskActivity taskId={task.id} />
+            </TabsContent>
+          </Tabs>
         </div>
       </SheetContent>
     </Sheet>
