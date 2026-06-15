@@ -7,7 +7,7 @@ Nguồn backend: [`docs/features.md`](../../collabspace/docs/features.md), [`doc
 **Trạng thái backend MVP:** Auth, User, Workspace, Task, Comment, Notification — **Done**  
 **Trạng thái Platform Admin API:** **Done** — xem [admin-backlog.md](../../collabspace/docs/team/admin-backlog.md)
 
-**Trạng thái FE (main):** Phase 2 ✅ · Phase 3 ✅ · Phase Admin ✅ (kể cả polish: create permission, edit role, typed DTOs, error codes) · Phase 6 (USER-T1 pickers) ✅ · Phase 4 một phần · Phase 5 chưa làm
+**Trạng thái FE (main):** Phase 2 ✅ · Phase 3 ✅ · Phase Admin ✅ · Phase 4 ✅ · Phase 6 (USER-T1 pickers) ✅ · Phase 5 chưa làm
 
 ---
 
@@ -242,7 +242,20 @@ Admin-0 (adminApi) → Admin-1/2 (AdminPage RBAC + users) → Admin-3 (workspace
 
 ---
 
-## Phase 4 — Hiển thị sai / thiếu dữ liệu
+### Phase 4 — Hiển thị / UX (2026-06) ✅
+
+| # | Việc | Trạng thái |
+|---|------|------------|
+| 4.1 | KPI `memberCount` / `taskCount` / `projectCount` | [x] `clientStats.ts` enrich client-side |
+| 4.2 | Badge `commentCount` luôn 0 | [x] Ẩn badge (BE không trả field) |
+| 4.5 | Deep link notification → task sheet | [x] `?task=` + `navigateFromNotification` |
+| 4.6 | Dashboard click task | [x] `TaskDetailSheet` trên Dashboard |
+| 4.9 | Pagination notifications | [x] skip/limit + prev/next + `unreadCount` |
+| 4.10 | Copy lỗi notification | [x] `formatNotificationsError()` |
+
+---
+
+## Phase 4 — Hiển thị sai / thiếu dữ liệu (lịch sử)
 
 Không crash nhưng UI **lệch contract** hoặc **gây hiểu nhầm**.
 

@@ -7,8 +7,10 @@ import { Card } from "../ui/card";
 import { StatusBadge, PriorityBadge } from "../shared/StatusBadge";
 import { UserAvatar } from "../shared/UserAvatar";
 import { CreateTaskModal } from "./task/CreateTaskModal";
+import { TaskDetailSheet } from "./task/TaskDetailSheet";
 import { EmptyState, ErrorState } from "../shared/EmptyState";
 import { workspaceApi } from "../../api/workspaceApi";
+import { enrichProjectsTaskCounts } from "../../api/clientStats";
 import { taskApi } from "../../api/taskApi";
 import { notificationsApi } from "../../api/notificationsApi";
 import { initials } from "../../api/mappers";
@@ -24,12 +26,20 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const [createTask, setCreateTask] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const workspacesState = useAsyncData(() => workspaceApi.list(), []);
   const workspaces = workspacesState.data ?? [];
   const activeWorkspace = workspaces[0] ?? null;
 
+  const membersState = useAsyncData(
+    () => activeWorkspace ? workspaceApi.members(activeWorkspace.id) : Promise.resolve([]),
+    [activeWorkspace?.id],
+  );
+
   const projectsState = useAsyncData(
-    () => activeWorkspace ? workspaceApi.listProjects(activeWorkspace.id) : Promise.resolve([]),
+    () => activeWorkspace
+      ? workspaceApi.listProjects(activeWorkspace.id).then(enrichProjectsTaskCounts)
+      : Promise.resolve([]),
     [activeWorkspace?.id],
   );
 
@@ -61,8 +71,8 @@ export function DashboardPage() {
   const myTasks = tasks.filter(task => task.assigneeId === profile?.userId);
   const totalDone = tasks.filter(task => task.status === "DONE").length;
   const totalDoing = tasks.filter(task => task.status === "DOING").length;
-  const unread = notifications.filter(n => !n.read && !n.archived).length;
-  const memberCount = workspaces.reduce((sum, ws) => sum + ws.memberCount, 0);
+  const memberCount = membersState.data?.length ?? 0;
+  const unread = notificationsState.data?.unreadCount ?? notifications.filter(n => !n.read && !n.archived).length;
 
   const kpis = [
     { label: "Total Tasks", value: tasks.length, icon: CheckSquare, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20" },
@@ -83,6 +93,11 @@ export function DashboardPage() {
 
   function addCreatedTask(task: Task) {
     tasksState.setData(prev => [...(prev ?? []), task]);
+  }
+
+  function handleTaskUpdated(updated: Task) {
+    tasksState.setData(prev => (prev ?? []).map(task => task.id === updated.id ? updated : task));
+    setSelectedTask(updated);
   }
 
   const topError = workspacesState.error || tasksState.error;
@@ -193,7 +208,7 @@ export function DashboardPage() {
               {myTasks.length === 0 ? (
                 <p className="py-8 text-center text-sm text-slate-400">No tasks assigned to you</p>
               ) : myTasks.map(task => (
-                <div key={task.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer" onClick={() => task.projectId ? navigate(`/workspaces/${task.workspaceId}/projects/${task.projectId}`) : navigate(`/workspaces/${task.workspaceId}`)}>
+                <div key={task.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer" onClick={() => setSelectedTask(task)}>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{task.title}</p>
                     <p className="text-xs text-slate-400">{task.dueDate ? `Due ${task.dueDate}` : "No due date from backend"}</p>
@@ -214,6 +229,15 @@ export function DashboardPage() {
         workspaceId={activeWorkspace?.id ?? ""}
         onCreated={addCreatedTask}
       />
+
+      {selectedTask && (
+        <TaskDetailSheet
+          task={selectedTask}
+          open={!!selectedTask}
+          onClose={() => setSelectedTask(null)}
+          onUpdated={handleTaskUpdated}
+        />
+      )}
     </div>
   );
 }

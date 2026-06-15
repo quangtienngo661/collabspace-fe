@@ -9,13 +9,17 @@ import { Label } from "../../ui/label";
 import { Textarea } from "../../ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../ui/dropdown-menu";
 import { workspaceApi } from "../../../api/workspaceApi";
+import { enrichWorkspacesStats } from "../../../api/clientStats";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 import { EmptyState, ErrorState } from "../../shared/EmptyState";
 import { toast } from "sonner";
 
 export function WorkspaceListPage() {
   const navigate = useNavigate();
-  const { data, loading: loadingList, error, reload, setData } = useAsyncData(() => workspaceApi.list(), []);
+  const { data, loading: loadingList, error, reload, setData } = useAsyncData(
+    () => workspaceApi.list().then(enrichWorkspacesStats),
+    [],
+  );
   const wsList = data ?? [];
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "" });

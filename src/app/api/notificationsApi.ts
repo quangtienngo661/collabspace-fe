@@ -4,9 +4,23 @@ import type { Notification } from "./types";
 
 export class NotificationsUnavailableError extends Error {
   constructor() {
-    super("Notifications API is unavailable");
+    super("Notifications service is not available");
     this.name = "NotificationsUnavailableError";
   }
+}
+
+export function formatNotificationsError(error: unknown, fallback = "Unable to load notifications"): string {
+  if (error instanceof NotificationsUnavailableError) {
+    return "Notifications service is not available. Try again later.";
+  }
+  if (error instanceof ApiError) {
+    if (error.status === 401) return "Sign in to view notifications.";
+    if (error.status === 403) return "You do not have access to notifications.";
+    if (error.status >= 500) return "Notifications service is temporarily unavailable.";
+    return error.message || fallback;
+  }
+  if (error instanceof Error) return error.message;
+  return fallback;
 }
 
 async function available<T>(request: Promise<T>): Promise<T> {

@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { useParams } from "react-router";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { Plus, List, Columns3, Search, MessageSquare, Paperclip, AlertCircle, RefreshCw } from "lucide-react";
+import { Plus, List, Columns3, Search, Paperclip, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
@@ -19,6 +19,7 @@ import { workspaceApi } from "../../../api/workspaceApi";
 import { usersApi } from "../../../api/usersApi";
 import { initials } from "../../../api/mappers";
 import { useAsyncData } from "../../../hooks/useAsyncData";
+import { useTaskDeepLink } from "../../../hooks/useTaskDeepLink";
 import type { Task, TaskStatus } from "../../../api/types";
 
 const COLUMNS: { status: TaskStatus; label: string; color: string }[] = [
@@ -52,7 +53,6 @@ function KanbanCard({ task, onClick }: { task: Task; onClick: () => void }) {
       </div>
       <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-2 text-slate-400">
-          {task.commentCount > 0 && <span className="flex items-center gap-0.5 text-[10px]"><MessageSquare className="w-3 h-3" />{task.commentCount}</span>}
           {task.attachmentCount > 0 && <span className="flex items-center gap-0.5 text-[10px]"><Paperclip className="w-3 h-3" />{task.attachmentCount}</span>}
         </div>
         {assignee ? (
@@ -173,6 +173,12 @@ export function KanbanBoardPage() {
   const handleTaskCreated = (task: Task) => {
     taskState.setData(prev => [...(prev ?? []), task]);
   };
+
+  useTaskDeepLink({
+    workspaceId: wsId,
+    projectId: pid,
+    onOpen: setSelectedTask,
+  });
 
   return (
     <DndProvider backend={HTML5Backend}>

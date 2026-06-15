@@ -9,7 +9,8 @@ import { cn } from "../ui/utils";
 import { UserAvatar } from "../shared/UserAvatar";
 import { toast } from "sonner";
 import { useAuth } from "../../auth/AuthContext";
-import { notificationsApi, NotificationsUnavailableError } from "../../api/notificationsApi";
+import { notificationsApi } from "../../api/notificationsApi";
+import { navigateFromNotification } from "../../utils/notificationNavigation";
 import { usersApi } from "../../api/usersApi";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import type { Notification, UserStatus } from "../../api/types";
@@ -59,8 +60,12 @@ export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
     return import("../../api/workspaceApi").then(m => m.workspaceApi.listProjects(wsId));
   }, [wsId]);
 
-  const { data: notifData, error: notifError, setData: setNotifs } = useAsyncData<{ notifications: Notification[]; total: number; unreadCount: number }>(() => notificationsApi.list(), []);
+  const { data: notifData, error: notifError, setData: setNotifs } = useAsyncData<{ notifications: Notification[]; total: number; unreadCount: number }>(
+    () => notificationsApi.list({ limit: 8 }),
+    [],
+  );
   const notifs = notifData?.notifications ?? [];
+  const unreadBadgeCount = notifData?.unreadCount ?? notifs.filter(n => !n.read && !n.archived).length;
 
   const breadcrumbs = location.pathname.split("/").filter(Boolean).map(p => {
     if (ROUTE_MAP[p]) return ROUTE_MAP[p];
@@ -102,7 +107,10 @@ export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
     }
   }
 
-  const unreadNotifs = notifs.filter(n => !n.read && !n.archived);
+  async function handleNotificationClick(notification: Notification) {
+    setNotifOpen(false);
+    await navigateFromNotification(navigate, notification);
+  }
 
   const notificationIconMap: Record<string, LucideIcon> = {
     task_assigned: ClipboardList,
@@ -145,9 +153,9 @@ export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
         <PopoverTrigger asChild>
           <button className="relative p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors">
             <Bell className="w-4 h-4" />
-            {unreadNotifs.length > 0 && (
+            {unreadBadgeCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold">
-                {unreadNotifs.length}
+                {unreadBadgeCount > 9 ? "9+" : unreadBadgeCount}
               </span>
             )}
           </button>
@@ -160,7 +168,7 @@ export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
           <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700">
             {notifError && (
               <div className="px-4 py-6 text-center text-xs text-slate-500">
-                {notifError.includes(new NotificationsUnavailableError().message) ? "Could not load notifications" : notifError}
+                {notifError}
               </div>
             )}
             {!notifError && notifs.filter(n => !n.archived).slice(0, 8).map(n => {
@@ -169,7 +177,7 @@ export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
               return (
                 <div
                   key={n.id}
-                  onClick={() => { setNotifOpen(false); navigate(n.link); }}
+                  onClick={() => void handleNotificationClick(n)}
                   className={cn("flex gap-3 px-4 py-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors", !n.read && "bg-blue-50/60 dark:bg-blue-900/10")}
                 >
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300">

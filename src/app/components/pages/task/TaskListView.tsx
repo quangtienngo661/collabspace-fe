@@ -2,7 +2,7 @@ import type { Task } from "../../../api/types";
 import { StatusBadge, PriorityBadge } from "../../shared/StatusBadge";
 import { UserAvatar } from "../../shared/UserAvatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../ui/table";
-import { MessageSquare, Paperclip } from "lucide-react";
+import { Paperclip } from "lucide-react";
 import { initials } from "../../../api/mappers";
 
 interface TaskListViewProps {
@@ -64,7 +64,6 @@ export function TaskListView({ tasks, onTaskClick }: TaskListViewProps) {
                 <TableCell className="py-2.5 hidden lg:table-cell text-xs text-slate-500">{task.dueDate || "N/A"}</TableCell>
                 <TableCell className="py-2.5 hidden md:table-cell">
                   <div className="flex items-center gap-2 text-slate-400 text-xs">
-                    {task.commentCount > 0 && <span className="flex items-center gap-0.5"><MessageSquare className="w-3 h-3" />{task.commentCount}</span>}
                     {task.attachmentCount > 0 && <span className="flex items-center gap-0.5"><Paperclip className="w-3 h-3" />{task.attachmentCount}</span>}
                   </div>
                 </TableCell>

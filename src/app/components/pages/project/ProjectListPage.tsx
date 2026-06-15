@@ -11,6 +11,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ConfirmDialog } from "../../shared/ConfirmDialog";
 import { EmptyState, ErrorState } from "../../shared/EmptyState";
 import { workspaceApi } from "../../../api/workspaceApi";
+import { enrichProjectsTaskCounts } from "../../../api/clientStats";
+import { useOpenTaskRedirect } from "../../../hooks/useTaskDeepLink";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 import type { Project } from "../../../api/types";
 import { toast } from "sonner";
@@ -19,7 +21,10 @@ export function ProjectListPage() {
   const { id: wsId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const workspaceState = useAsyncData(() => wsId ? workspaceApi.get(wsId) : Promise.reject(new Error("Workspace id is missing")), [wsId]);
-  const projectState = useAsyncData(() => wsId ? workspaceApi.listProjects(wsId) : Promise.resolve([]), [wsId]);
+  const projectState = useAsyncData(
+    () => wsId ? workspaceApi.listProjects(wsId).then(enrichProjectsTaskCounts) : Promise.resolve([]),
+    [wsId],
+  );
   const projectList = (projectState.data ?? []).filter(p => p.workspaceId === wsId);
   const ws = workspaceState.data?.id === wsId ? workspaceState.data : null;
   const [createOpen, setCreateOpen] = useState(false);
@@ -27,6 +32,8 @@ export function ProjectListPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", description: "" });
   const [loading, setLoading] = useState(false);
+
+  useOpenTaskRedirect(wsId);
 
   function openCreate() {
     setEditing(null);

@@ -115,7 +115,6 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated }: TaskDetailSh
                 <TabsTrigger value="details" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-blue-500 rounded-none pb-2 text-sm font-medium px-0">Details</TabsTrigger>
                 <TabsTrigger value="comments" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-blue-500 rounded-none pb-2 text-sm font-medium px-0">
                   Comments
-                  {task.commentCount > 0 && <span className="ml-1.5 rounded-full bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-500">{task.commentCount}</span>}
                 </TabsTrigger>
                 <TabsTrigger value="activity" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-blue-500 rounded-none pb-2 text-sm font-medium px-0">Activity</TabsTrigger>
               </TabsList>

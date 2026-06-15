@@ -11,6 +11,7 @@ import { Label } from "../../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../ui/dropdown-menu";
 import { workspaceApi } from "../../../api/workspaceApi";
+import { enrichProjectsTaskCounts } from "../../../api/clientStats";
 import { usersApi } from "../../../api/usersApi";
 import { RoleBadge } from "../../shared/StatusBadge";
 import { UserAvatar } from "../../shared/UserAvatar";
@@ -36,7 +37,7 @@ export function WorkspaceDetailPage() {
   }, [id]);
 
   const projectsState = useAsyncData(
-    () => id ? workspaceApi.listProjects(id) : Promise.resolve([]),
+    () => id ? workspaceApi.listProjects(id).then(enrichProjectsTaskCounts) : Promise.resolve([]),
     [id],
   );
 

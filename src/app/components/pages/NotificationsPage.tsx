@@ -7,6 +7,8 @@ import { EmptyState, ErrorState } from "../shared/EmptyState";
 import { notificationsApi } from "../../api/notificationsApi";
 import { getNotificationInvitationId } from "../../api/mappers";
 import { workspaceApi } from "../../api/workspaceApi";
+import { navigateFromNotification } from "../../utils/notificationNavigation";
+import { useNotificationOpenTaskRedirect } from "../../hooks/useTaskDeepLink";
 import { toast } from "sonner";
 import type { Notification } from "../../api/types";
 import { useAsyncData } from "../../hooks/useAsyncData";
@@ -104,7 +106,7 @@ function NotifItem({ n, onRefresh }: { n: Notification; onRefresh: () => void })
 
   return (
     <div 
-      onClick={() => navigate(n.link)}
+      onClick={() => void navigateFromNotification(navigate, n)}
       className={cn(
         "flex gap-3 border-b border-slate-100 px-4 py-3.5 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/30 cursor-pointer",
         !n.read && "bg-blue-50/50 dark:bg-blue-900/10",
@@ -164,17 +166,35 @@ function NotifItem({ n, onRefresh }: { n: Notification; onRefresh: () => void })
   );
 }
 
+const PAGE_SIZE = 20;
+
 export function NotificationsPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [markAllLoading, setMarkAllLoading] = useState(false);
-  const notificationsState = useAsyncData<{ notifications: Notification[]; total: number; unreadCount: number }>(() => notificationsApi.list(), []);
+  const [page, setPage] = useState(0);
+  useNotificationOpenTaskRedirect();
+
+  const notificationsState = useAsyncData<{ notifications: Notification[]; total: number; unreadCount: number }>(
+    () => notificationsApi.list({ skip: page * PAGE_SIZE, limit: PAGE_SIZE }),
+    [page],
+  );
   const notifs = notificationsState.data?.notifications ?? [];
+  const total = notificationsState.data?.total ?? 0;
+  const unreadCount = notificationsState.data?.unreadCount ?? 0;
   const active = notifs.filter(n => !n.archived);
   const archived = notifs.filter(n => n.archived);
   const unread = active.filter(n => !n.read);
+  const pageStart = total === 0 ? 0 : page * PAGE_SIZE + 1;
+  const pageEnd = Math.min((page + 1) * PAGE_SIZE, total);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   function filtered(list: Notification[]) {
     return list.filter(n => typeFilter === "all" || normalizedType(n.type) === typeFilter);
+  }
+
+  function handleTypeFilterChange(value: string) {
+    setTypeFilter(value);
+    setPage(0);
   }
 
   async function handleMarkAllRead() {
@@ -195,13 +215,15 @@ export function NotificationsPage() {
         <div className="min-w-0">
           <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">Notifications</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {notificationsState.loading ? "Loading notifications..." : `${unread.length} unread`}
+            {notificationsState.loading
+              ? "Loading notifications..."
+              : `${unreadCount} unread · ${total} total`}
           </p>
         </div>
         <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:justify-end">
           <select
             value={typeFilter}
-            onChange={e => setTypeFilter(e.target.value)}
+            onChange={e => handleTypeFilterChange(e.target.value)}
             className="h-8 w-full min-w-0 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 sm:w-36"
           >
             <option value="all">All types</option>
@@ -214,7 +236,7 @@ export function NotificationsPage() {
           <Button
             size="sm"
             variant="outline"
-            disabled={markAllLoading || unread.length === 0}
+            disabled={markAllLoading || unreadCount === 0}
             onClick={handleMarkAllRead}
             className="h-8 w-full min-w-0 shrink gap-1.5 text-xs sm:w-auto sm:shrink-0"
           >
@@ -235,7 +257,7 @@ export function NotificationsPage() {
           <TabsList className="bg-slate-100 dark:bg-slate-800">
             <TabsTrigger value="inbox">
               Inbox
-              {unread.length > 0 && <span className="ml-1.5 flex size-5 items-center justify-center rounded-full bg-blue-500 text-[10px] text-white">{unread.length}</span>}
+              {unreadCount > 0 && <span className="ml-1.5 flex size-5 items-center justify-center rounded-full bg-blue-500 text-[10px] text-white">{unreadCount}</span>}
             </TabsTrigger>
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="archived">Archived</TabsTrigger>
@@ -266,6 +288,32 @@ export function NotificationsPage() {
               ) : filtered(archived).map(n => <NotifItem key={n.id} n={n} onRefresh={notificationsState.reload} />)}
             </div>
           </TabsContent>
+
+          {!notificationsState.loading && total > 0 && (
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Showing {pageStart}–{pageEnd} of {total}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={page === 0 || notificationsState.loading}
+                  onClick={() => setPage(current => Math.max(0, current - 1))}
+                >
+                  Previous
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={page + 1 >= totalPages || notificationsState.loading}
+                  onClick={() => setPage(current => current + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </Tabs>
       )}
     </div>

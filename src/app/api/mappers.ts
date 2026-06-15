@@ -267,13 +267,17 @@ export function mapNotification(raw: AnyRecord): Notification {
   const targetId = raw.targetId;
   const metadata = (raw.metadata ?? {}) as Record<string, unknown>;
   const invitationId = metadata.invitationId as string | undefined;
+  const workspaceId = metadata.workspaceId as string | undefined;
+  const projectId = metadata.projectId as string | undefined;
   const link =
     invitationId
       ? `/invitations?id=${invitationId}`
       : targetType === "task" && targetId
-        ? metadata.projectId
-          ? `/workspaces/${metadata.workspaceId ?? ""}/projects/${metadata.projectId}`
-          : `/workspaces/${metadata.workspaceId ?? targetId}`
+        ? projectId && workspaceId
+          ? `/workspaces/${workspaceId}/projects/${projectId}?task=${targetId}`
+          : workspaceId
+            ? `/workspaces/${workspaceId}/projects?openTask=${targetId}`
+            : `/notifications?openTask=${targetId}`
         : targetType === "workspace" && targetId
           ? `/workspaces/${targetId}`
           : "/notifications";
