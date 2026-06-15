@@ -1,8 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Navigate, useLocation } from "react-router";
 import { authApi } from "../api/authApi";
 import { clearStoredSession, getStoredSession, setStoredSession } from "../api/session";
 import { usersApi } from "../api/usersApi";
+import { invalidateCachedRequestPrefix } from "../api/requestCache";
 import type { AuthSession, AuthUser, Role, User, UserPreferences } from "../api/types";
 
 interface AuthState {
@@ -11,7 +12,7 @@ interface AuthState {
   preferences: UserPreferences | null;
   session: AuthSession | null;
   loading: boolean;
-  refresh: (silent?: boolean) => Promise<void>;
+  refresh: (silent?: boolean) => Promise<AuthUser | null>;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   setProfile: (profile: User) => void;
@@ -47,55 +48,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<User | null>(null);
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [loading, setLoading] = useState(true);
+  const refreshInflight = useRef<Promise<AuthUser | null> | null>(null);
 
-  const refresh = useCallback(async (silent = false) => {
-    const stored = getStoredSession();
-    setSession(stored);
-
-    if (!stored?.accessToken) {
-      setAuthUser(null);
-      setProfile(null);
-      setPreferences(null);
-      setLoading(false);
-      return;
+  const refresh = useCallback(async (silent = false): Promise<AuthUser | null> => {
+    if (refreshInflight.current) {
+      return refreshInflight.current;
     }
 
-    if (!silent) {
-      setLoading(true);
-    }
-    try {
-      const currentAuthUser = await authApi.me();
-      setAuthUser(currentAuthUser);
+    const run = (async (): Promise<AuthUser | null> => {
+      const stored = getStoredSession();
+      setSession(stored);
 
-      let userProfile: User;
-      try {
-        userProfile = await usersApi.me(currentAuthUser);
-      } catch {
-        userProfile = fallbackProfile(currentAuthUser);
-      }
-
-      try {
-        const userStatus = await usersApi.status();
-        userProfile.status = userStatus;
-      } catch {
-        // Keep profile's status or offline
-      }
-
-      setProfile(userProfile);
-
-      try {
-        setPreferences(await usersApi.preferences());
-      } catch {
+      if (!stored?.accessToken) {
+        setAuthUser(null);
+        setProfile(null);
         setPreferences(null);
+        setLoading(false);
+        return null;
       }
-    } catch {
-      clearStoredSession();
-      setSession(null);
-      setAuthUser(null);
-      setProfile(null);
-      setPreferences(null);
+
+      if (!silent) {
+        setLoading(true);
+      }
+      try {
+        const currentAuthUser = await authApi.me();
+        setAuthUser(currentAuthUser);
+
+        const [userProfile, userPreferences] = await Promise.all([
+          usersApi.me(currentAuthUser).catch(() => fallbackProfile(currentAuthUser)),
+          usersApi.preferences().catch(() => null),
+        ]);
+
+        setProfile(userProfile);
+        setPreferences(userPreferences);
+        return currentAuthUser;
+      } catch {
+        clearStoredSession();
+        setSession(null);
+        setAuthUser(null);
+        setProfile(null);
+        setPreferences(null);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    refreshInflight.current = run;
+    try {
+      return await run;
     } finally {
-      setLoading(false);
+      if (refreshInflight.current === run) {
+        refreshInflight.current = null;
+      }
     }
   }, []);
 
@@ -121,13 +126,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     const nextSession = await authApi.login(email, password);
-    setStoredSession(nextSession);
+    invalidateCachedRequestPrefix("auth:");
+    invalidateCachedRequestPrefix("users:");
+    invalidateCachedRequestPrefix("workspaces:");
+    invalidateCachedRequestPrefix("notifications:");
+    setStoredSession(nextSession, { emit: false });
     setSession(nextSession);
-    const currentAuthUser = await authApi.me();
-    setAuthUser(currentAuthUser);
-    
-    // Also trigger refresh in background or await it
-    await refresh();
+    const currentAuthUser = await refresh(true);
 
     return Boolean(
       currentAuthUser?.roles?.includes("admin") ||
@@ -144,6 +149,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } finally {
       clearStoredSession();
+      invalidateCachedRequestPrefix("auth:");
+      invalidateCachedRequestPrefix("users:");
+      invalidateCachedRequestPrefix("notifications:");
+      invalidateCachedRequestPrefix("workspaces:");
       setSession(null);
       setAuthUser(null);
       setProfile(null);

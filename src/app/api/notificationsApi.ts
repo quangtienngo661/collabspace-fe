@@ -1,5 +1,6 @@
 import { ApiError, apiRequest } from "./httpClient";
 import { mapNotification } from "./mappers";
+import { cachedRequest, invalidateCachedRequestPrefix } from "./requestCache";
 import type { Notification } from "./types";
 
 export class NotificationsUnavailableError extends Error {
@@ -39,20 +40,26 @@ export const notificationsApi = {
     const search = new URLSearchParams();
     if (params?.skip !== undefined) search.set("skip", params.skip.toString());
     if (params?.limit !== undefined) search.set("limit", params.limit.toString());
+    const query = search.toString();
+    const cacheKey = `notifications:list:${query || "default"}`;
 
-    const result = await available(apiRequest<{ notifications: any[]; total: number; unreadCount: number }>(`/notifications?${search}`));
-    return {
-      notifications: (result.notifications ?? []).map(mapNotification),
-      total: result.total ?? 0,
-      unreadCount: result.unreadCount ?? 0,
-    };
+    return cachedRequest(cacheKey, async () => {
+      const result = await available(apiRequest<{ notifications: any[]; total: number; unreadCount: number }>(`/notifications?${search}`));
+      return {
+        notifications: (result.notifications ?? []).map(mapNotification),
+        total: result.total ?? 0,
+        unreadCount: result.unreadCount ?? 0,
+      };
+    });
   },
 
   async markRead(id: string): Promise<void> {
     await apiRequest(`/notifications/${id}/read`, { method: "PATCH" });
+    invalidateCachedRequestPrefix("notifications:");
   },
 
   async markAllRead(): Promise<void> {
     await apiRequest("/notifications/read-all", { method: "PATCH" });
+    invalidateCachedRequestPrefix("notifications:");
   },
 };

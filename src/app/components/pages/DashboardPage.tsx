@@ -12,53 +12,75 @@ import { EmptyState, ErrorState } from "../shared/EmptyState";
 import { workspaceApi } from "../../api/workspaceApi";
 import { enrichProjectsTaskCounts } from "../../api/clientStats";
 import { taskApi } from "../../api/taskApi";
-import { notificationsApi } from "../../api/notificationsApi";
+import { useNotifications } from "../../context/NotificationsContext";
+import { useWorkspaces } from "../../context/WorkspacesContext";
 import { initials } from "../../api/mappers";
 import { useAuth } from "../../auth/AuthContext";
 import { useAsyncData } from "../../hooks/useAsyncData";
-import type { Notification, Task } from "../../api/types";
+import type { Task } from "../../api/types";
 import { timeAgo } from "../../utils/format";
 import { toast } from "sonner";
 
 const statuses = ["TODO", "DOING", "DONE"] as const;
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <Card key={index} className="min-w-0 p-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+            <div className="mb-2 h-8 w-8 rounded-lg bg-slate-200 dark:bg-slate-700" />
+            <div className="mb-2 h-7 w-12 rounded bg-slate-200 dark:bg-slate-700" />
+            <div className="h-3 w-20 rounded bg-slate-200 dark:bg-slate-700" />
+          </Card>
+        ))}
+      </div>
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card className="min-w-0 p-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 h-[228px]" />
+        <Card className="min-w-0 p-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 h-[280px]" />
+      </div>
+      <Card className="min-w-0 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 h-48" />
+    </div>
+  );
+}
 
 export function DashboardPage() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const [createTask, setCreateTask] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const workspacesState = useAsyncData(() => workspaceApi.list(), []);
-  const workspaces = workspacesState.data ?? [];
+  const { workspaces, loading: workspacesLoading, error: workspacesError, reload: reloadWorkspaces } = useWorkspaces();
+  const { data: notifData, error: notificationsError, reload: reloadNotifications, unreadCount } = useNotifications();
   const activeWorkspace = workspaces[0] ?? null;
+  const hasWorkspace = Boolean(activeWorkspace);
 
   const membersState = useAsyncData(
-    () => activeWorkspace ? workspaceApi.members(activeWorkspace.id) : Promise.resolve([]),
+    () => workspaceApi.members(activeWorkspace!.id),
     [activeWorkspace?.id],
+    { enabled: hasWorkspace },
   );
 
   const projectsState = useAsyncData(
-    () => activeWorkspace
-      ? workspaceApi.listProjects(activeWorkspace.id).then(enrichProjectsTaskCounts)
-      : Promise.resolve([]),
+    () => workspaceApi.listProjects(activeWorkspace!.id).then(enrichProjectsTaskCounts),
     [activeWorkspace?.id],
+    { enabled: hasWorkspace },
   );
 
   const tasksState = useAsyncData(
-    () => activeWorkspace ? taskApi.list({ workspaceId: activeWorkspace.id }).then(result => result.tasks) : Promise.resolve([]),
+    () => taskApi.list({ workspaceId: activeWorkspace!.id }).then(result => result.tasks),
     [activeWorkspace?.id],
+    { enabled: hasWorkspace },
   );
 
-  const notificationsState = useAsyncData<{ notifications: Notification[]; total: number; unreadCount: number }>(() => notificationsApi.list(), []);
   const activityState = useAsyncData(
-    () => activeWorkspace
-      ? workspaceApi.getActivity(activeWorkspace.id)
-      : Promise.resolve({ items: [], total: 0 }),
+    () => workspaceApi.getActivity(activeWorkspace!.id),
     [activeWorkspace?.id],
+    { enabled: hasWorkspace },
   );
 
   const tasks = tasksState.data ?? [];
   const projects = projectsState.data ?? [];
-  const notifications = notificationsState.data?.notifications ?? [];
+  const notifications = notifData?.notifications ?? [];
   const activity = (activityState.data?.items ?? []).slice(0, 6);
 
   const chartData = useMemo(() => {
@@ -72,23 +94,24 @@ export function DashboardPage() {
   const totalDone = tasks.filter(task => task.status === "DONE").length;
   const totalDoing = tasks.filter(task => task.status === "DOING").length;
   const memberCount = membersState.data?.length ?? 0;
-  const unread = notificationsState.data?.unreadCount ?? notifications.filter(n => !n.read && !n.archived).length;
+  const unreadCountDisplay = notificationsError ? "N/A" : unreadCount;
 
   const kpis = [
     { label: "Total Tasks", value: tasks.length, icon: CheckSquare, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20" },
     { label: "Completed", value: totalDone, icon: TrendingUp, color: "text-green-500", bg: "bg-green-50 dark:bg-green-900/20" },
     { label: "In Progress", value: totalDoing, icon: Clock, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20" },
     { label: "Team Members", value: memberCount, icon: Users, color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-900/20" },
-    { label: "Unread Notifs", value: notificationsState.error ? "N/A" : unread, icon: Bell, color: "text-red-500", bg: "bg-red-50 dark:bg-red-900/20" },
+    { label: "Unread Notifs", value: unreadCountDisplay, icon: Bell, color: "text-red-500", bg: "bg-red-50 dark:bg-red-900/20" },
     { label: "Projects", value: projects.length, icon: FolderOpen, color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-900/20" },
   ];
 
   function reloadAll() {
-    void workspacesState.reload();
+    void reloadWorkspaces();
+    void reloadNotifications();
     void projectsState.reload();
     void tasksState.reload();
-    void notificationsState.reload();
     void activityState.reload();
+    void membersState.reload();
   }
 
   function addCreatedTask(task: Task) {
@@ -105,7 +128,16 @@ export function DashboardPage() {
     setSelectedTask(null);
   }
 
-  const topError = workspacesState.error || tasksState.error;
+  const topError = workspacesError || tasksState.error;
+
+  const awaitingWorkspaceList = workspacesLoading;
+  const awaitingWorkspaceData = hasWorkspace && (
+    (tasksState.loading && tasksState.data === null) ||
+    (projectsState.loading && projectsState.data === null) ||
+    (membersState.loading && membersState.data === null)
+  );
+  const showDashboardSkeleton = awaitingWorkspaceList || awaitingWorkspaceData;
+  const showEmptyWorkspaces = !workspacesError && !awaitingWorkspaceList && workspaces.length === 0;
 
   return (
     <div className="max-w-full overflow-x-hidden p-4 md:p-6 space-y-6">
@@ -135,8 +167,10 @@ export function DashboardPage() {
         </Card>
       )}
 
-      {!workspacesState.loading && workspaces.length === 0 ? (
-        <EmptyState icon={FolderOpen} title="No workspaces yet" description="Create a workspace before loading projects and tasks." action={{ label: "Create workspace", onClick: () => navigate("/workspaces") }} />
+      {showDashboardSkeleton ? (
+        <DashboardSkeleton />
+      ) : showEmptyWorkspaces ? (
+        <EmptyState icon={FolderOpen} title="No workspaces yet" description="Your account has no workspaces on the server yet. Create one or accept an invitation to get started." action={{ label: "Create workspace", onClick: () => navigate("/workspaces") }} />
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -156,8 +190,9 @@ export function DashboardPage() {
           <div className="grid md:grid-cols-2 gap-6">
             <Card className="min-w-0 p-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
               <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4">Task Status</h2>
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={chartData} barSize={18}>
+              <div className="h-[180px] w-full">
+                <ResponsiveContainer width="100%" height={180}>
+                  <BarChart data={chartData} barSize={18}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200 dark:stroke-slate-700" />
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} className="text-slate-500" />
                   <YAxis tick={{ fontSize: 11 }} allowDecimals={false} className="text-slate-500" />
@@ -165,6 +200,7 @@ export function DashboardPage() {
                   <Bar dataKey="count" fill="#3b82f6" radius={4} isAnimationActive={false} />
                 </BarChart>
               </ResponsiveContainer>
+              </div>
             </Card>
 
             <Card className="min-w-0 p-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex flex-col h-[280px]">

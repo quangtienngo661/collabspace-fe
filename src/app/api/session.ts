@@ -11,9 +11,11 @@ export function getStoredSession(): AuthSession | null {
   }
 }
 
-export function setStoredSession(session: AuthSession): void {
+export function setStoredSession(session: AuthSession, options?: { emit?: boolean }): void {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-  window.dispatchEvent(new Event("collabspace:session-changed"));
+  if (options?.emit !== false) {
+    window.dispatchEvent(new Event("collabspace:session-changed"));
+  }
 }
 
 export function clearStoredSession(): void {

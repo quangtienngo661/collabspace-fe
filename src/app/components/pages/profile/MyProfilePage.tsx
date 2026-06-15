@@ -57,7 +57,8 @@ export function MyProfilePage() {
   const defaultTab = searchParams.get("tab") || "profile";
   const navigate = useNavigate();
   const { authUser, profile, preferences, session, refresh, logout, setPreferences } = useAuth();
-  const sessionsState = useAsyncData(() => authApi.sessions(), []);
+  const [activeTab, setActiveTab] = useState(defaultTab);
+  const sessionsState = useAsyncData(() => authApi.sessions(), [], { enabled: activeTab === "sessions" });
   const currentUser = profile ?? fallbackUser(authUser?.email);
 
   const [profileForm, setProfileForm] = useState({
@@ -206,7 +207,7 @@ export function MyProfilePage() {
     <div className="space-y-6 p-4 md:p-6">
       <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">Account Settings</h1>
 
-      <Tabs defaultValue={defaultTab}>
+      <Tabs defaultValue={defaultTab} onValueChange={setActiveTab}>
         <TabsList className="bg-slate-100 dark:bg-slate-800">
           <TabsTrigger value="profile"><User className="mr-1.5 size-3.5" />Profile</TabsTrigger>
           <TabsTrigger value="preferences"><Settings className="mr-1.5 size-3.5" />Preferences</TabsTrigger>

@@ -10,17 +10,20 @@ import { Textarea } from "../../ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../ui/dropdown-menu";
 import { workspaceApi } from "../../../api/workspaceApi";
 import { enrichWorkspacesStats } from "../../../api/clientStats";
+import { useWorkspaces } from "../../../context/WorkspacesContext";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 import { EmptyState, ErrorState } from "../../shared/EmptyState";
 import { toast } from "sonner";
 
 export function WorkspaceListPage() {
   const navigate = useNavigate();
-  const { data, loading: loadingList, error, reload, setData } = useAsyncData(
-    () => workspaceApi.list().then(enrichWorkspacesStats),
-    [],
+  const { workspaces, loading: loadingList, error, reload } = useWorkspaces();
+  const { data: enriched, reload: reloadStats } = useAsyncData(
+    () => enrichWorkspacesStats(workspaces),
+    [workspaces],
+    { enabled: workspaces.length > 0 },
   );
-  const wsList = data ?? [];
+  const wsList = enriched ?? workspaces;
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "" });
   const [loading, setLoading] = useState(false);
@@ -29,8 +32,9 @@ export function WorkspaceListPage() {
     if (!form.name.trim()) { toast.error("Workspace name is required"); return; }
     setLoading(true);
     try {
-      const newWs = await workspaceApi.create(form);
-      setData(prev => [...(prev ?? []), newWs]);
+      await workspaceApi.create(form);
+      await reload();
+      void reloadStats();
       setForm({ name: "", description: "" });
       setCreateOpen(false);
       toast.success(`Workspace "${form.name}" created`);
@@ -49,7 +53,7 @@ export function WorkspaceListPage() {
           <p className="text-sm text-slate-500 dark:text-slate-400">{loadingList ? "Loading..." : `${wsList.length} workspaces you're a member of`}</p>
         </div>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => void reload()}>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { void reload(); void reloadStats(); }}>
             <RefreshCw className="w-3.5 h-3.5" /> Refresh
           </Button>
           <Button size="sm" className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setCreateOpen(true)}>

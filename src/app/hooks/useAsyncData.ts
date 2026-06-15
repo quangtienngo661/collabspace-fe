@@ -8,12 +8,26 @@ export interface AsyncDataState<T> {
   setData: Dispatch<SetStateAction<T | null>>;
 }
 
-export function useAsyncData<T>(loader: () => Promise<T>, deps: DependencyList): AsyncDataState<T> {
+export interface UseAsyncDataOptions {
+  /** When false, skip the request until enabled becomes true. */
+  enabled?: boolean;
+}
+
+export function useAsyncData<T>(
+  loader: () => Promise<T>,
+  deps: DependencyList,
+  options: UseAsyncDataOptions = {},
+): AsyncDataState<T> {
+  const enabled = options.enabled ?? true;
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
 
   const reload = useCallback(async () => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -23,11 +37,15 @@ export function useAsyncData<T>(loader: () => Promise<T>, deps: DependencyList):
     } finally {
       setLoading(false);
     }
-  }, deps);
+  }, [enabled, ...deps]);
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
     void reload();
-  }, [reload]);
+  }, [reload, enabled]);
 
   return { data, error, loading, reload, setData };
 }

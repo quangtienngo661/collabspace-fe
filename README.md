@@ -328,6 +328,8 @@ npm run preview   # Preview bản build
 
 - **Backend repo**: [collabspace](https://github.com/lengocanh2005it/collabspace) — NestJS microservices, Docker Compose, Traefik, PostgreSQL, MongoDB, RabbitMQ, Redis
 - Hướng dẫn setup backend (migrate, seed, .env, Docker) xem README tại backend repo
+- **FE ↔ BE alignment:** [docs/fe-be-alignment.md](./docs/fe-be-alignment.md)
+- **AI agents (Cursor / Claude / Codex):** [CLAUDE.md](./CLAUDE.md) · [AGENTS.md](./AGENTS.md) · [.claude/docs/agent-onboarding.md](./.claude/docs/agent-onboarding.md)
 
 ---
 

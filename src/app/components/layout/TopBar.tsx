@@ -9,7 +9,10 @@ import { cn } from "../ui/utils";
 import { UserAvatar } from "../shared/UserAvatar";
 import { toast } from "sonner";
 import { useAuth } from "../../auth/AuthContext";
+import { useNotifications } from "../../context/NotificationsContext";
+import { useWorkspaces } from "../../context/WorkspacesContext";
 import { notificationsApi } from "../../api/notificationsApi";
+import { workspaceApi } from "../../api/workspaceApi";
 import { navigateFromNotification } from "../../utils/notificationNavigation";
 import { usersApi } from "../../api/usersApi";
 import { useAsyncData } from "../../hooks/useAsyncData";
@@ -50,26 +53,20 @@ export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<DomainUser[]>([]);
   
-  const { data: workspaces } = useAsyncData(() => {
-    // Only fetch if we are on a workspace route
-    if (!location.pathname.includes("/workspaces/")) return Promise.resolve([]);
-    return import("../../api/workspaceApi").then(m => m.workspaceApi.list());
-  }, [location.pathname.includes("/workspaces/")]);
+  const { getById: getWorkspaceById } = useWorkspaces();
+  const { data: notifData, error: notifError, setData: setNotifs, unreadCount: unreadBadgeCount } = useNotifications();
 
   const matchWs = location.pathname.match(/\/workspaces\/([^\/]+)/);
   const wsId = matchWs ? matchWs[1] : null;
+  const onWorkspaceRoute = location.pathname.includes("/workspaces/");
 
-  const { data: projects } = useAsyncData(() => {
-    if (!wsId) return Promise.resolve([]);
-    return import("../../api/workspaceApi").then(m => m.workspaceApi.listProjects(wsId));
-  }, [wsId]);
-
-  const { data: notifData, error: notifError, setData: setNotifs } = useAsyncData<{ notifications: Notification[]; total: number; unreadCount: number }>(
-    () => notificationsApi.list({ limit: 8 }),
-    [],
+  const { data: projects } = useAsyncData(
+    () => wsId ? workspaceApi.listProjects(wsId) : Promise.resolve([]),
+    [wsId],
+    { enabled: onWorkspaceRoute && Boolean(wsId) },
   );
-  const notifs = notifData?.notifications ?? [];
-  const unreadBadgeCount = notifData?.unreadCount ?? notifs.filter(n => !n.read && !n.archived).length;
+
+  const notifs = (notifData?.notifications ?? []).slice(0, 8);
 
   useEffect(() => {
     const query = searchQuery.trim();
@@ -100,7 +97,7 @@ export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
     if (ROUTE_MAP[p]) return ROUTE_MAP[p];
     if (isUuid(p)) {
       if (wsId === p) {
-        const ws = workspaces?.find(w => w.id === p);
+        const ws = getWorkspaceById(p);
         if (ws) return ws.name;
       }
       const proj = projects?.find(pr => pr.id === p);

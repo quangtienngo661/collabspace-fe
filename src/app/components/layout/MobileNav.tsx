@@ -2,8 +2,7 @@ import { NavLink, useNavigate } from "react-router";
 import { LayoutDashboard, Building2, Bell, User, FolderOpen, Settings, Shield } from "lucide-react";
 import { cn } from "../ui/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../ui/sheet";
-import { workspaceApi } from "../../api/workspaceApi";
-import { useAsyncData } from "../../hooks/useAsyncData";
+import { useWorkspaces } from "../../context/WorkspacesContext";
 import { useAuth } from "../../auth/AuthContext";
 
 const bottomItems = [
@@ -28,8 +27,7 @@ interface MobileNavProps {
 
 export function MobileDrawer({ open, onClose }: MobileNavProps) {
   const { isAdmin } = useAuth();
-  const { data: workspaceData } = useAsyncData(() => workspaceApi.list(), []);
-  const workspaces = workspaceData ?? [];
+  const { workspaces } = useWorkspaces();
   const projectLink = workspaces[0] ? `/workspaces/${workspaces[0].id}/projects` : "/workspaces/projects/none";
 
   return (

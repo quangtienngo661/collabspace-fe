@@ -2,6 +2,7 @@ import { apiRequest } from "./httpClient";
 import type { AuthSession, AuthUser, Session } from "./types";
 import { mapAuthUser, mapSession } from "./mappers";
 import { getStoredSession } from "./session";
+import { cachedRequest } from "./requestCache";
 
 export const authApi = {
   async login(email: string, password: string): Promise<AuthSession> {
@@ -60,7 +61,7 @@ export const authApi = {
   },
 
   async me(): Promise<AuthUser> {
-    return mapAuthUser(await apiRequest("/auth/me"));
+    return cachedRequest("auth:me", async () => mapAuthUser(await apiRequest("/auth/me")));
   },
 
   async sessions(): Promise<Session[]> {

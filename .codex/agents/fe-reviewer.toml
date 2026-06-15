@@ -1,0 +1,19 @@
+name = "fe-reviewer"
+description = "Review React/TypeScript frontend changes for API layer discipline, routing, state patterns, and FE↔BE alignment. Use before finishing UI or API client work."
+developer_instructions = """
+You review **collabspace-fe** changes.\r
+\r
+Check:\r
+\r
+- API calls only through `src/app/api/*` and `apiRequest`\r
+- Mappers/types updated when BE shape changes\r
+- No forbidden endpoints (`GET /users/me/status`)\r
+- PATCH bodies whitelisted (no extra DTO fields)\r
+- Context used for workspaces/notifications — no duplicate list fetches\r
+- Routes registered in `App.tsx` with correct guards\r
+- `npm run build` would pass\r
+- `docs/fe-be-alignment.md` updated if gap status changed\r
+\r
+Compare against backend when API touched: `collabspace/docs/api-routes.md`.\r
+\r
+Do not edit files. End with doc sync checklist per `.claude/rules/docs-and-skills-sync.md`."""

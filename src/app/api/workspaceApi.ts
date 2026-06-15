@@ -1,19 +1,25 @@
 import { apiRequest } from "./httpClient";
 import { mapActivityTimelineItem, mapProject, mapWorkspace, mapWorkspaceMember } from "./mappers";
+import { cachedRequest, invalidateCachedRequestPrefix } from "./requestCache";
 import type { ActivityTimelineItem, Project, Workspace, WorkspaceMember } from "./types";
 
 export const workspaceApi = {
   async list(): Promise<Workspace[]> {
-    const rows = await apiRequest<any[]>("/workspaces");
-    return rows.map(mapWorkspace);
+    return cachedRequest("workspaces:list", async () => {
+      const rows = await apiRequest<unknown>("/workspaces");
+      const list = Array.isArray(rows) ? rows : (rows as { items?: unknown[] })?.items ?? [];
+      return list.map(row => mapWorkspace(row as Record<string, unknown>));
+    });
   },
 
   async create(input: { name: string; description?: string }): Promise<Workspace> {
-    return mapWorkspace(await apiRequest("/workspaces", { method: "POST", body: input }));
+    const workspace = mapWorkspace(await apiRequest("/workspaces", { method: "POST", body: input }));
+    invalidateCachedRequestPrefix("workspaces:");
+    return workspace;
   },
 
   async get(id: string): Promise<Workspace> {
-    return mapWorkspace(await apiRequest(`/workspaces/${id}`));
+    return cachedRequest(`workspaces:get:${id}`, async () => mapWorkspace(await apiRequest(`/workspaces/${id}`)));
   },
 
   async update(id: string, input: { name?: string; description?: string }): Promise<Workspace> {
@@ -22,8 +28,10 @@ export const workspaceApi = {
 
   async members(id: string): Promise<WorkspaceMember[]> {
     if (!id) return [];
-    const rows = await apiRequest<any[]>(`/workspaces/${id}/members`);
-    return rows.map(row => mapWorkspaceMember(row));
+    return cachedRequest(`workspaces:members:${id}`, async () => {
+      const rows = await apiRequest<any[]>(`/workspaces/${id}/members`);
+      return rows.map(row => mapWorkspaceMember(row));
+    });
   },
 
   async invitations(id: string): Promise<{ id: string; email: string; status: string; createdAt: string }[]> {
@@ -56,8 +64,10 @@ export const workspaceApi = {
   },
 
   async listProjects(workspaceId: string): Promise<Project[]> {
-    const rows = await apiRequest<any[]>(`/workspaces/${workspaceId}/projects`);
-    return rows.map(row => mapProject(row, workspaceId));
+    return cachedRequest(`workspaces:projects:${workspaceId}`, async () => {
+      const rows = await apiRequest<any[]>(`/workspaces/${workspaceId}/projects`);
+      return rows.map(row => mapProject(row, workspaceId));
+    });
   },
 
   async createProject(workspaceId: string, input: { name: string; description?: string }): Promise<Project> {

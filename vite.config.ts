@@ -15,6 +15,15 @@ function figmaAssetResolver() {
   }
 }
 
+function proxyStartupLog(proxyTarget: string) {
+  return {
+    name: 'proxy-startup-log',
+    configureServer() {
+      console.log(`[vite] API proxy target: ${proxyTarget} (only when VITE_API_BASE_URL=/api/v1)`)
+    },
+  }
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const proxyTarget = (env.VITE_API_PROXY_TARGET || 'http://localhost').replace(/\/$/, '')
@@ -22,6 +31,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       figmaAssetResolver(),
+      proxyStartupLog(proxyTarget),
       react(),
       tailwindcss(),
     ],
@@ -32,6 +42,15 @@ export default defineConfig(({ mode }) => {
     },
     assetsInclude: ['**/*.svg', '**/*.csv'],
     server: {
+      proxy: {
+        '/api/v1': {
+          target: proxyTarget,
+          changeOrigin: true,
+          secure: true,
+        },
+      },
+    },
+    preview: {
       proxy: {
         '/api/v1': {
           target: proxyTarget,

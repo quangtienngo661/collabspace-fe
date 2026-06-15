@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Outlet } from "react-router";
+import { NotificationsProvider } from "../../context/NotificationsContext";
+import { WorkspacesProvider } from "../../context/WorkspacesContext";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { MobileDrawer, BottomNav } from "./MobileNav";
@@ -13,6 +15,8 @@ export function AppShell({ dark, onToggleDark }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
+    <WorkspacesProvider>
+      <NotificationsProvider>
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden">
       {/* Desktop sidebar */}
       <div className="hidden md:flex">
@@ -33,5 +37,7 @@ export function AppShell({ dark, onToggleDark }: AppShellProps) {
       {/* Mobile bottom nav */}
       <BottomNav />
     </div>
+      </NotificationsProvider>
+    </WorkspacesProvider>
   );
 }

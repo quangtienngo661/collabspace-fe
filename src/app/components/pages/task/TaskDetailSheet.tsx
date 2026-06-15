@@ -14,10 +14,8 @@ import { TaskComments } from "./TaskComments";
 import { TaskActivity } from "./TaskActivity";
 import { toast } from "sonner";
 import { taskApi } from "../../../api/taskApi";
-import { workspaceApi } from "../../../api/workspaceApi";
-import { usersApi } from "../../../api/usersApi";
+import { useWorkspaceMemberUsers } from "../../../hooks/useWorkspaceMemberUsers";
 import { initials } from "../../../api/mappers";
-import { useAsyncData } from "../../../hooks/useAsyncData";
 import type { Priority, Task, TaskStatus } from "../../../api/types";
 
 interface TaskDetailSheetProps {
@@ -57,10 +55,7 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted }: T
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const usersState = useAsyncData(async () => {
-    const members = await workspaceApi.members(task.workspaceId);
-    return usersApi.bulk(members.map(m => m.userId));
-  }, [task.workspaceId]);
+  const usersState = useWorkspaceMemberUsers(task.workspaceId, open);
   const users = usersState.data?.map(u => ({ userId: u.id, name: u.name })) ?? [];
 
   useEffect(() => {

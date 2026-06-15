@@ -3,8 +3,7 @@ import { NavLink, useNavigate, useLocation } from "react-router";
 import { LayoutDashboard, Building2, FolderOpen, Bell, Settings, ChevronLeft, ChevronRight, ChevronDown, Plus, LogOut, Shield } from "lucide-react";
 import { cn } from "../ui/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
-import { workspaceApi } from "../../api/workspaceApi";
-import { useAsyncData } from "../../hooks/useAsyncData";
+import { useWorkspaces } from "../../context/WorkspacesContext";
 import { useAuth } from "../../auth/AuthContext";
 
 const navItems: { label: string; icon: ElementType; to: string | null }[] = [
@@ -25,8 +24,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, isAdmin } = useAuth();
-  const { data: workspaceData } = useAsyncData(() => workspaceApi.list(), []);
-  const workspaces = workspaceData ?? [];
+  const { workspaces } = useWorkspaces();
   const [activeId, setActiveId] = useState<string | null>(null);
   
   // Extract workspaceId from URL if available

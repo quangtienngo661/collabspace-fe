@@ -3,11 +3,31 @@
 Tài liệu này liệt kê các chỗ **frontend** (`collabspace-fe`) còn cần sửa để khớp **backend** (`collabspace`).  
 Nguồn backend: [`docs/features.md`](../../collabspace/docs/features.md), [`docs/api-routes.md`](../../collabspace/docs/api-routes.md).
 
+**Agent docs:** `CLAUDE.md`, `.claude/docs/api-integration.md`, skill `/fe-be-alignment`.
+
 **Cập nhật:** 2026-06-15  
 **Trạng thái backend MVP:** Auth, User, Workspace, Task, Comment, Notification — **Done**  
 **Trạng thái Platform Admin API:** **Done** — xem [admin-backlog.md](../../collabspace/docs/team/admin-backlog.md)
 
 **Trạng thái FE (main):** Phase 2 ✅ · Phase 3 ✅ · Phase Admin ✅ · Phase 4 ✅ · Phase 5 ✅ · Phase 6 (USER-T1 pickers) ✅
+
+---
+
+## Gap còn lại (tóm tắt — 2026-06)
+
+| Mục | FE | BE | Ghi chú |
+|-----|----|----|---------|
+| Xóa workspace (owner) | Disabled, chưa có `workspaceApi.delete` | `DELETE /workspaces/:id` | **Mismatch** — nên wire |
+| Archive notification | Disabled | Không có HTTP | Đúng — chờ BE |
+| Đổi role / remove member | Disabled | Không có end-user API | Đúng |
+| Gỡ permission khỏi role (admin) | Toast | Chỉ assign | Đúng |
+| Comment thread `parentId` | API có, UI phẳng | Done | Polish FE |
+| Presence live | Chưa poll | `GET /users/presence` | Polish FE |
+| `commentCount` Kanban | Không hiển thị | Board không trả field | BE hoặc client count |
+| Create task dueDate/labels | Chỉ trong detail | `POST /tasks` hỗ trợ | Polish FE |
+| List invitation của user | Manual ID | Chỉ list theo workspace | Thiếu BE API |
+
+**Không còn mismatch API nghiêm trọng** (400 body, endpoint ảo) sau Phase 2–5.
 
 ---
 
