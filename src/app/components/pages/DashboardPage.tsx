@@ -13,7 +13,7 @@ import { taskApi } from "../../api/taskApi";
 import { notificationsApi } from "../../api/notificationsApi";
 import { useAuth } from "../../auth/AuthContext";
 import { useAsyncData } from "../../hooks/useAsyncData";
-import type { Notification, Task } from "../../api/types";
+import type { ActivityItem, Notification, Task } from "../../api/types";
 import { timeAgo } from "../../utils/format";
 import { toast } from "sonner";
 
@@ -37,7 +37,7 @@ export function DashboardPage() {
     [activeWorkspace?.id],
   );
 
-  const notificationsState = useAsyncData<Notification[]>(() => notificationsApi.list(), []);
+  const notificationsState = useAsyncData(() => notificationsApi.list().then(r => r.notifications), []);
   const tasks = tasksState.data ?? [];
   const projects = projectsState.data ?? [];
   const notifications = notificationsState.data ?? [];
@@ -64,15 +64,19 @@ export function DashboardPage() {
     { label: "Projects", value: projects.length, icon: FolderOpen, color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-900/20" },
   ];
 
-  const activity = [...tasks]
-    .sort((a, b) => new Date(b.updatedAt ?? b.createdAt).getTime() - new Date(a.updatedAt ?? a.createdAt).getTime())
-    .slice(0, 6);
+  const activityState = useAsyncData<ActivityItem[]>(
+    () => activeWorkspace ? workspaceApi.activity(activeWorkspace.id, { limit: 8 }).then(r => r.items) : Promise.resolve([]),
+    [activeWorkspace?.id],
+  );
+
+  const activity = activityState.data ?? [];
 
   function reloadAll() {
     void workspacesState.reload();
     void projectsState.reload();
     void tasksState.reload();
     void notificationsState.reload();
+    void activityState.reload();
   }
 
   function addCreatedTask(task: Task) {
@@ -144,34 +148,18 @@ export function DashboardPage() {
             <Card className="min-w-0 p-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
               <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">Recent Activity</h2>
               <div className="space-y-3">
-                {activity.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-slate-400">No task activity yet</p>
-                ) : activity.map(task => (
-                  <div key={task.id} className="flex items-start gap-2.5">
-                    {task.createdBy ? (
-                      <UserAvatar
-                        user={{
-                          id: task.createdBy.userId,
-                          userId: task.createdBy.userId,
-                          name: task.createdBy.displayName || task.createdBy.fullName,
-                          avatar: (task.createdBy.displayName || task.createdBy.fullName).slice(0, 2).toUpperCase(),
-                          avatarUrl: task.createdBy.avatarUrl,
-                          role: "member",
-                          status: "offline",
-                          title: "",
-                          department: "",
-                          joinedAt: "",
-                        }}
-                        size="xs"
-                      />
-                    ) : null}
+                {activityState.loading && activity.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-slate-400">Loading activity…</p>
+                ) : activity.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-slate-400">No workspace activity yet</p>
+                ) : activity.map(item => (
+                  <div key={item.id} className="flex items-start gap-2.5">
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-slate-700 dark:text-slate-300">
-                        <span className="font-medium">{task.createdBy?.displayName || task.createdBy?.fullName || "A teammate"}</span>
-                        {" updated "}
-                        <span className="text-blue-600 dark:text-blue-400">{task.title}</span>
+                        <span className="font-medium">{item.actorName ?? "System"}</span>
+                        {" — "}{item.summary}
                       </p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">{timeAgo(task.updatedAt ?? task.createdAt)}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">{timeAgo(item.occurredAt)}</p>
                     </div>
                   </div>
                 ))}

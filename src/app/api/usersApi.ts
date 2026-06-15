@@ -10,11 +10,8 @@ export const usersApi = {
   async updateMe(input: {
     fullName?: string;
     displayName?: string | null;
-    jobTitle?: string | null;
-    department?: string | null;
+    username?: string | null;
     bio?: string | null;
-    location?: string | null;
-    timezone?: string | null;
   }): Promise<User> {
     return mapUserProfile(await apiRequest("/users/me", { method: "PATCH", body: input }));
   },

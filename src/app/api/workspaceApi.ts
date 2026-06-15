@@ -1,6 +1,18 @@
 import { apiRequest } from "./httpClient";
-import { mapProject, mapWorkspace, mapWorkspaceMember } from "./mappers";
-import type { Project, Workspace, WorkspaceMember } from "./types";
+import { mapActivityItem, mapProject, mapWorkspace, mapWorkspaceMember } from "./mappers";
+import type { ActivityItem, Project, Workspace, WorkspaceInvitation, WorkspaceMember } from "./types";
+
+type AnyRecord = Record<string, unknown>;
+
+function mapInvitation(raw: AnyRecord): WorkspaceInvitation {
+  return {
+    id: raw.id,
+    workspaceId: raw.workspaceId ?? raw.workspace_id ?? "",
+    email: raw.inviteeEmail ?? raw.invitee_email ?? raw.email ?? "",
+    status: raw.status ?? "pending",
+    createdAt: raw.createdAt ?? raw.created_at ?? "",
+  };
+}
 
 export const workspaceApi = {
   async list(): Promise<Workspace[]> {
@@ -25,14 +37,9 @@ export const workspaceApi = {
     return rows.map(row => mapWorkspaceMember(row));
   },
 
-  async invitations(id: string): Promise<{ id: string; email: string; status: string; createdAt: string }[]> {
+  async invitations(id: string): Promise<WorkspaceInvitation[]> {
     const rows = await apiRequest<any[]>(`/workspaces/${id}/invitations`);
-    return rows.map(row => ({
-      id: row.id,
-      email: row.invitee_email,
-      status: row.status,
-      createdAt: row.created_at,
-    }));
+    return rows.map(mapInvitation);
   },
 
   async invite(id: string, email: string) {
@@ -40,6 +47,26 @@ export const workspaceApi = {
       method: "POST",
       body: { email },
     });
+  },
+
+  async acceptInvitation(invitationId: string): Promise<{ workspaceId: string; status: string }> {
+    return apiRequest(`/invitations/${invitationId}/accept`, { method: "POST" });
+  },
+
+  async rejectInvitation(invitationId: string): Promise<void> {
+    await apiRequest(`/invitations/${invitationId}/reject`, { method: "POST" });
+  },
+
+  async activity(workspaceId: string, params: { limit?: number; offset?: number } = {}): Promise<{ items: ActivityItem[]; total: number }> {
+    const search = new URLSearchParams();
+    if (params.limit !== undefined) search.set("limit", String(params.limit));
+    if (params.offset !== undefined) search.set("offset", String(params.offset));
+    const query = search.toString();
+    const result = await apiRequest<{ items?: any[]; total?: number }>(`/workspaces/${workspaceId}/activity${query ? `?${query}` : ""}`);
+    return {
+      items: (result.items ?? []).map(mapActivityItem),
+      total: result.total ?? 0,
+    };
   },
 
   async listProjects(workspaceId: string): Promise<Project[]> {

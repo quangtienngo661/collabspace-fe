@@ -33,9 +33,9 @@ export function OtpPage() {
   }
 
   async function resend() {
-    if (!userId) { setError("Missing pending verification user. Please register again."); return; }
+    if (!email || email === "your email address") { setError("Missing email. Please register again."); return; }
     try {
-      await authApi.resendVerificationOtp(userId);
+      await authApi.resendVerificationOtp(email);
       toast.success("Verification code resent");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to resend code");

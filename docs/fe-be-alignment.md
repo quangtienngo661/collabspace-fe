@@ -3,9 +3,11 @@
 Tài liệu này liệt kê các chỗ **frontend** (`collabspace-fe`) còn cần sửa để khớp **backend** (`collabspace`).  
 Nguồn backend: [`docs/features.md`](../../collabspace/docs/features.md), [`docs/api-routes.md`](../../collabspace/docs/api-routes.md).
 
-**Cập nhật:** 2026-06-14  
+**Cập nhật:** 2026-06-15  
 **Trạng thái backend MVP:** Auth, User, Workspace, Task, Comment, Notification — **Done**  
 **Trạng thái Platform Admin API:** **Done** — xem [admin-backlog.md](../../collabspace/docs/team/admin-backlog.md)
+
+**Trạng thái FE (branch `feat/re-enable-auth-flows`):** Phase 2 ✅ · Phase 3 ✅ · Phase Admin ✅ · Phase 6 (USER-T1 pickers) ✅ · Phase 4 một phần (comment_mentioned, activity feed, invitation mapping) · Phase 5 chưa làm
 
 ---
 
@@ -201,10 +203,10 @@ FE đang gọi `usersApi.list()` **không có `q`** tại:
 
 | # | Việc (admin-backlog) | Trạng thái FE |
 |---|----------------------|---------------|
-| 1 | UI gọi đúng endpoint / OpenAPI client | [ ] Tạo `adminApi` + wire pages |
-| 2 | Đối chiếu path `/admin/*` với bảng contract | [ ] |
-| 3 | Dùng `GET /users/admin/all` thay list user thường | [ ] |
-| 4 | Error codes (`PLATFORM_ADMIN_REQUIRED`, `IDEMPOTENCY_KEY_REQUIRED`, …) | [ ] |
+| 1 | UI gọi đúng endpoint / OpenAPI client | [x] `adminApi.ts` + wire pages |
+| 2 | Đối chiếu path `/admin/*` với bảng contract | [x] |
+| 3 | Dùng `GET /users/admin/all` thay list user thường | [x] |
+| 4 | Error codes (`PLATFORM_ADMIN_REQUIRED`, `IDEMPOTENCY_KEY_REQUIRED`, …) | [x] toast từ `ApiError.message` |
 
 ### Thứ tự implement Admin
 

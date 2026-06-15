@@ -1,19 +1,24 @@
 import { useState } from "react";
-import { Archive, Bell, Building2, Check, ClipboardList, MessageSquare, AlertTriangle, type LucideIcon } from "lucide-react";
+import { useNavigate } from "react-router";
+import { Archive, Bell, Building2, Check, ClipboardList, MessageSquare, AlertTriangle, AtSign, type LucideIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { EmptyState, ErrorState } from "../shared/EmptyState";
 import { cn } from "../ui/utils";
 import { notificationsApi } from "../../api/notificationsApi";
+import { workspaceApi } from "../../api/workspaceApi";
 import type { Notification } from "../../api/types";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { timeAgo } from "../../utils/format";
+import { toast } from "sonner";
 
 const notificationIconMap: Record<string, LucideIcon> = {
   task_assigned: ClipboardList,
   taskassigned: ClipboardList,
   comment_added: MessageSquare,
   commentadded: MessageSquare,
+  comment_mentioned: AtSign,
+  commentmentioned: AtSign,
   workspace_invited: Building2,
   workspaceinvited: Building2,
   system_alert: AlertTriangle,
@@ -25,6 +30,8 @@ const notifTypeLabel: Record<string, string> = {
   taskassigned: "Task Assignment",
   comment_added: "Comment",
   commentadded: "Comment",
+  comment_mentioned: "Mention",
+  commentmentioned: "Mention",
   workspace_invited: "Workspace Invite",
   workspaceinvited: "Workspace Invite",
   system_alert: "System Alert",
@@ -35,9 +42,54 @@ function normalizedType(type: string) {
   return type.toLowerCase().replace(/[^a-z0-9]+/g, "_");
 }
 
-function NotifItem({ n }: { n: Notification }) {
+function invitationIdFromNotification(n: Notification): string | undefined {
+  const metaId = n.metadata?.invitationId;
+  return typeof metaId === "string" ? metaId : undefined;
+}
+
+interface NotifItemProps {
+  n: Notification;
+  onMarkRead: (id: string) => Promise<void>;
+  onReload: () => void;
+}
+
+function NotifItem({ n, onMarkRead, onReload }: NotifItemProps) {
+  const navigate = useNavigate();
   const type = normalizedType(n.type);
   const Icon = notificationIconMap[type] || Bell;
+  const invitationId = invitationIdFromNotification(n);
+  const isInvite = type.includes("workspace_invited");
+
+  async function handleAccept() {
+    if (!invitationId) {
+      navigate("/invitations");
+      return;
+    }
+    try {
+      const result = await workspaceApi.acceptInvitation(invitationId);
+      await onMarkRead(n.id);
+      toast.success("Invitation accepted");
+      onReload();
+      if (result.workspaceId) navigate(`/workspaces/${result.workspaceId}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to accept invitation");
+    }
+  }
+
+  async function handleReject() {
+    if (!invitationId) {
+      toast.error("Invitation id missing — open Invitations page and enter the id from your invite");
+      return;
+    }
+    try {
+      await workspaceApi.rejectInvitation(invitationId);
+      await onMarkRead(n.id);
+      toast.success("Invitation declined");
+      onReload();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to reject invitation");
+    }
+  }
 
   return (
     <div className={cn(
@@ -59,26 +111,21 @@ function NotifItem({ n }: { n: Notification }) {
           </div>
           {!n.read && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-blue-500" />}
         </div>
-        <div className="mt-2 flex gap-2">
+        <div className="mt-2 flex flex-wrap gap-2">
           {!n.read && (
             <button
               type="button"
-              disabled
-              title="Read endpoint is not exposed by the backend yet"
-              className="flex cursor-not-allowed items-center gap-1 text-xs text-slate-400"
+              onClick={() => void onMarkRead(n.id)}
+              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
             >
               <Check className="size-3" /> Mark read
             </button>
           )}
-          {!n.archived && (
-            <button
-              type="button"
-              disabled
-              title="Archive endpoint is not exposed by the backend yet"
-              className="flex cursor-not-allowed items-center gap-1 text-xs text-slate-400"
-            >
-              <Archive className="size-3" /> Archive
-            </button>
+          {isInvite && !n.read && (
+            <>
+              <button type="button" onClick={() => void handleAccept()} className="text-xs text-green-600 hover:text-green-700">Accept</button>
+              <button type="button" onClick={() => void handleReject()} className="text-xs text-red-500 hover:text-red-600">Decline</button>
+            </>
           )}
         </div>
       </div>
@@ -88,11 +135,36 @@ function NotifItem({ n }: { n: Notification }) {
 
 export function NotificationsPage() {
   const [typeFilter, setTypeFilter] = useState("all");
-  const notificationsState = useAsyncData(() => notificationsApi.list(), []);
-  const notifs = notificationsState.data ?? [];
+  const notificationsState = useAsyncData(
+    () => notificationsApi.list().then(r => ({ notifications: r.notifications, unreadCount: r.unreadCount })),
+    [],
+  );
+  const notifs = notificationsState.data?.notifications ?? [];
   const active = notifs.filter(n => !n.archived);
   const archived = notifs.filter(n => n.archived);
   const unread = active.filter(n => !n.read);
+
+  async function markRead(id: string) {
+    await notificationsApi.markRead(id);
+    notificationsState.setData(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        unreadCount: Math.max(0, prev.unreadCount - 1),
+        notifications: prev.notifications.map(n => n.id === id ? { ...n, read: true } : n),
+      };
+    });
+  }
+
+  async function markAllRead() {
+    try {
+      await notificationsApi.markAllRead();
+      await notificationsState.reload();
+      toast.success("All notifications marked as read");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to mark all as read");
+    }
+  }
 
   function filtered(list: Notification[]) {
     return list.filter(n => typeFilter === "all" || normalizedType(n.type) === typeFilter);
@@ -104,7 +176,7 @@ export function NotificationsPage() {
         <div className="min-w-0">
           <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">Notifications</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {notificationsState.loading ? "Loading notifications..." : `${unread.length} unread`}
+            {notificationsState.loading ? "Loading notifications..." : `${notificationsState.data?.unreadCount ?? unread.length} unread`}
           </p>
         </div>
         <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:justify-end">
@@ -116,14 +188,15 @@ export function NotificationsPage() {
             <option value="all">All types</option>
             <option value="task_assigned">Task assigned</option>
             <option value="comment_added">Comments</option>
+            <option value="comment_mentioned">Mentions</option>
             <option value="workspace_invited">Workspace invites</option>
             <option value="system_alert">System alerts</option>
           </select>
           <Button
             size="sm"
             variant="outline"
-            disabled
-            title="Mark-all-read endpoint is not exposed by the backend yet"
+            disabled={unread.length === 0}
+            onClick={() => void markAllRead()}
             className="h-8 w-full min-w-0 shrink gap-1.5 text-xs sm:w-auto sm:shrink-0"
           >
             <Check className="size-3.5" />
@@ -155,7 +228,9 @@ export function NotificationsPage() {
                 <EmptyState icon={Bell} title="Loading notifications..." />
               ) : filtered(unread).length === 0 ? (
                 <EmptyState icon={Bell} title="All caught up" description="You have no unread notifications." />
-              ) : filtered(unread).map(n => <NotifItem key={n.id} n={n} />)}
+              ) : filtered(unread).map(n => (
+                <NotifItem key={n.id} n={n} onMarkRead={markRead} onReload={() => void notificationsState.reload()} />
+              ))}
             </div>
           </TabsContent>
 
@@ -163,7 +238,9 @@ export function NotificationsPage() {
             <div className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
               {filtered(active).length === 0 ? (
                 <EmptyState icon={Bell} title="No notifications" description="The backend returned no active notifications." />
-              ) : filtered(active).map(n => <NotifItem key={n.id} n={n} />)}
+              ) : filtered(active).map(n => (
+                <NotifItem key={n.id} n={n} onMarkRead={markRead} onReload={() => void notificationsState.reload()} />
+              ))}
             </div>
           </TabsContent>
 
@@ -171,7 +248,9 @@ export function NotificationsPage() {
             <div className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
               {filtered(archived).length === 0 ? (
                 <EmptyState icon={Archive} title="No archived notifications" />
-              ) : filtered(archived).map(n => <NotifItem key={n.id} n={n} />)}
+              ) : filtered(archived).map(n => (
+                <NotifItem key={n.id} n={n} onMarkRead={markRead} onReload={() => void notificationsState.reload()} />
+              ))}
             </div>
           </TabsContent>
         </Tabs>

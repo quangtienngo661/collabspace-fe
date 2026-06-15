@@ -159,6 +159,69 @@ export interface Notification {
   archived: boolean;
   createdAt: string;
   link: string;
+  targetId?: string | null;
+  targetType?: string | null;
+  metadata?: Record<string, unknown>;
+}
+
+export interface AdminRole {
+  id: string;
+  name: string;
+  description: string;
+  permissions: string[];
+}
+
+export interface AdminPermission {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface AdminAuthUser {
+  id: string;
+  email: string;
+  emailVerified: boolean;
+  isActive: boolean;
+  lastLoginAt: string | null;
+  createdAt: string;
+  roles: string[];
+}
+
+export interface AdminUserAggregate extends AdminAuthUser {
+  fullName?: string | null;
+  displayName?: string | null;
+  username?: string | null;
+  avatarUrl?: string | null;
+  bio?: string | null;
+}
+
+export interface AdminWorkspace {
+  id: string;
+  name: string;
+  description: string;
+  ownerId: string;
+  memberCount: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ActivityItem {
+  id: string;
+  type: string;
+  actorId: string | null;
+  actorName: string | null;
+  actorAvatarUrl: string | null;
+  summary: string;
+  meta: Record<string, unknown>;
+  occurredAt: string;
+}
+
+export interface WorkspaceInvitation {
+  id: string;
+  workspaceId: string;
+  email: string;
+  status: string;
+  createdAt: string;
 }
 
 export interface Session {

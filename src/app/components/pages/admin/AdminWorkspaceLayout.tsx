@@ -3,6 +3,8 @@ import { NavLink, useNavigate } from "react-router";
 import {
   Activity,
   Bell,
+  Building2,
+  Megaphone,
   ChevronRight,
   Database,
   FileText,
@@ -42,6 +44,8 @@ interface AdminWorkspaceLayoutProps {
 
 const adminNavItems = [
   { label: "Access Control", description: "Roles and permissions", icon: ShieldCheck, to: "/admin", end: true },
+  { label: "Workspaces", description: "Force delete / join", icon: Building2, to: "/admin/workspaces" },
+  { label: "Broadcast", description: "System notifications", icon: Megaphone, to: "/admin/broadcast" },
   { label: "System Health", description: "Services and queues", icon: Activity, to: "/admin/health" },
 ];
 
@@ -71,7 +75,7 @@ export function AdminWorkspaceLayout({ title, description, children, action, dar
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const { authUser, profile, logout } = useAuth();
-  const notificationsState = useAsyncData(() => notificationsApi.list(), []);
+  const notificationsState = useAsyncData(() => notificationsApi.list().then(r => r.notifications), []);
   const adminNotifications = (notificationsState.data ?? []).filter(n => !n.archived).slice(0, 5);
   const unreadCount = adminNotifications.filter(n => !n.read).length;
   const currentUser = profile ?? fallbackUser(authUser?.email);

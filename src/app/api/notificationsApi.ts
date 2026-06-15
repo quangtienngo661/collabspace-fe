@@ -21,9 +21,32 @@ async function available<T>(request: Promise<T>): Promise<T> {
 }
 
 export const notificationsApi = {
-  async list(): Promise<Notification[]> {
-    const result = await available(apiRequest<{ notifications?: any[] } | any[]>("/notifications"));
-    const rows = Array.isArray(result) ? result : result.notifications ?? [];
-    return rows.map(mapNotification);
+  async list(params: { skip?: number; limit?: number } = {}): Promise<{ notifications: Notification[]; total: number; unreadCount: number }> {
+    const search = new URLSearchParams();
+    search.set("skip", String(params.skip ?? 0));
+    search.set("limit", String(params.limit ?? 50));
+    const result = await available(apiRequest<{ notifications?: any[]; total?: number; unreadCount?: number } | any[]>(`/notifications?${search}`));
+    if (Array.isArray(result)) {
+      const notifications = result.map(mapNotification);
+      return {
+        notifications,
+        total: notifications.length,
+        unreadCount: notifications.filter(n => !n.read && !n.archived).length,
+      };
+    }
+    const notifications = (result.notifications ?? []).map(mapNotification);
+    return {
+      notifications,
+      total: result.total ?? notifications.length,
+      unreadCount: result.unreadCount ?? notifications.filter(n => !n.read && !n.archived).length,
+    };
+  },
+
+  async markRead(id: string): Promise<void> {
+    await available(apiRequest(`/notifications/${id}/read`, { method: "PATCH" }));
+  },
+
+  async markAllRead(): Promise<void> {
+    await available(apiRequest("/notifications/read-all", { method: "PATCH" }));
   },
 };

@@ -58,7 +58,10 @@ export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
     return import("../../api/workspaceApi").then(m => m.workspaceApi.listProjects(wsId));
   }, [wsId]);
 
-  const { data: notifData, error: notifError, setData: setNotifs } = useAsyncData<Notification[]>(() => notificationsApi.list(), []);
+  const { data: notifData, error: notifError, setData: setNotifs, reload: reloadNotifs } = useAsyncData<Notification[]>(
+    () => notificationsApi.list().then(r => r.notifications),
+    [],
+  );
   const notifs = notifData ?? [];
 
   const breadcrumbs = location.pathname.split("/").filter(Boolean).map(p => {
@@ -75,9 +78,14 @@ export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
     return p.charAt(0).toUpperCase() + p.slice(1);
   });
 
-  function markAllRead() {
-    setNotifs(prev => prev.map(n => ({ ...n, read: true })));
-    toast.info("Notification write API is not exposed yet");
+  async function markAllRead() {
+    try {
+      await notificationsApi.markAllRead();
+      setNotifs(prev => (prev ?? []).map(n => ({ ...n, read: true })));
+      void reloadNotifs();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to mark all as read");
+    }
   }
 
   async function handleLogout() {
@@ -90,6 +98,7 @@ export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
   const notificationIconMap: Record<string, LucideIcon> = {
     task_assigned: ClipboardList,
     comment_added: MessageSquare,
+    comment_mentioned: MessageSquare,
     workspace_invited: Building2,
     system_alert: AlertTriangle,
   };

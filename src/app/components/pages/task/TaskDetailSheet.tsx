@@ -1,18 +1,20 @@
 import { useEffect, useState } from "react";
-import { X, Edit2, Check } from "lucide-react";
+import { X, Edit2, Check, Send, Trash2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader } from "../../ui/sheet";
 import { StatusBadge, PriorityBadge } from "../../shared/StatusBadge";
 import { UserAvatar } from "../../shared/UserAvatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
+import { Button } from "../../ui/button";
+import { Textarea } from "../../ui/textarea";
 import { cn } from "../../ui/utils";
 import { toast } from "sonner";
 import { taskApi } from "../../../api/taskApi";
-import { workspaceApi } from "../../../api/workspaceApi";
-import { usersApi } from "../../../api/usersApi";
 import { initials } from "../../../api/mappers";
 import { useAuth } from "../../../auth/AuthContext";
+import { useWorkspaceMemberUsers } from "../../../hooks/useWorkspaceMemberUsers";
 import { useAsyncData } from "../../../hooks/useAsyncData";
-import type { Task, TaskStatus } from "../../../api/types";
+import type { ActivityItem, Comment, Task, TaskStatus } from "../../../api/types";
+import { timeAgo } from "../../../utils/format";
 
 interface TaskDetailSheetProps {
   task: Task;
@@ -27,11 +29,20 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated }: TaskDetailSh
   const { profile } = useAuth();
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleVal, setTitleVal] = useState(task.title);
+  const [commentText, setCommentText] = useState("");
+  const [postingComment, setPostingComment] = useState(false);
 
-  const usersState = useAsyncData(() => usersApi.list().then(result => result.items), []);
-  const { data: members } = useAsyncData(() => workspaceApi.members(task.workspaceId), [task.workspaceId]);
-  const users = usersState.data?.filter(u => members?.some(m => m.userId === u.id))
-    .map(u => ({ userId: u.id, name: u.name })) ?? [];
+  const { data: memberUsers } = useWorkspaceMemberUsers(task.workspaceId);
+  const users = memberUsers?.map(u => ({ userId: u.id, name: u.name })) ?? [];
+
+  const commentsState = useAsyncData(
+    () => open ? taskApi.listComments(task.id).then(r => r.comments) : Promise.resolve([]),
+    [task.id, open],
+  );
+  const activityState = useAsyncData(
+    () => open ? taskApi.activity(task.id, { limit: 20 }).then(r => r.items) : Promise.resolve([]),
+    [task.id, open],
+  );
 
   useEffect(() => {
     setTitleVal(task.title);
@@ -48,6 +59,7 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated }: TaskDetailSh
       await taskApi.updateStatus(task.id, nextStatus);
       onUpdated({ ...task, status: nextStatus });
       toast.success(`Status changed to ${val}`);
+      void activityState.reload();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to update status");
     }
@@ -59,6 +71,7 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated }: TaskDetailSh
       await taskApi.assign(task.id, assigneeId);
       await refreshTask();
       toast.success("Assignee updated");
+      void activityState.reload();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to update assignee");
     }
@@ -71,13 +84,43 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated }: TaskDetailSh
       onUpdated({ ...task, title: titleVal });
       setEditingTitle(false);
       toast.success("Title updated");
+      void activityState.reload();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to update title");
     }
   }
 
+  async function handlePostComment() {
+    const content = commentText.trim();
+    if (!content) return;
+    setPostingComment(true);
+    try {
+      await taskApi.createComment(task.id, { content });
+      setCommentText("");
+      await commentsState.reload();
+      void activityState.reload();
+      toast.success("Comment added");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to post comment");
+    } finally {
+      setPostingComment(false);
+    }
+  }
+
+  async function handleDeleteComment(comment: Comment) {
+    try {
+      await taskApi.deleteComment(task.id, comment.id);
+      await commentsState.reload();
+      toast.success("Comment deleted");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to delete comment");
+    }
+  }
+
   const assignee = task.assignedTo;
   const creator = task.createdBy;
+  const comments = commentsState.data ?? [];
+  const activity = activityState.data ?? [];
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
@@ -163,6 +206,56 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated }: TaskDetailSh
           <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
             <p className="text-xs text-slate-400 uppercase tracking-wider mb-2">Description</p>
             <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{task.description || <span className="text-slate-400 italic">No description</span>}</p>
+          </div>
+
+          <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+            <p className="text-xs text-slate-400 uppercase tracking-wider mb-3">Activity</p>
+            {activity.length === 0 ? (
+              <p className="text-xs text-slate-400">No activity yet</p>
+            ) : (
+              <div className="space-y-2">
+                {activity.map((item: ActivityItem) => (
+                  <div key={item.id} className="text-xs text-slate-600 dark:text-slate-400">
+                    <span className="font-medium text-slate-800 dark:text-slate-200">{item.actorName ?? "System"}</span>
+                    {" — "}{item.summary}
+                    <span className="ml-2 text-slate-400">{timeAgo(item.occurredAt)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="px-5 py-4">
+            <p className="text-xs text-slate-400 uppercase tracking-wider mb-3">Comments ({comments.length})</p>
+            <div className="space-y-3 mb-4">
+              {comments.filter(c => !c.deleted).map(comment => (
+                <div key={comment.id} className={cn("rounded-lg border border-slate-100 dark:border-slate-800 p-3", comment.authorId === profile?.userId && "bg-slate-50/50 dark:bg-slate-800/30")}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-medium text-slate-900 dark:text-slate-100">{comment.authorName ?? "User"}</p>
+                      <p className="text-sm text-slate-700 dark:text-slate-300 mt-1 whitespace-pre-wrap">{comment.content}</p>
+                      <p className="text-[10px] text-slate-400 mt-1">{timeAgo(comment.createdAt)}</p>
+                    </div>
+                    {comment.authorId === profile?.userId && (
+                      <button type="button" onClick={() => void handleDeleteComment(comment)} className="text-slate-400 hover:text-red-500">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2">
+              <Textarea
+                value={commentText}
+                onChange={e => setCommentText(e.target.value)}
+                placeholder="Write a comment… Use @username to mention"
+                className="min-h-[72px] text-sm"
+              />
+              <Button size="sm" className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white" disabled={postingComment || !commentText.trim()} onClick={() => void handlePostComment()}>
+                <Send className="w-3.5 h-3.5" /> {postingComment ? "Posting…" : "Post comment"}
+              </Button>
+            </div>
           </div>
         </div>
       </SheetContent>
