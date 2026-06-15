@@ -1,4 +1,5 @@
 import { cn } from "../ui/utils";
+import { normalizeTaskPriority } from "../../api/mappers";
 import type { TaskStatus, Priority, Role, UserStatus } from "../../api/types";
 
 interface StatusBadgeProps {
@@ -32,7 +33,8 @@ export function PriorityBadge({ priority, className }: PriorityBadgeProps) {
     high: { label: "High", cls: "text-orange-600 dark:text-orange-400", dot: "bg-orange-500" },
     critical: { label: "Critical", cls: "text-red-600 dark:text-red-400", dot: "bg-red-500" },
   };
-  if (!priority) {
+  const normalized = normalizeTaskPriority(priority);
+  if (!normalized) {
     return (
       <span className={cn("inline-flex items-center gap-1 text-xs font-medium text-slate-400", className)}>
         <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
@@ -40,7 +42,7 @@ export function PriorityBadge({ priority, className }: PriorityBadgeProps) {
       </span>
     );
   }
-  const { label, cls, dot } = map[priority];
+  const { label, cls, dot } = map[normalized];
   return (
     <span className={cn("inline-flex items-center gap-1 text-xs font-medium", cls, className)}>
       <span className={cn("w-1.5 h-1.5 rounded-full", dot)} />

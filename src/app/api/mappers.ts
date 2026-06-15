@@ -156,6 +156,16 @@ export function mapProject(raw: AnyRecord, workspaceId?: string): Project {
   };
 }
 
+export function normalizeTaskPriority(value?: string | null): Priority | null {
+  if (!value) return null;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "critical") return "high";
+  if (normalized === "low" || normalized === "medium" || normalized === "high") {
+    return normalized;
+  }
+  return null;
+}
+
 export function mapAttachment(raw: string | AnyRecord, taskId: string): Attachment {
   if (typeof raw === "string") {
     const filename = raw.split("/").pop() || "Attachment";
@@ -195,7 +205,7 @@ export function mapTask(raw: AnyRecord): Task {
     title: raw.title ?? "Untitled Task",
     description: raw.description ?? "",
     status,
-    priority: raw.priority ? (String(raw.priority).toLowerCase() as Priority) : null,
+    priority: normalizeTaskPriority(raw.priority),
     assigneeId: raw.assigneeId ?? null,
     creatorId: raw.createdBy?.userId ?? raw.creatorId ?? "",
     createdBy: raw.createdBy,
