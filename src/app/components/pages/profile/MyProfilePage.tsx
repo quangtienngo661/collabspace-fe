@@ -71,6 +71,7 @@ export function MyProfilePage() {
   const [showPw, setShowPw] = useState(false);
   const [revokeFamilyId, setRevokeFamilyId] = useState<string | null>(null);
   const [logoutOthersOpen, setLogoutOthersOpen] = useState(false);
+  const [logoutAllOpen, setLogoutAllOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
@@ -184,6 +185,18 @@ export function MyProfilePage() {
       toast.success("Other sessions logged out");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to logout other sessions");
+    }
+  }
+
+  async function logoutAllDevices() {
+    try {
+      await authApi.logoutAll();
+      setLogoutAllOpen(false);
+      toast.success("Logged out from all devices");
+      await logout();
+      navigate("/login", { replace: true });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to logout all devices");
     }
   }
 
@@ -353,14 +366,24 @@ export function MyProfilePage() {
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{activeSessions.length} Active Sessions</p>
                 <p className="text-xs text-slate-400">Refresh token sessions returned by auth-service</p>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
-                onClick={() => setLogoutOthersOpen(true)}
-              >
-                <LogOut className="size-3.5" /> Logout Others
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                  onClick={() => setLogoutOthersOpen(true)}
+                >
+                  <LogOut className="size-3.5" /> Logout Others
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                  onClick={() => setLogoutAllOpen(true)}
+                >
+                  <LogOut className="size-3.5" /> Logout All Devices
+                </Button>
+              </div>
             </div>
             {sessionsState.error ? (
               <ErrorState title="Unable to load sessions" description={sessionsState.error} />
@@ -431,6 +454,15 @@ export function MyProfilePage() {
             description="All other devices will be logged out. Your current session will remain active."
             confirmLabel="Logout Others"
             onConfirm={() => void logoutOthers()}
+            destructive
+          />
+          <ConfirmDialog
+            open={logoutAllOpen}
+            onOpenChange={setLogoutAllOpen}
+            title="Logout All Devices"
+            description="You will be signed out on every device, including this one."
+            confirmLabel="Logout All"
+            onConfirm={() => void logoutAllDevices()}
             destructive
           />
         </TabsContent>

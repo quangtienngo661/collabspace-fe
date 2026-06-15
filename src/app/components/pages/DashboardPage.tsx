@@ -100,6 +100,11 @@ export function DashboardPage() {
     setSelectedTask(updated);
   }
 
+  function handleTaskDeleted(taskId: string) {
+    tasksState.setData(prev => (prev ?? []).filter(task => task.id !== taskId));
+    setSelectedTask(null);
+  }
+
   const topError = workspacesState.error || tasksState.error;
 
   return (
@@ -236,6 +241,7 @@ export function DashboardPage() {
           open={!!selectedTask}
           onClose={() => setSelectedTask(null)}
           onUpdated={handleTaskUpdated}
+          onDeleted={handleTaskDeleted}
         />
       )}
     </div>

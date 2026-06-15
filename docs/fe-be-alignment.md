@@ -7,7 +7,7 @@ Nguồn backend: [`docs/features.md`](../../collabspace/docs/features.md), [`doc
 **Trạng thái backend MVP:** Auth, User, Workspace, Task, Comment, Notification — **Done**  
 **Trạng thái Platform Admin API:** **Done** — xem [admin-backlog.md](../../collabspace/docs/team/admin-backlog.md)
 
-**Trạng thái FE (main):** Phase 2 ✅ · Phase 3 ✅ · Phase Admin ✅ · Phase 4 ✅ · Phase 6 (USER-T1 pickers) ✅ · Phase 5 chưa làm
+**Trạng thái FE (main):** Phase 2 ✅ · Phase 3 ✅ · Phase Admin ✅ · Phase 4 ✅ · Phase 5 ✅ · Phase 6 (USER-T1 pickers) ✅
 
 ---
 
@@ -274,20 +274,20 @@ Không crash nhưng UI **lệch contract** hoặc **gây hiểu nhầm**.
 
 ---
 
-## Phase 5 — Nice-to-have (sau MVP)
+## Phase 5 — Nice-to-have (sau MVP) ✅
 
 | # | Mục | File | Ghi chú |
 |---|-----|------|---------|
-| 5.1 | `taskApi` thiếu board / delete / attachments | `taskApi.ts` | `GET /tasks/board`, `DELETE /tasks/:id`, `POST/DELETE /tasks/:id/attachments` |
-| 5.2 | Kanban dùng list thay board API | `KanbanBoardPage.tsx` | `GET /tasks/board?workspaceId=` gom sẵn cột TODO/DOING/DONE |
-| 5.3 | Create task form status không gửi BE | `CreateTaskModal.tsx` | Dropdown `in_progress`/`done` không map API; task luôn tạo `TODO` |
-| 5.4 | Task detail thiếu priority/dueDate/labels/edit | `TaskDetailSheet.tsx` | `PATCH /tasks/:id/details` hỗ trợ đủ field |
-| 5.5 | Global search TopBar | `TopBar.tsx` | Wire `GET /users/search?q=` hoặc filter task |
-| 5.6 | `logoutAll` chưa có UI | `authApi.ts`, `MyProfilePage.tsx` | `POST /auth/logout-all` đã có client |
+| 5.1 | `taskApi` board / delete / attachments | `taskApi.ts` | [x] `getBoard`, `delete`, `uploadAttachment`, `deleteAttachment`, `updateDetails` đủ field |
+| 5.2 | Kanban dùng board API | `KanbanBoardPage.tsx` | [x] `GET /tasks/board?workspaceId=` |
+| 5.3 | Create task status gửi BE | `CreateTaskModal.tsx` | [x] `TODO/DOING/DONE` + `updateStatus` sau create |
+| 5.4 | Task detail đủ field + delete | `TaskDetailSheet.tsx` | [x] priority, dueDate, labels, attachments, delete |
+| 5.5 | Global search TopBar | `TopBar.tsx` | [x] `GET /users/search?q=` debounced popover |
+| 5.6 | `logoutAll` UI | `MyProfilePage.tsx` | [x] Sessions tab — Logout All Devices |
 | 5.7 | ~~Admin RBAC mock~~ | `AdminPage.tsx` | Chuyển sang **Phase Admin** — BE đã có `/admin/*` |
-| 5.8 | Delete workspace / đổi role member (end-user) | `WorkspaceDetailPage.tsx`, `WorkspaceListPage.tsx` | End-user API chưa expose — UI disabled **đúng**; platform admin dùng Phase Admin-3 |
-| 5.9 | `healthApi` bỏ qua task/notification | `healthApi.ts` | Thêm probe `GET /tasks/health/live`, `GET /notifications/health/live` |
-| 5.10 | Dead code `mockData.ts` | `src/app/data/mockData.ts` | Không được import — xóa hoặc giữ Storybook |
+| 5.8 | Delete workspace / đổi role member (end-user) | — | End-user API chưa expose — UI disabled **đúng** |
+| 5.9 | `healthApi` task/notification | `healthApi.ts` | [x] Đã có probe (Phase Admin) |
+| 5.10 | Dead code `mockData.ts` | — | [x] Đã xóa |
 
 ---
 

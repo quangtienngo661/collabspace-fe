@@ -215,6 +215,7 @@ export function mapTask(raw: AnyRecord): Task {
     createdAt: raw.createdAt ?? "",
     updatedAt: raw.updatedAt,
     dueDate: raw.dueDate ?? null,
+    labels: Array.isArray(raw.labels) ? raw.labels.map(String) : [],
     attachments,
     attachmentCount: raw.attachmentCount ?? attachments.length,
     commentCount: raw.commentCount ?? 0,

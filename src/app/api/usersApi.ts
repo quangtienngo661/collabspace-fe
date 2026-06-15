@@ -56,6 +56,12 @@ export const usersApi = {
     return { items: (result.items ?? []).map(mapUserSummary), total: result.total ?? 0 };
   },
 
+  async search(q: string, limit = 10): Promise<{ items: User[]; total: number }> {
+    const search = new URLSearchParams({ q, limit: String(limit), offset: "0" });
+    const result = await apiRequest<{ items: any[]; total: number }>(`/users/search?${search}`);
+    return { items: (result.items ?? []).map(mapUserSummary), total: result.total ?? 0 };
+  },
+
   async bulk(userIds: string[]): Promise<User[]> {
     if (userIds.length === 0) return [];
     const rows = await apiRequest<any[]>("/users/bulk", {

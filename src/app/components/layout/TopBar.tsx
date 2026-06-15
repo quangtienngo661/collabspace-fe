@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { Search, Bell, ChevronRight, Menu, Sun, Moon, User, Settings, Key, LogOut, Monitor, ClipboardList, MessageSquare, Building2, AlertTriangle, type LucideIcon } from "lucide-react";
 import { Button } from "../ui/button";
@@ -13,7 +13,7 @@ import { notificationsApi } from "../../api/notificationsApi";
 import { navigateFromNotification } from "../../utils/notificationNavigation";
 import { usersApi } from "../../api/usersApi";
 import { useAsyncData } from "../../hooks/useAsyncData";
-import type { Notification, UserStatus } from "../../api/types";
+import type { Notification, User, UserStatus } from "../../api/types";
 import { timeAgo } from "../../utils/format";
 
 function isUuid(str: string) {
@@ -45,6 +45,10 @@ export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
   const location = useLocation();
   const { profile, logout, setProfile } = useAuth();
   const [notifOpen, setNotifOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState<User[]>([]);
   
   const { data: workspaces } = useAsyncData(() => {
     // Only fetch if we are on a workspace route
@@ -66,6 +70,31 @@ export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
   );
   const notifs = notifData?.notifications ?? [];
   const unreadBadgeCount = notifData?.unreadCount ?? notifs.filter(n => !n.read && !n.archived).length;
+
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (!query) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        setSearchLoading(true);
+        try {
+          const result = await usersApi.search(query, 8);
+          setSearchResults(result.items);
+        } catch {
+          setSearchResults([]);
+        } finally {
+          setSearchLoading(false);
+        }
+      })();
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
 
   const breadcrumbs = location.pathname.split("/").filter(Boolean).map(p => {
     if (ROUTE_MAP[p]) return ROUTE_MAP[p];
@@ -138,10 +167,57 @@ export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
       </nav>
 
       {/* Global search */}
-      <div className="hidden md:flex items-center relative">
-        <Search className="w-3.5 h-3.5 absolute left-2.5 text-slate-400" />
-        <Input key={location.pathname} placeholder="Search..." className="pl-8 h-7 w-52 text-xs bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
-      </div>
+      <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+        <PopoverTrigger asChild>
+          <div className="hidden md:flex items-center relative">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 text-slate-400 pointer-events-none" />
+            <Input
+              placeholder="Search users..."
+              className="pl-8 h-7 w-52 text-xs bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+              value={searchQuery}
+              onChange={e => {
+                setSearchQuery(e.target.value);
+                setSearchOpen(true);
+              }}
+              onFocus={() => setSearchOpen(true)}
+            />
+          </div>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-72 p-0">
+          <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-700">
+            <p className="text-xs font-medium text-slate-500">User search</p>
+          </div>
+          <div className="max-h-64 overflow-y-auto">
+            {searchLoading && (
+              <p className="px-3 py-4 text-xs text-slate-500">Searching...</p>
+            )}
+            {!searchLoading && !searchQuery.trim() && (
+              <p className="px-3 py-4 text-xs text-slate-500">Type a name or email</p>
+            )}
+            {!searchLoading && searchQuery.trim() && searchResults.length === 0 && (
+              <p className="px-3 py-4 text-xs text-slate-500">No users found</p>
+            )}
+            {searchResults.map(user => (
+              <button
+                key={user.id}
+                type="button"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
+                onClick={() => {
+                  setSearchOpen(false);
+                  setSearchQuery("");
+                  toast.message(user.name, { description: user.email ?? user.username ?? "No email" });
+                }}
+              >
+                <UserAvatar user={user} size="xs" />
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-slate-900 dark:text-slate-100 truncate">{user.name}</p>
+                  <p className="text-[10px] text-slate-400 truncate">{user.email}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
 
       {/* Dark mode toggle */}
       <button onClick={onToggleDark} className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors">

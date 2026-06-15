@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Send, MoreHorizontal, Trash2 } from "lucide-react";
+import { Send, MoreHorizontal, Trash2, Pencil, Check, X } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../ui/dropdown-menu";
@@ -15,6 +15,9 @@ export function TaskComments({ taskId }: { taskId: string }) {
   const { profile } = useAuth();
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [editLoading, setEditLoading] = useState(false);
   const commentsState = useAsyncData(() => taskApi.listComments(taskId), [taskId]);
   const comments = commentsState.data ?? [];
 
@@ -40,6 +43,27 @@ export function TaskComments({ taskId }: { taskId: string }) {
       toast.success("Comment deleted");
     } catch (e: any) {
       toast.error(e.message || "Failed to delete comment");
+    }
+  }
+
+  function startEdit(comment: Comment) {
+    setEditingId(comment.id);
+    setEditContent(comment.content);
+  }
+
+  async function handleSaveEdit(commentId: string) {
+    if (!editContent.trim()) return;
+    try {
+      setEditLoading(true);
+      await taskApi.updateComment(taskId, commentId, { content: editContent.trim() });
+      setEditingId(null);
+      setEditContent("");
+      void commentsState.reload();
+      toast.success("Comment updated");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update comment");
+    } finally {
+      setEditLoading(false);
     }
   }
 
@@ -73,7 +97,7 @@ export function TaskComments({ taskId }: { taskId: string }) {
                   <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{c.authorName}</span>
                   <span className="text-xs text-slate-400">{timeAgo(c.createdAt)}</span>
                 </div>
-                {profile?.id === c.authorId && (
+                {profile?.id === c.authorId && editingId !== c.id && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-opacity">
@@ -81,6 +105,9 @@ export function TaskComments({ taskId }: { taskId: string }) {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => startEdit(c)}>
+                        <Pencil className="w-4 h-4 mr-2" /> Edit
+                      </DropdownMenuItem>
                       <DropdownMenuItem className="text-red-600" onClick={() => void handleDelete(c.id)}>
                         <Trash2 className="w-4 h-4 mr-2" /> Delete
                       </DropdownMenuItem>
@@ -88,9 +115,37 @@ export function TaskComments({ taskId }: { taskId: string }) {
                   </DropdownMenu>
                 )}
               </div>
+              {editingId === c.id ? (
+                <div className="mt-2 space-y-2">
+                  <Input
+                    value={editContent}
+                    onChange={e => setEditContent(e.target.value)}
+                    disabled={editLoading}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        void handleSaveEdit(c.id);
+                      }
+                      if (e.key === "Escape") {
+                        setEditingId(null);
+                        setEditContent("");
+                      }
+                    }}
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" className="h-7 gap-1" disabled={editLoading || !editContent.trim()} onClick={() => void handleSaveEdit(c.id)}>
+                      <Check className="w-3.5 h-3.5" /> Save
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-7 gap-1" disabled={editLoading} onClick={() => { setEditingId(null); setEditContent(""); }}>
+                      <X className="w-3.5 h-3.5" /> Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
               <div className="text-sm text-slate-700 dark:text-slate-300 mt-1 whitespace-pre-wrap break-words">
                 {c.content}
               </div>
+              )}
             </div>
           </div>
         ))}

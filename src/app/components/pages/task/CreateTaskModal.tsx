@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { taskApi } from "../../../api/taskApi";
 import { workspaceApi } from "../../../api/workspaceApi";
 import { usersApi } from "../../../api/usersApi";
-import type { Task } from "../../../api/types";
+import type { Task, TaskStatus } from "../../../api/types";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 
 interface CreateTaskModalProps {
@@ -23,7 +23,7 @@ interface CreateTaskModalProps {
 const UNASSIGNED_VALUE = "unassigned";
 
 export function CreateTaskModal({ open, onClose, workspaceId, projectId = null, onCreated }: CreateTaskModalProps) {
-  const [form, setForm] = useState({ title: "", description: "", priority: "medium", status: "todo", assigneeId: UNASSIGNED_VALUE });
+  const [form, setForm] = useState({ title: "", description: "", priority: "medium", status: "TODO" as TaskStatus, assigneeId: UNASSIGNED_VALUE });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const { data: memberUsers } = useAsyncData(async () => {
@@ -37,7 +37,7 @@ export function CreateTaskModal({ open, onClose, workspaceId, projectId = null, 
   // BUG-006 fix: reset form khi dialog đóng
   useEffect(() => {
     if (!open) {
-      setForm({ title: "", description: "", priority: "medium", status: "todo", assigneeId: UNASSIGNED_VALUE });
+      setForm({ title: "", description: "", priority: "medium", status: "TODO", assigneeId: UNASSIGNED_VALUE });
       setError("");
     }
   }, [open]);
@@ -60,11 +60,14 @@ export function CreateTaskModal({ open, onClose, workspaceId, projectId = null, 
       if (form.assigneeId !== UNASSIGNED_VALUE) {
         await taskApi.assign(created.taskId, form.assigneeId);
       }
+      if (form.status !== "TODO") {
+        await taskApi.updateStatus(created.taskId, form.status);
+      }
       const task = await taskApi.get(created.taskId);
       setLoading(false);
       onCreated?.({ ...task, projectId, priority: form.priority as Task["priority"] });
       toast.success("Task created successfully");
-      setForm({ title: "", description: "", priority: "medium", status: "todo", assigneeId: UNASSIGNED_VALUE });
+      setForm({ title: "", description: "", priority: "medium", status: "TODO", assigneeId: UNASSIGNED_VALUE });
       onClose();
     } catch (err) {
       setLoading(false);
@@ -110,10 +113,9 @@ export function CreateTaskModal({ open, onClose, workspaceId, projectId = null, 
               <Select value={form.status} onValueChange={v => set("status", v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todo">To Do</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="in_review">In Review</SelectItem>
-                  <SelectItem value="done">Done</SelectItem>
+                  <SelectItem value="TODO">To Do</SelectItem>
+                  <SelectItem value="DOING">In Progress</SelectItem>
+                  <SelectItem value="DONE">Done</SelectItem>
                 </SelectContent>
               </Select>
             </div>

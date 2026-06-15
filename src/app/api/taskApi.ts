@@ -19,17 +19,53 @@ export const taskApi = {
     return mapTask(await apiRequest(`/tasks/${id}`));
   },
 
-  async create(input: { title: string; description?: string; workspaceId: string; projectId?: string | null; priority?: string }): Promise<{ taskId: string }> {
+  async create(input: {
+    title: string;
+    description?: string;
+    workspaceId: string;
+    projectId?: string | null;
+    priority?: string;
+    dueDate?: string | null;
+    labels?: string[];
+  }): Promise<{ taskId: string }> {
     return apiRequest("/tasks", {
       method: "POST",
       body: input,
     });
   },
 
-  async updateDetails(taskId: string, input: { title: string; description?: string }): Promise<void> {
+  async getBoard(params: { workspaceId: string; projectId?: string }): Promise<Task[]> {
+    const search = new URLSearchParams({ workspaceId: params.workspaceId });
+    if (params.projectId) search.set("projectId", params.projectId);
+    const result = await apiRequest<{ columns?: { status: string; tasks: any[] }[]; total?: number }>(
+      `/tasks/board?${search}`,
+    );
+    return (result.columns ?? []).flatMap(column => (column.tasks ?? []).map(mapTask));
+  },
+
+  async delete(taskId: string): Promise<void> {
+    await apiRequest(`/tasks/${taskId}`, { method: "DELETE" });
+  },
+
+  async updateDetails(
+    taskId: string,
+    input: {
+      title: string;
+      description?: string;
+      priority?: string | null;
+      dueDate?: string | null;
+      labels?: string[];
+    },
+  ): Promise<void> {
     await apiRequest(`/tasks/${taskId}/details`, {
       method: "PATCH",
-      body: { title: input.title, description: input.description ?? "" },
+      body: {
+        title: input.title,
+        description: input.description ?? "",
+        ...(input.priority !== undefined ? { priority: input.priority } : {}),
+        ...(input.dueDate !== undefined ? { dueDate: input.dueDate } : {}),
+        ...(input.labels !== undefined ? { labels: input.labels } : {}),
+      },
     });
   },
 
@@ -45,6 +81,20 @@ export const taskApi = {
       method: "PATCH",
       body: { assigneeId: assigneeId === "" ? null : assigneeId },
     });
+  },
+
+  async uploadAttachment(taskId: string, file: File): Promise<void> {
+    const formData = new FormData();
+    formData.append("file", file);
+    await apiRequest(`/tasks/${taskId}/attachments`, {
+      method: "POST",
+      body: formData,
+    });
+  },
+
+  async deleteAttachment(taskId: string, fileUrl: string): Promise<void> {
+    const search = new URLSearchParams({ fileUrl });
+    await apiRequest(`/tasks/${taskId}/attachments?${search}`, { method: "DELETE" });
   },
 
   async listComments(taskId: string): Promise<Comment[]> {

@@ -118,6 +118,7 @@ export interface Task {
   createdAt: string;
   updatedAt?: string;
   dueDate: string | null;
+  labels?: string[];
   attachments: Attachment[];
   attachmentCount: number;
   commentCount: number;

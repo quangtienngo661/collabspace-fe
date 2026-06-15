@@ -126,7 +126,7 @@ export function KanbanBoardPage() {
   }, [wsId, pid]);
 
   const taskState = useAsyncData(
-    () => wsId ? taskApi.list({ workspaceId: wsId, projectId: pid }).then(result => result.tasks) : Promise.resolve([]),
+    () => wsId ? taskApi.getBoard({ workspaceId: wsId, projectId: pid }) : Promise.resolve([]),
     [wsId, pid],
   );
 
@@ -172,6 +172,11 @@ export function KanbanBoardPage() {
 
   const handleTaskCreated = (task: Task) => {
     taskState.setData(prev => [...(prev ?? []), task]);
+  };
+
+  const handleTaskDeleted = (taskId: string) => {
+    taskState.setData(prev => (prev ?? []).filter(task => task.id !== taskId));
+    setSelectedTask(null);
   };
 
   useTaskDeepLink({
@@ -262,7 +267,7 @@ export function KanbanBoardPage() {
         <CreateTaskModal open={createOpen} onClose={() => setCreateOpen(false)} projectId={pid ?? null} workspaceId={wsId || ""} onCreated={handleTaskCreated} />
 
         {selectedTask && (
-          <TaskDetailSheet task={selectedTask} open={!!selectedTask} onClose={() => setSelectedTask(null)} onUpdated={handleTaskUpdated} />
+          <TaskDetailSheet task={selectedTask} open={!!selectedTask} onClose={() => setSelectedTask(null)} onUpdated={handleTaskUpdated} onDeleted={handleTaskDeleted} />
         )}
       </div>
     </DndProvider>
