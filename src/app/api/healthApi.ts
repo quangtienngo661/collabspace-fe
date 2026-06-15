@@ -19,30 +19,20 @@ async function check(name: string, path: string): Promise<HealthResult> {
 
 export const healthApi = {
   async all(): Promise<HealthResult[]> {
-    const [auth, users, workspaces] = await Promise.all([
+    const [auth, users, workspaces, tasks, notifications] = await Promise.all([
       check("Auth Service", "/auth/health"),
       check("User Service", "/users/health"),
       check("Workspace Service", "/workspaces/health"),
+      check("Task Service", "/tasks/health/live"),
+      check("Notification Service", "/notifications/health/live"),
     ]);
 
     return [
       auth,
       users,
       workspaces,
-      {
-        name: "Task Service",
-        status: "unknown",
-        message: "No gateway health endpoint",
-        latency: null,
-        lastCheck: new Date().toISOString(),
-      },
-      {
-        name: "Notification Service",
-        status: "unknown",
-        message: "No HTTP controller exposed",
-        latency: null,
-        lastCheck: new Date().toISOString(),
-      },
+      tasks,
+      notifications,
       {
         name: "Queue Metrics",
         status: "unknown",

@@ -36,8 +36,6 @@ function fallbackProfile(authUser: AuthUser): User {
     role: normalizeRole(authUser.role ?? authUser.roles?.[0]),
     roles: authUser.roles,
     status: "offline",
-    title: "",
-    department: "",
     joinedAt: "",
     emailVerified: authUser.emailVerified,
   };
@@ -69,11 +67,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const currentAuthUser = await authApi.me();
       setAuthUser(currentAuthUser);
 
+      let userProfile: User;
       try {
-        setProfile(await usersApi.me(currentAuthUser));
+        userProfile = await usersApi.me(currentAuthUser);
       } catch {
-        setProfile(fallbackProfile(currentAuthUser));
+        userProfile = fallbackProfile(currentAuthUser);
       }
+
+      try {
+        const userStatus = await usersApi.status();
+        userProfile.status = userStatus;
+      } catch {
+        // Keep profile's status or offline
+      }
+
+      setProfile(userProfile);
 
       try {
         setPreferences(await usersApi.preferences());

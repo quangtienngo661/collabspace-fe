@@ -41,7 +41,7 @@ interface AdminWorkspaceLayoutProps {
 }
 
 const adminNavItems = [
-  { label: "Access Control", description: "Roles and permissions", icon: ShieldCheck, to: "/admin", end: true },
+  { label: "Platform Management", description: "Roles, users, workspaces", icon: Settings2, to: "/admin", end: true },
   { label: "System Health", description: "Services and queues", icon: Activity, to: "/admin/health" },
 ];
 
@@ -61,8 +61,6 @@ function fallbackUser(email?: string): User {
     avatar: (email ?? "A").slice(0, 2).toUpperCase(),
     role: "admin",
     status: "online",
-    title: "",
-    department: "",
     joinedAt: "",
   };
 }

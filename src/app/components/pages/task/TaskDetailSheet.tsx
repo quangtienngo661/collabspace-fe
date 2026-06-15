@@ -31,10 +31,11 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated }: TaskDetailSh
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleVal, setTitleVal] = useState(task.title);
 
-  const usersState = useAsyncData(() => usersApi.list().then(result => result.items), []);
-  const { data: members } = useAsyncData(() => workspaceApi.members(task.workspaceId), [task.workspaceId]);
-  const users = usersState.data?.filter(u => members?.some(m => m.userId === u.id))
-    .map(u => ({ userId: u.id, name: u.name })) ?? [];
+  const usersState = useAsyncData(async () => {
+    const members = await workspaceApi.members(task.workspaceId);
+    return usersApi.bulk(members.map(m => m.userId));
+  }, [task.workspaceId]);
+  const users = usersState.data?.map(u => ({ userId: u.id, name: u.name })) ?? [];
 
   useEffect(() => {
     setTitleVal(task.title);

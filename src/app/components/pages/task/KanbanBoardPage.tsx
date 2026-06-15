@@ -130,14 +130,13 @@ export function KanbanBoardPage() {
     [wsId, pid],
   );
 
-  const { data: members } = useAsyncData(
-    () => wsId ? workspaceApi.members(wsId) : Promise.resolve([]),
-    [wsId]
-  );
-  const usersState = useAsyncData(() => usersApi.list().then(result => result.items), []);
+  const usersState = useAsyncData(async () => {
+    if (!wsId) return [];
+    const members = await workspaceApi.members(wsId);
+    return usersApi.bulk(members.map(m => m.userId));
+  }, [wsId]);
   const taskList = taskState.data ?? [];
-  const users = usersState.data?.filter(u => members?.some(m => m.userId === u.id))
-    .map(u => ({ userId: u.id, name: u.name })) ?? [];
+  const users = (usersState.data ?? []).map(u => ({ userId: u.id, name: u.name }));
 
   const filteredTasks = taskList.filter(t => {
     const matchSearch = !search || t.title.toLowerCase().includes(search.toLowerCase());

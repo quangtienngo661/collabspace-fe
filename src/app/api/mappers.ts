@@ -70,8 +70,6 @@ export function mapUserProfile(raw: AnyRecord, auth?: Partial<AuthUser>): User {
     role,
     roles: auth?.roles,
     status: apiStatusToUi(raw.status),
-    title: raw.jobTitle ?? "",
-    department: raw.department ?? "",
     joinedAt: raw.createdAt ?? "",
     displayName: raw.displayName ?? null,
     username: raw.username ?? null,
@@ -93,8 +91,6 @@ export function mapUserSummary(raw: AnyRecord): User {
     avatarUrl: raw.avatarUrl ?? null,
     role: "member",
     status: apiStatusToUi(raw.status),
-    title: raw.jobTitle ?? "",
-    department: raw.department ?? "",
     joinedAt: raw.createdAt ?? "",
     displayName: raw.displayName ?? null,
     username: raw.username ?? null,
@@ -242,7 +238,9 @@ export function mapNotification(raw: AnyRecord): Notification {
   const targetId = raw.targetId;
   const link =
     targetType === "task" && targetId
-      ? `/workspaces/${raw.metadata?.workspaceId ?? ""}/projects/${raw.metadata?.projectId ?? ""}`
+      ? raw.metadata?.projectId
+        ? `/workspaces/${raw.metadata.workspaceId ?? ""}/projects/${raw.metadata.projectId}`
+        : `/workspaces/${raw.metadata?.workspaceId ?? targetId}`
       : targetType === "workspace" && targetId
         ? `/workspaces/${targetId}`
         : "/notifications";
