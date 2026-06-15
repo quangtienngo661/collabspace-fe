@@ -18,12 +18,11 @@ type RequestOptions = Omit<RequestInit, "body"> & {
   retryOnUnauthorized?: boolean;
 };
 
-const DEFAULT_BASE_URL = import.meta.env.DEV
-  ? "http://localhost/api/v1"
-  : "/api/v1";
+const DEFAULT_BASE_URL = "/api/v1";
 
+/** Same-origin `/api/v1` in dev is proxied by Vite (see `VITE_API_PROXY_TARGET`). Avoid absolute API URLs in dev — Traefik forward-auth blocks CORS preflight on protected routes. */
 export const API_BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) || DEFAULT_BASE_URL;
+  (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, "") || DEFAULT_BASE_URL;
 
 let refreshPromise: Promise<AuthSession> | null = null;
 
