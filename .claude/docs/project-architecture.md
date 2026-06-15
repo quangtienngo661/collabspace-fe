@@ -52,6 +52,7 @@ Frontend **never** calls service ports directly. All traffic goes through the ga
 | `/workspaces/:id/projects` | Project list | Protected |
 | `/workspaces/:id/projects/:pid` | Kanban board | Protected |
 | `/notifications` | Notification inbox | Protected |
+| `/users` | User directory (list/search/profile) | Protected |
 | `/invitations` | Accept/reject by invitation ID | Protected |
 | `/profile` | Profile, sessions, preferences | Protected |
 | `/admin` | Platform admin tabs | Admin |

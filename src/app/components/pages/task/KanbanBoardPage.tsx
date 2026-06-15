@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useParams } from "react-router";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -20,7 +20,8 @@ import { useWorkspaceMemberUsers } from "../../../hooks/useWorkspaceMemberUsers"
 import { initials } from "../../../api/mappers";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 import { useTaskDeepLink } from "../../../hooks/useTaskDeepLink";
-import type { Task, TaskStatus } from "../../../api/types";
+import { usePresenceMap } from "../../../hooks/usePresenceMap";
+import type { Task, TaskStatus, UserStatus } from "../../../api/types";
 
 const COLUMNS: { status: TaskStatus; label: string; color: string }[] = [
   { status: "TODO", label: "To Do", color: "border-t-slate-400" },
@@ -30,7 +31,7 @@ const COLUMNS: { status: TaskStatus; label: string; color: string }[] = [
 
 const ITEM_TYPE = "TASK_CARD";
 
-function KanbanCard({ task, onClick }: { task: Task; onClick: () => void }) {
+function KanbanCard({ task, onClick, presenceStatus }: { task: Task; onClick: () => void; presenceStatus?: UserStatus }) {
   const assignee = task.assignedTo;
   const [{ isDragging }, drag] = useDrag(() => ({
     type: ITEM_TYPE,
@@ -65,12 +66,13 @@ function KanbanCard({ task, onClick }: { task: Task; onClick: () => void }) {
               avatar: initials(assignee.displayName || assignee.fullName),
               avatarUrl: assignee.avatarUrl,
               role: "member",
-              status: "offline",
+              status: presenceStatus ?? "offline",
               title: "",
               department: "",
               joinedAt: "",
             }}
             size="xs"
+            showPresence={Boolean(assignee)}
           />
         ) : <div className="w-6 h-6 rounded-full border-2 border-dashed border-slate-300 dark:border-slate-600" />}
       </div>
@@ -78,8 +80,10 @@ function KanbanCard({ task, onClick }: { task: Task; onClick: () => void }) {
   );
 }
 
-function KanbanColumn({ status, label, color, tasks, onDrop, onCardClick, onAdd }: {
-  status: TaskStatus; label: string; color: string; tasks: Task[]; onDrop: (taskId: string, newStatus: TaskStatus, fromStatus: TaskStatus) => void; onCardClick: (t: Task) => void; onAdd: () => void;
+function KanbanColumn({ status, label, color, tasks, presenceMap, onDrop, onCardClick, onAdd }: {
+  status: TaskStatus; label: string; color: string; tasks: Task[];
+  presenceMap: Record<string, UserStatus>;
+  onDrop: (taskId: string, newStatus: TaskStatus, fromStatus: TaskStatus) => void; onCardClick: (t: Task) => void; onAdd: () => void;
 }) {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: ITEM_TYPE,
@@ -102,7 +106,12 @@ function KanbanColumn({ status, label, color, tasks, onDrop, onCardClick, onAdd 
         {tasks.length === 0 ? (
           <div className="py-8 text-center text-xs text-slate-400">Drop tasks here</div>
         ) : tasks.map(t => (
-          <KanbanCard key={t.id} task={t} onClick={() => onCardClick(t)} />
+          <KanbanCard
+            key={t.id}
+            task={t}
+            presenceStatus={t.assigneeId ? presenceMap[t.assigneeId] : undefined}
+            onClick={() => onCardClick(t)}
+          />
         ))}
       </div>
     </div>
@@ -117,6 +126,7 @@ export function KanbanBoardPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterAssignee, setFilterAssignee] = useState("all");
+  const [filterPriority, setFilterPriority] = useState("all");
   const [invalidMove, setInvalidMove] = useState<string | null>(null);
 
   const projectState = useAsyncData(async () => {
@@ -134,11 +144,18 @@ export function KanbanBoardPage() {
   const users = (usersState.data ?? []).map(u => ({ userId: u.id, name: u.name }));
   const taskList = taskState.data ?? [];
 
+  const assigneeIds = useMemo(
+    () => [...new Set(taskList.map(t => t.assigneeId).filter(Boolean) as string[])],
+    [taskList],
+  );
+  const presenceMap = usePresenceMap(assigneeIds, Boolean(wsId));
+
   const filteredTasks = taskList.filter(t => {
     const matchSearch = !search || t.title.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === "all" || t.status === filterStatus;
     const matchAssignee = filterAssignee === "all" || t.assigneeId === filterAssignee;
-    return matchSearch && matchStatus && matchAssignee;
+    const matchPriority = filterPriority === "all" || t.priority === filterPriority;
+    return matchSearch && matchStatus && matchAssignee && matchPriority;
   });
 
   const handleDrop = useCallback(async (taskId: string, newStatus: TaskStatus, fromStatus: TaskStatus) => {
@@ -218,6 +235,17 @@ export function KanbanBoardPage() {
             </SelectContent>
           </Select>
 
+          <Select value={filterPriority} onValueChange={setFilterPriority}>
+            <SelectTrigger className="h-7 text-xs w-28"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All priority</SelectItem>
+              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="critical">Critical</SelectItem>
+            </SelectContent>
+          </Select>
+
           <Button size="sm" variant="outline" className="gap-1 h-7 text-xs px-3" onClick={() => void taskState.reload()}>
             <RefreshCw className="w-3.5 h-3.5" /> Refresh
           </Button>
@@ -249,6 +277,7 @@ export function KanbanBoardPage() {
                   key={col.status}
                   {...col}
                   tasks={filteredTasks.filter(t => t.status === col.status)}
+                  presenceMap={presenceMap}
                   onDrop={handleDrop}
                   onCardClick={setSelectedTask}
                   onAdd={() => setCreateOpen(true)}

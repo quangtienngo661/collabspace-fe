@@ -16,18 +16,26 @@ import { usersApi } from "../../../api/usersApi";
 import { RoleBadge } from "../../shared/StatusBadge";
 import { UserAvatar } from "../../shared/UserAvatar";
 import { EmptyState, ErrorState } from "../../shared/EmptyState";
+import { ConfirmDialog } from "../../shared/ConfirmDialog";
 import { useAsyncData } from "../../../hooks/useAsyncData";
+import { usePresenceMap } from "../../../hooks/usePresenceMap";
+import { useAuth } from "../../../auth/AuthContext";
+import { useWorkspaces } from "../../../context/WorkspacesContext";
 import type { WorkspaceMember } from "../../../api/types";
 import { toast } from "sonner";
 
 export function WorkspaceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { profile } = useAuth();
+  const { reload: reloadWorkspaces } = useWorkspaces();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("member");
   const [settings, setSettings] = useState({ name: "", description: "" });
   const [saving, setSaving] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const workspaceState = useAsyncData(async () => {
     if (!id) throw new Error("Workspace id is missing");
@@ -60,18 +68,30 @@ export function WorkspaceDetailPage() {
   const invitations = invitationsState.data ?? [];
   const error = workspaceState.error || projectsState.error || membersState.error || invitationsState.error;
 
+  const memberUserIds = useMemo(() => members.map(m => m.userId).filter(Boolean), [members]);
+  const presenceMap = usePresenceMap(memberUserIds, Boolean(id));
+
+  const isOwner = useMemo(() => {
+    if (!profile?.id) return false;
+    if (ws?.ownerId === profile.id) return true;
+    return members.some(m => m.userId === profile.id && m.role === "owner");
+  }, [profile?.id, ws?.ownerId, members]);
+
   const memberRows = useMemo(() => {
     const regularMembers = members.map(member => {
       const fallbackName = "Unknown User";
+      const liveStatus = presenceMap[member.userId] ?? member.profile?.status ?? "offline";
       return {
         ...member,
-        user: member.profile ?? {
+        user: member.profile
+          ? { ...member.profile, status: liveStatus }
+          : {
           id: member.userId,
           userId: member.userId,
           name: fallbackName,
           avatar: fallbackName.slice(0, 2).toUpperCase(),
           role: member.role === "owner" ? "admin" : member.role,
-          status: "offline" as const,
+          status: liveStatus,
           title: "",
           joinedAt: member.joinedAt,
         },
@@ -98,7 +118,23 @@ export function WorkspaceDetailPage() {
     }));
 
     return [...regularMembers, ...pendingMembers];
-  }, [members, invitations, id]);
+  }, [members, invitations, id, presenceMap]);
+
+  async function handleDeleteWorkspace() {
+    if (!id) return;
+    setDeleting(true);
+    try {
+      await workspaceApi.delete(id);
+      await reloadWorkspaces();
+      toast.success("Workspace deleted");
+      setDeleteOpen(false);
+      navigate("/workspaces");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Unable to delete workspace");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   async function handleInvite() {
     if (!id) return;
@@ -264,9 +300,13 @@ export function WorkspaceDetailPage() {
               <Label>Description</Label>
               <Input value={settings.description} onChange={event => setSettings(prev => ({ ...prev, description: event.target.value }))} />
             </div>
-            <div className="pt-2 flex gap-2">
+            <div className="pt-2 flex gap-2 flex-wrap">
               <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={saveSettings} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
-              <Button size="sm" variant="destructive" disabled title="Backend does not expose DELETE /workspaces/:id">Delete Unavailable</Button>
+              {isOwner && (
+                <Button size="sm" variant="destructive" onClick={() => setDeleteOpen(true)}>
+                  Delete Workspace
+                </Button>
+              )}
             </div>
           </Card>
         </TabsContent>
@@ -297,6 +337,16 @@ export function WorkspaceDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete workspace?"
+        description="This permanently deletes the workspace and cascades via backend events. Only the owner can do this."
+        confirmLabel={deleting ? "Deleting..." : "Delete"}
+        destructive
+        onConfirm={() => void handleDeleteWorkspace()}
+      />
     </div>
   );
 }

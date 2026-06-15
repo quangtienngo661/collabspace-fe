@@ -11,12 +11,15 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { workspaceApi } from "../../../api/workspaceApi";
 import { enrichWorkspacesStats } from "../../../api/clientStats";
 import { useWorkspaces } from "../../../context/WorkspacesContext";
+import { useAuth } from "../../../auth/AuthContext";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 import { EmptyState, ErrorState } from "../../shared/EmptyState";
+import { ConfirmDialog } from "../../shared/ConfirmDialog";
 import { toast } from "sonner";
 
 export function WorkspaceListPage() {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const { workspaces, loading: loadingList, error, reload } = useWorkspaces();
   const { data: enriched, reload: reloadStats } = useAsyncData(
     () => enrichWorkspacesStats(workspaces),
@@ -27,6 +30,28 @@ export function WorkspaceListPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "" });
   const [loading, setLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  function isWorkspaceOwner(ws: { ownerId: string }) {
+    return Boolean(profile?.id && ws.ownerId === profile.id);
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await workspaceApi.delete(deleteTarget.id);
+      await reload();
+      void reloadStats();
+      toast.success(`Workspace "${deleteTarget.name}" deleted`);
+      setDeleteTarget(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Unable to delete workspace");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   async function handleCreate() {
     if (!form.name.trim()) { toast.error("Workspace name is required"); return; }
@@ -88,9 +113,14 @@ export function WorkspaceListPage() {
                     <DropdownMenuItem onClick={e => { e.stopPropagation(); navigate(`/workspaces/${ws.id}`); }}>
                       <Settings className="w-4 h-4 mr-2" /> Settings
                     </DropdownMenuItem>
-                    <DropdownMenuItem disabled onClick={e => e.stopPropagation()} className="text-red-600 dark:text-red-400">
-                      <Trash2 className="w-4 h-4 mr-2" /> Delete unavailable
-                    </DropdownMenuItem>
+                    {isWorkspaceOwner(ws) && (
+                      <DropdownMenuItem
+                        onClick={e => { e.stopPropagation(); setDeleteTarget({ id: ws.id, name: ws.name }); }}
+                        className="text-red-600 dark:text-red-400"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" /> Delete workspace
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -128,6 +158,16 @@ export function WorkspaceListPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={open => { if (!open) setDeleteTarget(null); }}
+        title="Delete workspace?"
+        description={deleteTarget ? `Permanently delete "${deleteTarget.name}"? This cannot be undone.` : ""}
+        confirmLabel={deleting ? "Deleting..." : "Delete"}
+        destructive
+        onConfirm={() => void handleDelete()}
+      />
     </div>
   );
 }

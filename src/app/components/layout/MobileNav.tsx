@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router";
-import { LayoutDashboard, Building2, Bell, User, FolderOpen, Settings, Shield } from "lucide-react";
+import { LayoutDashboard, Building2, Bell, User, FolderOpen, Settings, Shield, Users } from "lucide-react";
 import { cn } from "../ui/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../ui/sheet";
 import { useWorkspaces } from "../../context/WorkspacesContext";
@@ -15,6 +15,7 @@ const bottomItems = [
 const allNavItems = [
   { label: "Dashboard", icon: LayoutDashboard, to: "/dashboard" },
   { label: "Workspaces", icon: Building2, to: "/workspaces" },
+  { label: "Users", icon: Users, to: "/users" },
   { label: "Projects", icon: FolderOpen, to: "" },
   { label: "Notifications", icon: Bell, to: "/notifications" },
   { label: "Settings", icon: Settings, to: "/profile" },

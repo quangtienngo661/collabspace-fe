@@ -3,6 +3,18 @@ import { apiStatusToUi, mapPreferences, mapUserProfile, mapUserSummary, uiStatus
 import { cachedRequest } from "./requestCache";
 import type { AuthUser, User, UserPreferences, UserStatus } from "./types";
 
+async function fetchPresenceMap(userIds: string[]): Promise<Record<string, UserStatus>> {
+  const unique = [...new Set(userIds.filter(Boolean))];
+  if (unique.length === 0) return {};
+  const search = new URLSearchParams({ userIds: unique.join(",") });
+  const rows = await apiRequest<{ userId: string; status: string }[]>(`/users/presence?${search}`);
+  const out: Record<string, UserStatus> = {};
+  for (const row of rows) {
+    out[row.userId] = apiStatusToUi(row.status);
+  }
+  return out;
+}
+
 export const usersApi = {
   async me(authUser?: Partial<AuthUser>): Promise<User> {
     return cachedRequest("users:me", async () => mapUserProfile(await apiRequest("/users/me"), authUser));
@@ -44,10 +56,20 @@ export const usersApi = {
   },
 
   async status(userId: string): Promise<UserStatus> {
-    const search = new URLSearchParams({ userIds: userId });
-    const rows = await apiRequest<{ userId: string; status: string }[]>(`/users/presence?${search}`);
-    const row = rows.find(item => item.userId === userId) ?? rows[0];
-    return apiStatusToUi(row?.status);
+    const map = await fetchPresenceMap([userId]);
+    return map[userId] ?? "offline";
+  },
+
+  async presenceBulk(userIds: string[]): Promise<Record<string, UserStatus>> {
+    return fetchPresenceMap(userIds);
+  },
+
+  async get(id: string): Promise<User> {
+    return mapUserProfile(await apiRequest(`/users/${id}`));
+  },
+
+  async getSummary(id: string): Promise<User> {
+    return mapUserSummary(await apiRequest(`/users/${id}/summary`));
   },
 
   async list(params: { q?: string; limit?: number; offset?: number } = {}): Promise<{ items: User[]; total: number }> {

@@ -373,7 +373,7 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted }: T
               </TabsContent>
 
               <TabsContent value="comments" className="flex-1 overflow-hidden m-0">
-                <TaskComments taskId={task.id} />
+                <TaskComments taskId={task.id} workspaceId={task.workspaceId} />
               </TabsContent>
 
               <TabsContent value="activity" className="flex-1 overflow-hidden m-0">

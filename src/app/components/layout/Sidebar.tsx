@@ -1,6 +1,6 @@
 import { type ElementType, useState } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router";
-import { LayoutDashboard, Building2, FolderOpen, Bell, Settings, ChevronLeft, ChevronRight, ChevronDown, Plus, LogOut, Shield } from "lucide-react";
+import { LayoutDashboard, Building2, FolderOpen, Bell, Settings, ChevronLeft, ChevronRight, ChevronDown, Plus, LogOut, Shield, Users } from "lucide-react";
 import { cn } from "../ui/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { useWorkspaces } from "../../context/WorkspacesContext";
@@ -9,6 +9,7 @@ import { useAuth } from "../../auth/AuthContext";
 const navItems: { label: string; icon: ElementType; to: string | null }[] = [
   { label: "Dashboard", icon: LayoutDashboard, to: "/dashboard" },
   { label: "Workspaces", icon: Building2, to: "/workspaces" },
+  { label: "Users", icon: Users, to: "/users" },
   { label: "Projects", icon: FolderOpen, to: null }, // dynamic — computed below
   { label: "Notifications", icon: Bell, to: "/notifications" },
   { label: "Settings", icon: Settings, to: "/profile" },

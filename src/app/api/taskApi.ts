@@ -1,13 +1,15 @@
 import { apiRequest } from "./httpClient";
+import { idempotencyHeaders } from "./idempotency";
 import { mapActivityTimelineItem, mapAttachment, mapComment, mapTask } from "./mappers";
 import type { ActivityTimelineItem, Attachment, Comment, Task, TaskStatus } from "./types";
 
 export const taskApi = {
-  async list(params: { workspaceId: string; projectId?: string; status?: string; assigneeId?: string }): Promise<{ tasks: Task[]; total: number }> {
+  async list(params: { workspaceId: string; projectId?: string; status?: string; assigneeId?: string; priority?: string }): Promise<{ tasks: Task[]; total: number }> {
     const search = new URLSearchParams({ workspaceId: params.workspaceId });
     if (params.projectId) search.set("projectId", params.projectId);
     if (params.status && params.status !== "all") search.set("status", params.status);
     if (params.assigneeId && params.assigneeId !== "all") search.set("assigneeId", params.assigneeId);
+    if (params.priority && params.priority !== "all") search.set("priority", params.priority);
     const result = await apiRequest<{ tasks: any[]; total: number }>(`/tasks?${search}`);
     return {
       tasks: (result.tasks ?? []).map(mapTask),
@@ -31,6 +33,7 @@ export const taskApi = {
     return apiRequest("/tasks", {
       method: "POST",
       body: input,
+      headers: idempotencyHeaders(),
     });
   },
 
@@ -80,6 +83,7 @@ export const taskApi = {
     await apiRequest(`/tasks/${taskId}/assignee`, {
       method: "PATCH",
       body: { assigneeId: assigneeId === "" ? null : assigneeId },
+      headers: idempotencyHeaders(),
     });
   },
 

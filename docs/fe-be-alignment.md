@@ -17,17 +17,22 @@ Nguồn backend: [`docs/features.md`](../../collabspace/docs/features.md), [`doc
 
 | Mục | FE | BE | Ghi chú |
 |-----|----|----|---------|
-| Xóa workspace (owner) | Disabled, chưa có `workspaceApi.delete` | `DELETE /workspaces/:id` | **Mismatch** — nên wire |
-| Archive notification | Disabled | Không có HTTP | Đúng — chờ BE |
-| Đổi role / remove member | Disabled | Không có end-user API | Đúng |
-| Gỡ permission khỏi role (admin) | Toast | Chỉ assign | Đúng |
-| Comment thread `parentId` | API có, UI phẳng | Done | Polish FE |
-| Presence live | Chưa poll | `GET /users/presence` | Polish FE |
-| `commentCount` Kanban | Không hiển thị | Board không trả field | BE hoặc client count |
-| Create task dueDate/labels | Chỉ trong detail | `POST /tasks` hỗ trợ | Polish FE |
-| List invitation của user | Manual ID | Chỉ list theo workspace | Thiếu BE API |
+| Xóa workspace (owner) | ✅ `workspaceApi.delete` + UI | `DELETE /workspaces/:id` | Done P0 |
+| Idempotency-Key mutations | ✅ create workspace/invite/task/assign | Hỗ trợ | Done P1 |
+| Create task dueDate/labels | ✅ `CreateTaskModal` | `POST /tasks` | Done P1 |
+| Presence live | ✅ `usePresenceMap` poll 30s | `GET /users/presence` | Done P2 |
+| Comment thread `parentId` | ✅ `TaskComments` tree + reply | Done | Done P2 |
+| Priority filter Kanban | ✅ client filter + `taskApi.list` param | `?priority=` | Done P2 |
+| @mention autocomplete | ✅ `MentionCommentInput` | parse `@username` | Done P3 |
+| Notification polling | ✅ 45s `NotificationsContext` | list API | Done P3 |
+| User directory | ✅ `/users` page | `GET /users`, `/search`, `/:id` | Done P3 |
+| Archive notification | Disabled | Không có HTTP | Chờ BE |
+| Đổi role / remove member | Disabled | Không có end-user API | Chờ BE |
+| Gỡ permission khỏi role (admin) | Toast | Chỉ assign | Chờ BE |
+| `commentCount` Kanban | Không hiển thị | Board không trả field | Chờ BE hoặc N+1 |
+| List invitation của user | Manual ID + notifications | Chỉ list theo workspace | Chờ BE API |
 
-**Không còn mismatch API nghiêm trọng** (400 body, endpoint ảo) sau Phase 2–5.
+**Không còn mismatch API nghiêm trọng** cho các endpoint end-user/admin đã expose.
 
 ---
 

@@ -17,22 +17,23 @@ Tóm tắt mức độ **UI** đã phủ backend MVP. Chi tiết API: [fe-be-ali
 |------|------------|---------|
 | Auth & sessions | **Done** | Login, register, OTP, password, sessions, logout-all |
 | Profile & preferences | **Done** | Avatar, username cho @mention |
-| Workspace & project | **Done** | CRUD, members, invite |
-| Task & board | **Done** | Board API, Kanban, detail, attachments, delete |
-| Comments | **Partial** | CRUD flat; chưa thread `parentId` |
-| Notifications | **Partial** | List + mark read; archive **Disabled** |
-| Invitations | **Done** | Notifications + `/invitations`; không list-by-user BE |
+| Workspace & project | **Done** | CRUD, owner delete, members, invite |
+| Task & board | **Done** | Board API, Kanban, priority filter, create w/ dueDate/labels |
+| Comments | **Done** | CRUD, threads, `@mention` autocomplete |
+| Notifications | **Partial** | List, mark read, 45s poll; archive **Disabled** |
+| Invitations | **Done** | Notifications + `/invitations` |
 | Activity | **Done** | Workspace + task timelines |
 | Platform admin | **Done** | Roles, users, workspaces, broadcast, health |
-| Presence | **Partial** | Status từ profile; chưa poll `/users/presence` |
+| Presence | **Done** | Poll `/users/presence` — members, Kanban, directory |
+| User directory | **Done** | `/users` — list, search, `GET /users/:id` drawer |
+| Idempotency | **Done** | Workspace create/invite, task create/assign |
 
-## Còn lại (ưu tiên thấp / chờ BE)
+## Còn lại (chờ BE)
 
-- Wire **DELETE workspace** (BE owner-only — FE chưa có `workspaceApi.delete`)
-- **Threaded comments** UI (`parentId`)
-- **dueDate / labels** trên Create Task modal
-- **commentCount** trên thẻ Kanban (BE không trả field)
-- **Notification archive** khi BE có endpoint
-- **Đổi role / remove member** khi BE có end-user API
+- **Notification archive** — không có HTTP endpoint
+- **Đổi role / remove member** — không có end-user API
+- **List invitations by invitee** — chỉ list theo workspace admin
+- **commentCount** trên Kanban — board API không trả field
+- **Admin unassign permission** — BE chỉ assign
 
 Agent backlog chi tiết: [fe-be-alignment.md](./fe-be-alignment.md).

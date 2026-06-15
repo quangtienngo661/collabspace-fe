@@ -1,4 +1,5 @@
 import { apiRequest } from "./httpClient";
+import { idempotencyHeaders } from "./idempotency";
 import { mapActivityTimelineItem, mapProject, mapWorkspace, mapWorkspaceMember } from "./mappers";
 import { cachedRequest, invalidateCachedRequestPrefix } from "./requestCache";
 import type { ActivityTimelineItem, Project, Workspace, WorkspaceMember } from "./types";
@@ -13,9 +14,18 @@ export const workspaceApi = {
   },
 
   async create(input: { name: string; description?: string }): Promise<Workspace> {
-    const workspace = mapWorkspace(await apiRequest("/workspaces", { method: "POST", body: input }));
+    const workspace = mapWorkspace(await apiRequest("/workspaces", {
+      method: "POST",
+      body: input,
+      headers: idempotencyHeaders(),
+    }));
     invalidateCachedRequestPrefix("workspaces:");
     return workspace;
+  },
+
+  async delete(id: string): Promise<void> {
+    await apiRequest(`/workspaces/${id}`, { method: "DELETE" });
+    invalidateCachedRequestPrefix("workspaces:");
   },
 
   async get(id: string): Promise<Workspace> {
@@ -48,6 +58,7 @@ export const workspaceApi = {
     return apiRequest(`/workspaces/${id}/invite`, {
       method: "POST",
       body: { email },
+      headers: idempotencyHeaders(),
     });
   },
 

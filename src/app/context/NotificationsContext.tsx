@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import { createContext, useContext, useEffect, useMemo, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { notificationsApi } from "../api/notificationsApi";
 import { useAsyncData } from "../hooks/useAsyncData";
 import type { Notification } from "../api/types";
@@ -20,8 +20,17 @@ interface NotificationsContextValue {
 
 const NotificationsContext = createContext<NotificationsContextValue | null>(null);
 
+const NOTIFICATION_POLL_MS = 45_000;
+
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const state = useAsyncData(() => notificationsApi.list(), []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      void state.reload();
+    }, NOTIFICATION_POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [state.reload]);
 
   const value = useMemo<NotificationsContextValue>(() => ({
     data: state.data,
