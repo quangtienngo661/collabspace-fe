@@ -1,87 +1,142 @@
 import { apiRequest } from "./httpClient";
+import {
+  mapAdminAuthUser,
+  mapAdminPermission,
+  mapAdminRole,
+  mapAdminUserAggregate,
+  mapAdminWorkspace,
+} from "./mappers";
+import type {
+  AdminAuthUser,
+  AdminBroadcastResult,
+  AdminPermission,
+  AdminRole,
+  AdminUserAggregate,
+  AdminWorkspace,
+} from "./types";
 
 export const adminApi = {
-  // Roles & Permissions
-  async listRoles() {
-    return apiRequest<any[]>("/auth/admin/roles");
+  async listRoles(): Promise<AdminRole[]> {
+    const rows = await apiRequest<any[]>("/auth/admin/roles");
+    return rows.map(mapAdminRole);
   },
-  async createRole(name: string, description?: string) {
-    return apiRequest("/auth/admin/roles", {
+
+  async createRole(name: string, description = ""): Promise<AdminRole> {
+    return mapAdminRole(await apiRequest("/auth/admin/roles", {
       method: "POST",
       body: { name, description },
-    });
+    }));
   },
-  async updateRole(id: string, input: { name?: string; description?: string }) {
-    return apiRequest(`/auth/admin/roles/${id}`, {
+
+  async updateRole(id: string, input: { name?: string; description?: string }): Promise<AdminRole> {
+    return mapAdminRole(await apiRequest(`/auth/admin/roles/${id}`, {
       method: "PUT",
       body: input,
-    });
+    }));
   },
-  async deleteRole(id: string) {
-    return apiRequest(`/auth/admin/roles/${id}`, {
-      method: "DELETE",
-    });
+
+  async deleteRole(id: string): Promise<void> {
+    await apiRequest(`/auth/admin/roles/${id}`, { method: "DELETE" });
   },
-  async listPermissions() {
-    return apiRequest<any[]>("/auth/admin/permissions");
+
+  async listPermissions(): Promise<AdminPermission[]> {
+    const rows = await apiRequest<any[]>("/auth/admin/permissions");
+    return rows.map(mapAdminPermission);
   },
-  async assignPermission(roleId: string, permissionId: string) {
-    return apiRequest(`/auth/admin/roles/${roleId}/permissions`, {
+
+  async createPermission(name: string, description: string): Promise<AdminPermission> {
+    return mapAdminPermission(await apiRequest("/auth/admin/permissions", {
       method: "POST",
-      body: { permissionId },
+      body: { name, description },
+    }));
+  },
+
+  async assignPermission(roleId: string, permissionId: string): Promise<AdminRole> {
+    return mapAdminRole(
+      await apiRequest(`/auth/admin/roles/${roleId}/permissions`, {
+        method: "POST",
+        body: { permissionId },
+      }),
+    );
+  },
+
+  async listAuthUsers(): Promise<AdminAuthUser[]> {
+    const rows = await apiRequest<any[]>("/auth/admin/users");
+    return rows.map(mapAdminAuthUser);
+  },
+
+  async setActiveStatus(userId: string, isActive: boolean): Promise<AdminAuthUser> {
+    return mapAdminAuthUser(
+      await apiRequest(`/auth/admin/users/${userId}/active-status`, {
+        method: "PATCH",
+        body: { isActive },
+      }),
+    );
+  },
+
+  async assignRole(userId: string, roleId: string): Promise<AdminAuthUser> {
+    return mapAdminAuthUser(
+      await apiRequest(`/auth/admin/users/${userId}/roles`, {
+        method: "POST",
+        body: { roleId },
+      }),
+    );
+  },
+
+  async listAllUsers(): Promise<AdminUserAggregate[]> {
+    const rows = await apiRequest<any[]>("/users/admin/all");
+    return rows.map(mapAdminUserAggregate);
+  },
+
+  /** Merges auth-only fields (e.g. lastLoginAt) when missing from the aggregate DTO. */
+  async listAllUsersEnriched(): Promise<AdminUserAggregate[]> {
+    const [aggregates, authUsers] = await Promise.all([
+      adminApi.listAllUsers(),
+      adminApi.listAuthUsers(),
+    ]);
+    const authById = new Map(authUsers.map(user => [user.id, user]));
+    return aggregates.map(user => {
+      const auth = authById.get(user.id);
+      if (!auth) return user;
+      return {
+        ...user,
+        emailVerified: user.emailVerified ?? auth.emailVerified,
+        isActive: user.isActive ?? auth.isActive,
+        lastLoginAt: user.lastLoginAt ?? auth.lastLoginAt,
+        roles: user.roles.length > 0 ? user.roles : auth.roles,
+        createdAt: user.createdAt || auth.createdAt,
+      };
     });
   },
 
-  // Users Management
-  async listAuthUsers() {
-    return apiRequest<any[]>("/auth/admin/users");
-  },
-  async setActiveStatus(userId: string, isActive: boolean) {
-    return apiRequest(`/auth/admin/users/${userId}/active-status`, {
-      method: "PATCH",
-      body: { isActive },
-    });
-  },
-  async assignRole(userId: string, roleId: string) {
-    return apiRequest(`/auth/admin/users/${userId}/roles`, {
-      method: "POST",
-      body: { roleId },
-    });
-  },
-  async listAllUsers() {
-    return apiRequest<any[]>("/users/admin/all");
-  },
-  async deleteUser(id: string) {
-    return apiRequest(`/users/admin/${id}`, {
-      method: "DELETE",
-    });
+  async deleteUser(id: string): Promise<void> {
+    await apiRequest(`/users/admin/${id}`, { method: "DELETE" });
   },
 
-  // Workspace Management
-  async listAllWorkspaces() {
-    return apiRequest<any[]>("/workspaces/admin/all");
+  async listAllWorkspaces(): Promise<AdminWorkspace[]> {
+    const rows = await apiRequest<any[]>("/workspaces/admin/all");
+    return rows.map(mapAdminWorkspace);
   },
-  async deleteWorkspace(id: string) {
-    return apiRequest(`/workspaces/admin/${id}`, {
-      method: "DELETE",
-    });
+
+  async deleteWorkspace(id: string): Promise<void> {
+    await apiRequest(`/workspaces/admin/${id}`, { method: "DELETE" });
   },
-  async forceJoin(id: string, role: string, reason: string) {
-    return apiRequest(`/workspaces/admin/${id}/force-join`, {
+
+  async forceJoin(id: string, role: string, reason: string): Promise<void> {
+    await apiRequest(`/workspaces/admin/${id}/force-join`, {
       method: "POST",
       body: { role, reason },
     });
   },
 
-  // Broadcast Notification
-  async broadcast(title: string, message: string) {
-    const uuid = typeof crypto !== "undefined" && crypto.randomUUID
+  async broadcast(title: string, message: string): Promise<AdminBroadcastResult> {
+    const idempotencyKey = typeof crypto !== "undefined" && crypto.randomUUID
       ? crypto.randomUUID()
-      : "broadcast-" + Date.now() + "-" + Math.random().toString(36).substring(2, 9);
-    return apiRequest<any>("/notifications/admin/broadcast", {
+      : `broadcast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    return apiRequest<AdminBroadcastResult>("/notifications/admin/broadcast", {
       method: "POST",
       body: { title, body: message, target: "all" },
-      headers: { "Idempotency-Key": uuid },
+      headers: { "Idempotency-Key": idempotencyKey },
     });
   },
 };

@@ -7,6 +7,7 @@ import {
   Send, 
   Trash2, 
   Plus, 
+  Pencil,
   Info, 
   Ban, 
   ShieldAlert, 
@@ -34,7 +35,8 @@ import { Textarea } from "../../ui/textarea";
 import { toast } from "sonner";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 import { adminApi } from "../../../api/adminApi";
-import type { Role } from "../../../api/types";
+import { formatAdminApiError } from "../../../api/adminErrors";
+import type { AdminRole, Role } from "../../../api/types";
 
 interface AdminPageProps {
   dark: boolean;
@@ -45,7 +47,7 @@ export function AdminPage({ dark, onToggleDark }: AdminPageProps) {
   // 1. Fetch data from backend admin API
   const rolesState = useAsyncData(() => adminApi.listRoles(), []);
   const permissionsState = useAsyncData(() => adminApi.listPermissions(), []);
-  const usersState = useAsyncData(() => adminApi.listAllUsers(), []);
+  const usersState = useAsyncData(() => adminApi.listAllUsersEnriched(), []);
   const workspacesState = useAsyncData(() => adminApi.listAllWorkspaces(), []);
 
   // 2. Local state for Modals & Forms
@@ -53,6 +55,16 @@ export function AdminPage({ dark, onToggleDark }: AdminPageProps) {
   const [newRoleName, setNewRoleName] = useState("");
   const [newRoleDesc, setNewRoleDesc] = useState("");
   const [creatingRole, setCreatingRole] = useState(false);
+
+  const [createPermissionOpen, setCreatePermissionOpen] = useState(false);
+  const [newPermName, setNewPermName] = useState("");
+  const [newPermDesc, setNewPermDesc] = useState("");
+  const [creatingPermission, setCreatingPermission] = useState(false);
+
+  const [editRoleTarget, setEditRoleTarget] = useState<AdminRole | null>(null);
+  const [editRoleName, setEditRoleName] = useState("");
+  const [editRoleDesc, setEditRoleDesc] = useState("");
+  const [updatingRole, setUpdatingRole] = useState(false);
 
   const [deleteRoleTarget, setDeleteRoleTarget] = useState<{ id: string; name: string } | null>(null);
   
@@ -110,9 +122,61 @@ export function AdminPage({ dark, onToggleDark }: AdminPageProps) {
       setCreateRoleOpen(false);
       await rolesState.reload();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Unable to create role");
+      toast.error(formatAdminApiError(err, "Unable to create role"));
     } finally {
       setCreatingRole(false);
+    }
+  }
+
+  async function handleCreatePermission() {
+    if (!newPermName.trim()) {
+      toast.error("Permission name is required");
+      return;
+    }
+    if (!newPermDesc.trim()) {
+      toast.error("Permission description is required");
+      return;
+    }
+    try {
+      setCreatingPermission(true);
+      await adminApi.createPermission(newPermName.trim(), newPermDesc.trim());
+      toast.success(`Permission '${newPermName}' created`);
+      setNewPermName("");
+      setNewPermDesc("");
+      setCreatePermissionOpen(false);
+      await permissionsState.reload();
+    } catch (err) {
+      toast.error(formatAdminApiError(err, "Unable to create permission"));
+    } finally {
+      setCreatingPermission(false);
+    }
+  }
+
+  function openEditRole(role: AdminRole) {
+    setEditRoleTarget(role);
+    setEditRoleName(role.name);
+    setEditRoleDesc(role.description);
+  }
+
+  async function handleUpdateRole() {
+    if (!editRoleTarget) return;
+    if (!editRoleName.trim()) {
+      toast.error("Role name is required");
+      return;
+    }
+    try {
+      setUpdatingRole(true);
+      await adminApi.updateRole(editRoleTarget.id, {
+        name: editRoleName.trim(),
+        description: editRoleDesc.trim(),
+      });
+      toast.success(`Role '${editRoleName}' updated`);
+      setEditRoleTarget(null);
+      await rolesState.reload();
+    } catch (err) {
+      toast.error(formatAdminApiError(err, "Unable to update role"));
+    } finally {
+      setUpdatingRole(false);
     }
   }
 
@@ -124,7 +188,7 @@ export function AdminPage({ dark, onToggleDark }: AdminPageProps) {
       setDeleteRoleTarget(null);
       await rolesState.reload();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Unable to delete role");
+      toast.error(formatAdminApiError(err, "Unable to delete role"));
     }
   }
 
@@ -144,7 +208,7 @@ export function AdminPage({ dark, onToggleDark }: AdminPageProps) {
       toast.success(`Assigned permission '${permissionName}' to role '${roleName}'`);
       await rolesState.reload();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Unable to assign permission");
+      toast.error(formatAdminApiError(err, "Unable to assign permission"));
     }
   }
 
@@ -155,7 +219,7 @@ export function AdminPage({ dark, onToggleDark }: AdminPageProps) {
       toast.success("User role updated successfully");
       await usersState.reload();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Unable to update user role");
+      toast.error(formatAdminApiError(err, "Unable to update user role"));
     }
   }
 
@@ -167,7 +231,7 @@ export function AdminPage({ dark, onToggleDark }: AdminPageProps) {
       setToggleActiveTarget(null);
       await usersState.reload();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Unable to update active status");
+      toast.error(formatAdminApiError(err, "Unable to update active status"));
     }
   }
 
@@ -179,7 +243,7 @@ export function AdminPage({ dark, onToggleDark }: AdminPageProps) {
       setDeleteUserTarget(null);
       await usersState.reload();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Unable to delete user");
+      toast.error(formatAdminApiError(err, "Unable to delete user"));
     }
   }
 
@@ -198,7 +262,7 @@ export function AdminPage({ dark, onToggleDark }: AdminPageProps) {
       setForceJoinReason("");
       await workspacesState.reload();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Unable to join workspace");
+      toast.error(formatAdminApiError(err, "Unable to join workspace"));
     } finally {
       setJoiningWorkspace(false);
     }
@@ -212,7 +276,7 @@ export function AdminPage({ dark, onToggleDark }: AdminPageProps) {
       setDeleteWorkspaceTarget(null);
       await workspacesState.reload();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Unable to delete workspace");
+      toast.error(formatAdminApiError(err, "Unable to delete workspace"));
     }
   }
 
@@ -225,12 +289,12 @@ export function AdminPage({ dark, onToggleDark }: AdminPageProps) {
     }
     try {
       setBroadcastSending(true);
-      await adminApi.broadcast(broadcastTitle, broadcastMessage);
-      toast.success("Platform-wide broadcast sent successfully");
+      const job = await adminApi.broadcast(broadcastTitle, broadcastMessage);
+      toast.success(`Broadcast queued (${job.status}) — job ${job.id}`);
       setBroadcastTitle("");
       setBroadcastMessage("");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Unable to send broadcast");
+      toast.error(formatAdminApiError(err, "Unable to send broadcast"));
     } finally {
       setBroadcastSending(false);
     }
@@ -291,9 +355,14 @@ export function AdminPage({ dark, onToggleDark }: AdminPageProps) {
               <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Permission Matrix</p>
               <p className="text-xs text-slate-400">Configure permission mappings for RBAC. System-level roles are protected.</p>
             </div>
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white gap-1 text-xs" onClick={() => setCreateRoleOpen(true)}>
-              <Plus className="size-3.5" /> New Custom Role
-            </Button>
+            <div className="flex flex-wrap gap-2 shrink-0">
+              <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => setCreatePermissionOpen(true)}>
+                <Plus className="size-3.5" /> New Permission
+              </Button>
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white gap-1 text-xs" onClick={() => setCreateRoleOpen(true)}>
+                <Plus className="size-3.5" /> New Custom Role
+              </Button>
+            </div>
           </div>
 
           {rolesState.error || permissionsState.error ? (
@@ -312,13 +381,22 @@ export function AdminPage({ dark, onToggleDark }: AdminPageProps) {
                           <div className="flex flex-col items-center gap-1">
                             <RoleBadge role={role.name as Role} />
                             {!isProtectedRole(role.name) && (
-                              <button
-                                type="button"
-                                className="text-[10px] text-red-500 hover:text-red-600 flex items-center gap-0.5 mt-0.5 hover:underline"
-                                onClick={() => setDeleteRoleTarget({ id: role.id, name: role.name })}
-                              >
-                                <Trash2 className="size-2.5" /> Delete
-                              </button>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <button
+                                  type="button"
+                                  className="text-[10px] text-blue-600 hover:text-blue-700 flex items-center gap-0.5 hover:underline"
+                                  onClick={() => openEditRole(role)}
+                                >
+                                  <Pencil className="size-2.5" /> Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  className="text-[10px] text-red-500 hover:text-red-600 flex items-center gap-0.5 hover:underline"
+                                  onClick={() => setDeleteRoleTarget({ id: role.id, name: role.name })}
+                                >
+                                  <Trash2 className="size-2.5" /> Delete
+                                </button>
+                              </div>
                             )}
                           </div>
                         </th>
@@ -709,6 +787,80 @@ export function AdminPage({ dark, onToggleDark }: AdminPageProps) {
             </DialogClose>
             <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleCreateRole} disabled={creatingRole}>
               {creatingRole ? "Creating..." : "Create Role"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DIALOG: Create Permission */}
+      <Dialog open={createPermissionOpen} onOpenChange={setCreatePermissionOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create Permission</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="perm-name" className="text-xs font-semibold">Permission Name</Label>
+              <Input
+                id="perm-name"
+                placeholder="workspace:manage"
+                value={newPermName}
+                onChange={e => setNewPermName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="perm-desc" className="text-xs font-semibold">Description</Label>
+              <Input
+                id="perm-desc"
+                placeholder="Manage workspace settings"
+                value={newPermDesc}
+                onChange={e => setNewPermDesc(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="ghost" size="sm">Cancel</Button>
+            </DialogClose>
+            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleCreatePermission} disabled={creatingPermission}>
+              {creatingPermission ? "Creating..." : "Create Permission"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DIALOG: Edit Role */}
+      <Dialog open={!!editRoleTarget} onOpenChange={(open) => { if (!open) setEditRoleTarget(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Role</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-role-name" className="text-xs font-semibold">Role Name</Label>
+              <Input
+                id="edit-role-name"
+                placeholder="developer"
+                value={editRoleName}
+                onChange={e => setEditRoleName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-role-desc" className="text-xs font-semibold">Description</Label>
+              <Input
+                id="edit-role-desc"
+                placeholder="Engineering developer role"
+                value={editRoleDesc}
+                onChange={e => setEditRoleDesc(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="ghost" size="sm">Cancel</Button>
+            </DialogClose>
+            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleUpdateRole} disabled={updatingRole}>
+              {updatingRole ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>

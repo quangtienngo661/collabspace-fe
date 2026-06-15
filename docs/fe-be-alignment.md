@@ -7,7 +7,7 @@ Nguồn backend: [`docs/features.md`](../../collabspace/docs/features.md), [`doc
 **Trạng thái backend MVP:** Auth, User, Workspace, Task, Comment, Notification — **Done**  
 **Trạng thái Platform Admin API:** **Done** — xem [admin-backlog.md](../../collabspace/docs/team/admin-backlog.md)
 
-**Trạng thái FE (branch `feat/re-enable-auth-flows`):** Phase 2 ✅ · Phase 3 ✅ · Phase Admin ✅ · Phase 6 (USER-T1 pickers) ✅ · Phase 4 một phần (comment_mentioned, activity feed, invitation mapping) · Phase 5 chưa làm
+**Trạng thái FE (main):** Phase 2 ✅ · Phase 3 ✅ · Phase Admin ✅ (kể cả polish: create permission, edit role, typed DTOs, error codes) · Phase 6 (USER-T1 pickers) ✅ · Phase 4 một phần · Phase 5 chưa làm
 
 ---
 
@@ -92,9 +92,20 @@ Xóa toast *"Notification write API is not exposed yet"* ở `TopBar.tsx`, `Noti
 Backend **Done** (A1–A7, AUTH-1→12, USER-1/2, WS-1→3, NOTIF-1, USER-T1).  
 Nguồn: [admin-backlog.md](../../collabspace/docs/team/admin-backlog.md) · [features.md § Platform Administration](../../collabspace/docs/features.md) · [api-routes.md § Platform Admin API](../../collabspace/docs/api-routes.md).
 
-**FE hiện tại:** `AdminPage.tsx` mock toàn bộ RBAC; chưa có client `/admin/*`; chưa có tab Workspaces / Broadcast.
+**FE hiện tại:** `AdminPage.tsx` 4 tab (Roles, Users, Workspaces, Broadcast) + `adminApi.ts` typed; `/admin/health` probe đầy đủ.
 
-### Tình trạng FE admin
+### Polish admin (2026-06)
+
+| Mục | Trạng thái |
+|-----|------------|
+| `POST /auth/admin/permissions` | [x] `adminApi.createPermission` + dialog **New Permission** |
+| `PUT /auth/admin/roles/{id}` | [x] `adminApi.updateRole` + dialog **Edit** trên custom role |
+| Gỡ permission khỏi role | BE chưa hỗ trợ — FE toast khi bỏ tick (đúng) |
+| `GET /auth/admin/users` | [x] `listAllUsersEnriched()` merge `lastLoginAt` vào aggregate |
+| Error codes (`PLATFORM_ADMIN_REQUIRED`, …) | [x] `formatAdminApiError()` trong `adminErrors.ts` |
+| Typed admin DTOs | [x] `AdminRole`, `AdminPermission`, … + mappers |
+
+### Tình trạng FE admin (lịch sử)
 
 | Thành phần | Hiện tại | Backend |
 |------------|----------|---------|
@@ -206,7 +217,11 @@ FE đang gọi `usersApi.list()` **không có `q`** tại:
 | 1 | UI gọi đúng endpoint / OpenAPI client | [x] `adminApi.ts` + wire pages |
 | 2 | Đối chiếu path `/admin/*` với bảng contract | [x] |
 | 3 | Dùng `GET /users/admin/all` thay list user thường | [x] |
-| 4 | Error codes (`PLATFORM_ADMIN_REQUIRED`, `IDEMPOTENCY_KEY_REQUIRED`, …) | [x] toast từ `ApiError.message` |
+| 4 | Error codes (`PLATFORM_ADMIN_REQUIRED`, `IDEMPOTENCY_KEY_REQUIRED`, …) | [x] `formatAdminApiError()` |
+| 5 | `POST /auth/admin/permissions` + UI tạo permission | [x] |
+| 6 | `PUT /auth/admin/roles/{id}` + UI sửa role | [x] |
+| 7 | Typed admin DTOs + mappers | [x] |
+| 8 | `listAllUsersEnriched()` (auth + profile) | [x] |
 
 ### Thứ tự implement Admin
 

@@ -1,4 +1,9 @@
 import type {
+  AdminAuthUser,
+  AdminPermission,
+  AdminRole,
+  AdminUserAggregate,
+  AdminWorkspace,
   ApiUserStatus,
   Attachment,
   AuthUser,
@@ -262,6 +267,59 @@ export function mapNotification(raw: AnyRecord): Notification {
     targetId,
     targetType: targetType || null,
     metadata,
+  };
+}
+
+export function mapAdminRole(raw: AnyRecord): AdminRole {
+  return {
+    id: raw.id,
+    name: raw.name,
+    description: raw.description ?? "",
+    permissions: raw.permissions ?? [],
+  };
+}
+
+export function mapAdminPermission(raw: AnyRecord): AdminPermission {
+  return {
+    id: raw.id,
+    name: raw.name,
+    description: raw.description ?? "",
+  };
+}
+
+export function mapAdminAuthUser(raw: AnyRecord): AdminAuthUser {
+  return {
+    id: raw.id,
+    email: raw.email ?? "",
+    emailVerified: Boolean(raw.emailVerified),
+    isActive: raw.isActive !== false,
+    lastLoginAt: raw.lastLoginAt ?? null,
+    createdAt: raw.createdAt ?? "",
+    roles: raw.roles ?? [],
+  };
+}
+
+export function mapAdminUserAggregate(raw: AnyRecord): AdminUserAggregate {
+  return {
+    ...mapAdminAuthUser(raw),
+    fullName: raw.fullName ?? null,
+    displayName: raw.displayName ?? null,
+    username: raw.username ?? null,
+    avatarUrl: raw.avatarUrl ?? null,
+    bio: raw.bio ?? null,
+  };
+}
+
+export function mapAdminWorkspace(raw: AnyRecord): AdminWorkspace {
+  return {
+    id: raw.id,
+    name: raw.name ?? "Untitled",
+    slug: raw.slug,
+    description: raw.description ?? "",
+    ownerId: raw.ownerId ?? raw.owner_id ?? "",
+    memberCount: raw.memberCount ?? 0,
+    createdAt: raw.createdAt ?? raw.created_at ?? "",
+    updatedAt: raw.updatedAt ?? raw.updated_at,
   };
 }
 
