@@ -25,7 +25,7 @@ export const notificationsApi = {
     const search = new URLSearchParams();
     if (params?.skip !== undefined) search.set("skip", params.skip.toString());
     if (params?.limit !== undefined) search.set("limit", params.limit.toString());
-    
+
     const result = await available(apiRequest<{ notifications: any[]; total: number; unreadCount: number }>(`/notifications?${search}`));
     return {
       notifications: (result.notifications ?? []).map(mapNotification),
@@ -39,6 +39,6 @@ export const notificationsApi = {
   },
 
   async markAllRead(): Promise<void> {
-    await apiRequest(`/notifications/read-all`, { method: "PATCH" });
+    await apiRequest("/notifications/read-all", { method: "PATCH" });
   },
 };

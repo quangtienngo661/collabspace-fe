@@ -17,6 +17,7 @@ import { NotificationsPage } from "./components/pages/NotificationsPage";
 import { MyProfilePage } from "./components/pages/profile/MyProfilePage";
 import { AdminPage } from "./components/pages/admin/AdminPage";
 import { HealthPage } from "./components/pages/admin/HealthPage";
+import { InvitationsPage } from "./components/pages/InvitationsPage";
 import { ForbiddenPage, NotFoundPage } from "./components/pages/ErrorPages";
 import { AdminRoute, AuthProvider, ProtectedRoute } from "./auth/AuthContext";
 
@@ -59,6 +60,7 @@ export default function App() {
           <Route path="/workspaces/:id/projects" element={<ProjectListPage />} />
           <Route path="/workspaces/:id/projects/:pid" element={<KanbanBoardPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/invitations" element={<InvitationsPage />} />
           <Route path="/profile" element={<MyProfilePage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>

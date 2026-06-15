@@ -49,7 +49,6 @@ export const taskApi = {
 
   async listComments(taskId: string): Promise<Comment[]> {
     const result = await apiRequest<{ comments: any[]; total: number; skip: number; limit: number } | any[]>(`/tasks/${taskId}/comments`);
-    // Backend returns {comments: [], total, skip, limit} (unwrapped from {data:{...}} by httpClient)
     const rows = Array.isArray(result) ? result : (result as any).comments ?? [];
     return rows.map(mapComment);
   },
@@ -59,7 +58,6 @@ export const taskApi = {
       method: "POST",
       body: { content: input.content, parentId: input.parentId ?? undefined },
     });
-    // result may be the comment object directly (httpClient unwraps {data: comment})
     return mapComment(result);
   },
 
@@ -79,5 +77,4 @@ export const taskApi = {
   async getActivity(taskId: string, skip = 0, limit = 20): Promise<any[]> {
     return apiRequest<any[]>(`/tasks/${taskId}/activity?skip=${skip}&limit=${limit}`);
   },
-
 };

@@ -236,14 +236,18 @@ export function mapNotification(raw: AnyRecord): Notification {
   const status = String(raw.status ?? "").toUpperCase();
   const targetType = String(raw.targetType ?? "").toLowerCase();
   const targetId = raw.targetId;
+  const metadata = (raw.metadata ?? {}) as Record<string, unknown>;
+  const invitationId = metadata.invitationId as string | undefined;
   const link =
-    targetType === "task" && targetId
-      ? raw.metadata?.projectId
-        ? `/workspaces/${raw.metadata.workspaceId ?? ""}/projects/${raw.metadata.projectId}`
-        : `/workspaces/${raw.metadata?.workspaceId ?? targetId}`
-      : targetType === "workspace" && targetId
-        ? `/workspaces/${targetId}`
-        : "/notifications";
+    invitationId
+      ? `/invitations?id=${invitationId}`
+      : targetType === "task" && targetId
+        ? metadata.projectId
+          ? `/workspaces/${metadata.workspaceId ?? ""}/projects/${metadata.projectId}`
+          : `/workspaces/${metadata.workspaceId ?? targetId}`
+        : targetType === "workspace" && targetId
+          ? `/workspaces/${targetId}`
+          : "/notifications";
 
   return {
     id: raw.id,
@@ -256,6 +260,8 @@ export function mapNotification(raw: AnyRecord): Notification {
     createdAt: raw.createdAt ?? "",
     link,
     targetId,
+    targetType: targetType || null,
+    metadata,
   };
 }
 

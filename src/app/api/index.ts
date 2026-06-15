@@ -1,3 +1,4 @@
+export * from "./adminApi";
 export * from "./authApi";
 export * from "./healthApi";
 export * from "./httpClient";

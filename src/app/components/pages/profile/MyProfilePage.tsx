@@ -92,8 +92,8 @@ export function MyProfilePage() {
       await usersApi.updateMe({
         fullName: profileForm.name,
         displayName: profileForm.name,
-        username: profileForm.username,
-        bio: profileForm.bio,
+        username: profileForm.username.trim() || null,
+        bio: profileForm.bio || null,
       });
       await usersApi.updateStatus(profileForm.status);
       await refresh(true);
@@ -212,11 +212,13 @@ export function MyProfilePage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Username</Label>
-                  <Input 
-                    value={profileForm.username} 
-                    onChange={e => setProfileForm(prev => ({ ...prev, username: e.target.value }))} 
-                    placeholder="^[a-z0-9._-]+$"
+                  <Input
+                    value={profileForm.username}
+                    onChange={e => setProfileForm(prev => ({ ...prev, username: e.target.value.toLowerCase() }))}
+                    placeholder="letters, numbers, . _ -"
+                    pattern="^[a-z0-9._-]+$"
                   />
+                  <p className="text-xs text-slate-400">Used for @mentions in task comments</p>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Email</Label>
@@ -235,7 +237,6 @@ export function MyProfilePage() {
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label>Bio</Label>
                   <Input value={profileForm.bio} onChange={e => setProfileForm(prev => ({ ...prev, bio: e.target.value }))} />

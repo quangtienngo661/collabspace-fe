@@ -136,7 +136,8 @@ Copy-Item .env.example .env
 Nội dung file `.env` mặc định:
 
 ```env
-VITE_API_BASE_URL=http://localhost/api/v1
+VITE_API_BASE_URL=/api/v1
+VITE_API_PROXY_TARGET=http://localhost
 ```
 
 > Giữ nguyên giá trị này khi chạy local. Frontend gọi API qua Traefik ở `http://localhost` (port 80).
@@ -223,9 +224,28 @@ Frontend không gọi trực tiếp vào các service. Tất cả request đi qu
 
 ## Xử lý sự cố thường gặp
 
-### ❌ Lỗi CORS hoặc `net::ERR_CONNECTION_REFUSED`
+### ❌ Lỗi CORS khi gọi API từ `npm run dev` (`localhost:5173`)
 
-**Nguyên nhân**: Traefik hoặc backend chưa chạy.
+**Nguyên nhân phổ biến:** `.env` đặt `VITE_API_BASE_URL` trỏ thẳng sang domain/IP backend (ví dụ `https://collabspace.ngocanh2005it.site/api/v1`). Trình duyệt coi đó là **cross-origin**; các route có `forward-auth` (`/auth/me`, `/users/*`, …) có thể trả `401` trên **OPTIONS preflight** mà không có header CORS.
+
+**Cách đúng (khuyến nghị):** dùng **Vite proxy** — FE gọi same-origin `/api/v1`, Vite forward sang backend:
+
+```env
+VITE_API_BASE_URL=/api/v1
+VITE_API_PROXY_TARGET=http://localhost
+# hoặc prod:
+# VITE_API_PROXY_TARGET=https://collabspace.ngocanh2005it.site
+```
+
+Sau khi sửa `.env`, **restart** `npm run dev`.
+
+**Backend:** redeploy Helm trên Droplet nếu vẫn gọi cross-origin trực tiếp (đã sửa thứ tự `cors-headers` trước `forward-auth` trong repo `collabspace`).
+
+---
+
+### ❌ `net::ERR_CONNECTION_REFUSED`
+
+**Nguyên nhân**: Traefik hoặc backend chưa chạy (hoặc `VITE_API_PROXY_TARGET` sai).
 
 ```powershell
 # Xem danh sách container

@@ -160,6 +160,8 @@ export interface Notification {
   createdAt: string;
   link: string;
   targetId?: string;
+  targetType?: string | null;
+  metadata?: Record<string, unknown>;
 }
 
 export interface Session {

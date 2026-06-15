@@ -26,10 +26,13 @@ export function CreateTaskModal({ open, onClose, workspaceId, projectId = null, 
   const [form, setForm] = useState({ title: "", description: "", priority: "medium", status: "todo", assigneeId: UNASSIGNED_VALUE });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const { data: userData } = useAsyncData(() => usersApi.list().then(result => result.items), []);
-  const { data: members } = useAsyncData(() => workspaceApi.members(workspaceId), [workspaceId]);
-  const users = userData?.filter(u => members?.some(m => m.userId === u.id))
-    .map(u => ({ id: u.id, name: u.name })) ?? [];
+  const { data: memberUsers } = useAsyncData(async () => {
+    const members = await workspaceApi.members(workspaceId);
+    const ids = members.map(member => member.userId).filter(Boolean);
+    if (ids.length === 0) return [];
+    return usersApi.bulk(ids);
+  }, [workspaceId]);
+  const users = memberUsers?.map(u => ({ id: u.id, name: u.name })) ?? [];
 
   // BUG-006 fix: reset form khi dialog đóng
   useEffect(() => {
