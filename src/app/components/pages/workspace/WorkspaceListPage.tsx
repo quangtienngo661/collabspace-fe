@@ -21,7 +21,7 @@ export function WorkspaceListPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { profile, isAdmin } = useAuth();
-  const canCreateWorkspace = !isAdmin && profile?.role !== "viewer";
+  const canCreateWorkspace = !isAdmin;
   const { workspaces, loading: loadingList, error, reload, setActiveWorkspace } = useWorkspaces();
   const { data: enriched, reload: reloadStats } = useAsyncData(
     () => enrichWorkspacesStats(workspaces),

@@ -2,7 +2,7 @@
 
 Tóm tắt mức độ **UI** đã phủ backend MVP. Chi tiết API: [fe-be-alignment.md](./fe-be-alignment.md). Backend canonical: `collabspace/docs/features.md`.
 
-**Cập nhật:** 2026-06-15
+**Cập nhật:** 2026-06-16
 
 | Ký hiệu | Ý nghĩa |
 |---------|---------|
@@ -36,4 +36,4 @@ Tóm tắt mức độ **UI** đã phủ backend MVP. Chi tiết API: [fe-be-ali
 - **commentCount** trên Kanban — Done (board/list API)
 - **Server task search** — Done (`GET /tasks?q=`)
 
-Agent backlog chi tiết: [fe-be-alignment.md](./fe-be-alignment.md).
+Agent backlog chi tiết: [fe-be-alignment.md](./fe-be-alignment.md) · Roles: [roles-and-permissions.md](./roles-and-permissions.md).

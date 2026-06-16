@@ -1,4 +1,4 @@
-export type Role = "admin" | "member" | "viewer";
+export type Role = "admin" | "user";
 export type WorkspaceRole = "owner" | "manager" | "member";
 export type UserStatus = "online" | "away" | "busy" | "offline";
 export type ApiUserStatus = "online" | "away" | "dnd" | "offline";

@@ -1,13 +1,15 @@
 # CollabSpace FE ↔ BE — Backlog căn chỉnh API
 
 Tài liệu này liệt kê các chỗ **frontend** (`collabspace-fe`) còn cần sửa để khớp **backend** (`collabspace`).  
-Nguồn backend: [`docs/features.md`](../../collabspace/docs/features.md), [`docs/api-routes.md`](../../collabspace/docs/api-routes.md), [`docs/roles-and-permissions.md`](../../collabspace/docs/roles-and-permissions.md).
+Nguồn backend: [collabspace `docs/features.md`](https://github.com/lengocanh2005it/collabspace/blob/main/docs/features.md), [api-routes](https://github.com/lengocanh2005it/collabspace/blob/main/docs/api-routes.md), [roles-and-permissions.md](./roles-and-permissions.md).
 
 **Agent docs:** `CLAUDE.md`, `.claude/docs/api-integration.md`, skill `/fe-be-alignment`.
 
-**Cập nhật:** 2026-06-15  
+**Cập nhật:** 2026-06-16  
 **Trạng thái backend MVP:** Auth, User, Workspace, Task, Comment, Notification — **Done**  
-**Trạng thái Platform Admin API:** **Done** — xem [admin-backlog.md](../../collabspace/docs/team/admin-backlog.md)
+**Trạng thái Platform Admin API:** **Done** — xem [admin-backlog (BE)](https://github.com/lengocanh2005it/collabspace/blob/main/docs/team/admin-backlog.md)
+
+**Platform roles (BE 2026-06-16):** `admin` | `user` — FE sync trong [fe-backlog § E](./fe-backlog.md#e--platform-role-sync-admin--user---done-2026-06-16).
 
 **Trạng thái FE (main):** Phase 2 ✅ · Phase 3 ✅ · Phase Admin ✅ · Phase 4 ✅ · Phase 5 ✅ · Phase 6 (USER-T1 pickers) ✅ · UX/Role gating ✅
 
@@ -18,7 +20,7 @@ Nguồn backend: [`docs/features.md`](../../collabspace/docs/features.md), [`doc
 | Mục | FE | BE | Ghi chú |
 |-----|----|----|---------|
 | Archive notification | Disabled | Không có HTTP endpoint | Chờ BE |
-| Promote member → **manager** | Chưa có UI | `PATCH .../members/:userId` | **Planned** — xem [roles-and-permissions.md](../../collabspace/docs/roles-and-permissions.md) |
+| Promote member → **manager** | UI có (owner) | `PATCH .../members/:userId` | ✅ — xem [roles-and-permissions.md](./roles-and-permissions.md) |
 | Gỡ permission khỏi role (admin) | Toast | Chỉ assign | Chờ BE |
 | `commentCount` Kanban | Không hiển thị | Board không trả field | Chờ BE hoặc N+1 |
 | List invitation của user | Manual ID + notifications | Chỉ list theo workspace | Chờ BE API |
@@ -178,12 +180,12 @@ Xóa copy *"Currently mocked frontend-only"* và logic `setTimeout` trong `saveC
 | UI hiện tại | Sửa thành |
 |-------------|-----------|
 | `usersApi.list({ limit: 100 })` | `GET /users/admin/all` (aggregate auth + profile) |
-| Dropdown `admin` / `member` / `viewer` (local state) | `POST /auth/admin/users/{userId}/roles` với `roleId` từ `GET /auth/admin/roles` |
+| Dropdown `admin` / `user` (protected platform roles) | `POST /auth/admin/users/{userId}/roles` với `roleId` từ `GET /auth/admin/roles` |
 | Không có ban/unban | Toggle `PATCH /auth/admin/users/{id}/active-status` `{ isActive }` |
 | Không có cột đăng nhập | Hiển thị `lastLoginAt` từ `GET /auth/admin/users` |
 | Không có xóa user | Nút + confirm → `DELETE /users/admin/{id}` (`204`) |
 
-**Lưu ý:** Platform roles trên BE là entity có `id` + `name` — không map cứng `admin|member|viewer` của mock FE.
+**Lưu ý:** Platform roles trên BE là entity có `id` + `name` — protected: `admin`, `user` (legacy `member`/`viewer` đã migrate).
 
 ### Admin-3 — Tab Workspaces (mới)
 
