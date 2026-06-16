@@ -113,7 +113,7 @@ export function ProjectListPage() {
       {error ? (
         <ErrorState title="Unable to load projects" description={error} />
       ) : projectList.length === 0 && !projectState.loading ? (
-        <EmptyState icon={FolderOpen} title="No projects yet" description="Create your first project to start organizing tasks." action={{ label: "New Project", onClick: openCreate }} />
+        <EmptyState icon={FolderOpen} title="No projects yet" description="Create your first project to start organizing tasks." action={canManageProjects ? { label: "New Project", onClick: openCreate } : undefined} />
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {projectList.map(project => (
