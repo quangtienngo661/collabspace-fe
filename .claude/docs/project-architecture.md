@@ -88,15 +88,16 @@ Some KPIs are **not** returned by list APIs:
 
 Aligned with `docs/fe-be-alignment.md`:
 
-- **Done:** Auth flows, workspace/project CRUD, Kanban board API, task detail (priority, due date, labels, attachments, delete), comments CRUD, notifications read, invitations accept/reject, workspace/task activity, admin platform UI, user search in TopBar, logout-all sessions.
-- **Intentionally disabled / BE gap:** notification archive, member role change, remove member, invite role select, admin unassign permission from role.
-- **Polish gaps:** DELETE workspace (BE has owner DELETE; FE not wired), threaded comments UI, live presence polling, dueDate/labels on create-task modal, `commentCount` on board cards.
+- **Done:** Auth flows, workspace/project CRUD, Kanban board API, task detail, comments, notifications (incl. archive), invitations list/accept, member remove/leave, workspace delete (owner), admin platform UI, command palette search, `commentCount` on Kanban.
+- **Planned (BE+FE):** Workspace role **manager** — promote/demote (`PATCH .../members/:userId`); xem [roles-and-permissions.md](../../collabspace/docs/roles-and-permissions.md).
+- **Platform vs workspace:** FE `isAdmin` = platform only; workspace `owner` / `manager` / `member` hiển thị qua `RoleBadge` trên Members tab.
 
 ## Backend reference
 
 Product truth and HTTP contracts live in the **collabspace** repo. Link, do not fork:
 
 - `docs/features.md`
+- `docs/roles-and-permissions.md`
 - `docs/api-routes.md`
 - `.claude/docs/service-contracts.md`
 

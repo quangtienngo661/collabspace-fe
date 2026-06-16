@@ -17,7 +17,7 @@ Tóm tắt mức độ **UI** đã phủ backend MVP. Chi tiết API: [fe-be-ali
 |------|------------|---------|
 | Auth & sessions | **Done** | Login, register, OTP, password, sessions, logout-all |
 | Profile & preferences | **Done** | Avatar, username cho @mention |
-| Workspace & project | **Done** | CRUD, owner delete, members, invite, change role, remove member |
+| Workspace & project | **Done** | CRUD, owner delete, members, invite, remove member |
 | Task & board | **Done** | Board API, Kanban, priority filter, create w/ dueDate/labels |
 | Comments | **Done** | CRUD, threads, `@mention` autocomplete |
 | Notifications | **Done** | List, mark read, archive, 45s poll |

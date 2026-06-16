@@ -1,4 +1,5 @@
 export type Role = "admin" | "member" | "viewer";
+export type WorkspaceRole = "owner" | "member";
 export type UserStatus = "online" | "away" | "busy" | "offline";
 export type ApiUserStatus = "online" | "away" | "dnd" | "offline";
 export type TaskStatus = "TODO" | "DOING" | "DONE";
@@ -78,7 +79,7 @@ export interface WorkspaceMember {
   id: string;
   workspaceId: string;
   userId: string;
-  role: Role | "owner";
+  role: WorkspaceRole;
   joinedAt: string;
   profile?: User;
 }

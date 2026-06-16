@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { X, Edit2, Check, Trash2, Paperclip, Upload, ExternalLink } from "lucide-react";
+import { cn } from "../../ui/utils";
+import { useAuth } from "../../../auth/AuthContext";
+import { labelColorClass } from "../../../utils/format";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../../ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../ui/tabs";
 import { StatusBadge } from "../../shared/StatusBadge";
@@ -43,6 +46,8 @@ function fromDatetimeLocalValue(value: string): string | null {
 }
 
 export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted }: TaskDetailSheetProps) {
+  const { profile } = useAuth();
+  const canDeleteTask = Boolean(profile?.userId && profile.userId === task.creatorId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleVal, setTitleVal] = useState(task.title);
@@ -198,14 +203,16 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted }: T
               )}
             </div>
             <div className="flex items-center gap-1 shrink-0">
-              <button
-                type="button"
-                onClick={() => setDeleteOpen(true)}
-                className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"
-                title="Delete task"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              {canDeleteTask && (
+                <button
+                  type="button"
+                  onClick={() => setDeleteOpen(true)}
+                  className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"
+                  title="Delete task"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
               <button onClick={onClose} className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
                 <X className="w-4 h-4" />
               </button>
@@ -246,6 +253,7 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted }: T
                         <SelectItem value="low">Low</SelectItem>
                         <SelectItem value="medium">Medium</SelectItem>
                         <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="critical">Critical</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -272,6 +280,15 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted }: T
                   </div>
                   <div className="space-y-1 col-span-2">
                     <p className="text-xs text-slate-400 uppercase tracking-wider">Labels</p>
+                    {labelsVal && (
+                      <div className="flex flex-wrap gap-1 mb-1">
+                        {labelsVal.split(",").map(l => l.trim()).filter(Boolean).map(label => (
+                          <span key={label} className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium", labelColorClass(label))}>
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <Input
                       className="h-8 text-xs"
                       placeholder="bug, frontend, urgent"

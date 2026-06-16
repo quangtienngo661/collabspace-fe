@@ -2,7 +2,8 @@ import { useState, useCallback, useMemo } from "react";
 import { useParams } from "react-router";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { Plus, List, Columns3, Search, Paperclip, MessageSquare, RefreshCw } from "lucide-react";
+import { Plus, List, Columns3, Search, Paperclip, MessageSquare, RefreshCw, Calendar } from "lucide-react";
+import { formatDueDate, dueDateStatus, labelColorClass } from "../../../utils/format";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
@@ -49,9 +50,32 @@ function KanbanCard({ task, onClick, presenceStatus }: { task: Task; onClick: ()
       )}
     >
       <p className="text-xs font-medium text-slate-900 dark:text-slate-100 leading-snug">{task.title}</p>
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 flex-wrap">
         <PriorityBadge priority={task.priority} />
+        {task.labels && task.labels.length > 0 && (
+          <>
+            {task.labels.slice(0, 3).map(label => (
+              <span key={label} className={cn("text-[9px] px-1 py-0.5 rounded-full font-medium", labelColorClass(label))}>
+                {label}
+              </span>
+            ))}
+            {task.labels.length > 3 && (
+              <span className="text-[9px] text-slate-400">+{task.labels.length - 3}</span>
+            )}
+          </>
+        )}
       </div>
+      {task.dueDate && (
+        <div className={cn("flex items-center gap-1 text-[10px]",
+          dueDateStatus(task.dueDate) === "overdue" ? "text-red-500 dark:text-red-400" :
+          dueDateStatus(task.dueDate) === "today" ? "text-amber-500 dark:text-amber-400" :
+          dueDateStatus(task.dueDate) === "soon" ? "text-yellow-600 dark:text-yellow-400" :
+          "text-slate-400"
+        )}>
+          <Calendar className="w-3 h-3" />
+          {formatDueDate(task.dueDate)}
+        </div>
+      )}
       <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-2 text-slate-400">
           {task.commentCount > 0 && (
@@ -89,7 +113,7 @@ function KanbanCard({ task, onClick, presenceStatus }: { task: Task; onClick: ()
 function KanbanColumn({ status, label, color, tasks, presenceMap, onDrop, onCardClick, onAdd }: {
   status: TaskStatus; label: string; color: string; tasks: Task[];
   presenceMap: Record<string, UserStatus>;
-  onDrop: (taskId: string, newStatus: TaskStatus, fromStatus: TaskStatus) => void; onCardClick: (t: Task) => void; onAdd: () => void;
+  onDrop: (taskId: string, newStatus: TaskStatus, fromStatus: TaskStatus) => void; onCardClick: (t: Task) => void; onAdd: (status: TaskStatus) => void;
 }) {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: ITEM_TYPE,
@@ -104,7 +128,7 @@ function KanbanColumn({ status, label, color, tasks, presenceMap, onDrop, onCard
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{label}</span>
           <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 text-xs flex items-center justify-center">{tasks.length}</span>
         </div>
-        <Button variant="ghost" size="icon" className="w-6 h-6" onClick={onAdd}>
+        <Button variant="ghost" size="icon" className="w-6 h-6" onClick={() => onAdd(status)}>
           <Plus className="w-3.5 h-3.5" />
         </Button>
       </div>
@@ -127,6 +151,7 @@ function KanbanColumn({ status, label, color, tasks, presenceMap, onDrop, onCard
 export function KanbanBoardPage() {
   const { id: wsId, pid } = useParams<{ id: string; pid: string }>();
   const [createOpen, setCreateOpen] = useState(false);
+  const [createStatus, setCreateStatus] = useState<TaskStatus>("TODO");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [view, setView] = useState<"kanban" | "list">("kanban");
   const [search, setSearch] = useState("");
@@ -272,7 +297,7 @@ export function KanbanBoardPage() {
                   presenceMap={presenceMap}
                   onDrop={handleDrop}
                   onCardClick={setSelectedTask}
-                  onAdd={() => setCreateOpen(true)}
+                  onAdd={(s) => { setCreateStatus(s); setCreateOpen(true); }}
                 />
               ))}
             </div>
@@ -281,7 +306,7 @@ export function KanbanBoardPage() {
           )}
         </div>
 
-        <CreateTaskModal open={createOpen} onClose={() => setCreateOpen(false)} projectId={pid ?? null} workspaceId={wsId || ""} onCreated={handleTaskCreated} />
+        <CreateTaskModal open={createOpen} onClose={() => setCreateOpen(false)} projectId={pid ?? null} workspaceId={wsId || ""} onCreated={handleTaskCreated} initialStatus={createStatus} />
 
         {selectedTask && (
           <TaskDetailSheet task={selectedTask} open={!!selectedTask} onClose={() => setSelectedTask(null)} onUpdated={handleTaskUpdated} onDeleted={handleTaskDeleted} />

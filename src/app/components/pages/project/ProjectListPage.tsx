@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
+import { useAuth } from "../../../auth/AuthContext";
 import { Plus, FolderOpen, Trash2, MoreHorizontal, CheckSquare, RefreshCw } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
@@ -20,7 +21,9 @@ import { toast } from "sonner";
 export function ProjectListPage() {
   const { id: wsId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const workspaceState = useAsyncData(() => wsId ? workspaceApi.get(wsId) : Promise.reject(new Error("Workspace id is missing")), [wsId]);
+  const isOwner = Boolean(profile?.userId && workspaceState.data?.ownerId === profile.userId);
   const projectState = useAsyncData(
     () => wsId ? workspaceApi.listProjects(wsId).then(enrichProjectsTaskCounts) : Promise.resolve([]),
     [wsId],
@@ -126,10 +129,17 @@ export function ProjectListPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={e => { e.stopPropagation(); openEdit(project); }}>Settings</DropdownMenuItem>
-                        <DropdownMenuItem onClick={e => { e.stopPropagation(); setDeleteId(project.id); }} className="text-red-600 dark:text-red-400">
-                          <Trash2 className="w-4 h-4 mr-2" /> Delete
-                        </DropdownMenuItem>
+                        {isOwner && (
+                          <DropdownMenuItem onClick={e => { e.stopPropagation(); openEdit(project); }}>Settings</DropdownMenuItem>
+                        )}
+                        {isOwner && (
+                          <DropdownMenuItem onClick={e => { e.stopPropagation(); setDeleteId(project.id); }} className="text-red-600 dark:text-red-400">
+                            <Trash2 className="w-4 h-4 mr-2" /> Delete
+                          </DropdownMenuItem>
+                        )}
+                        {!isOwner && (
+                          <DropdownMenuItem disabled className="text-slate-400 text-xs">Only owner can edit</DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -171,7 +181,7 @@ export function ProjectListPage() {
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)} title="Delete Project" description="This will delete the project in workspace-service." confirmLabel="Delete Project" onConfirm={handleDelete} destructive />
+      <ConfirmDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)} title="Delete Project" description="This will permanently delete the project and all its tasks. This action cannot be undone." confirmLabel="Delete Project" onConfirm={handleDelete} destructive />
     </div>
   );
 }

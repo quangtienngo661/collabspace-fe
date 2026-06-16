@@ -8,7 +8,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../ui/dialog";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../ui/dropdown-menu";
 import { workspaceApi } from "../../../api/workspaceApi";
 import { enrichProjectsTaskCounts } from "../../../api/clientStats";
@@ -34,14 +33,12 @@ export function WorkspaceDetailPage() {
   const { reload: reloadWorkspaces, setActiveWorkspace } = useWorkspaces();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("member");
   const [settings, setSettings] = useState({ name: "", description: "" });
   const [saving, setSaving] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<{ userId: string; name: string } | null>(null);
   const [removing, setRemoving] = useState(false);
-  const [roleUpdatingUserId, setRoleUpdatingUserId] = useState<string | null>(null);
 
   const workspaceState = useAsyncData(async () => {
     if (!id) throw new Error("Workspace id is missing");
@@ -93,43 +90,10 @@ export function WorkspaceDetailPage() {
     return members.some(m => m.userId === profile.id && m.role === "owner");
   }, [profile?.id, ws?.ownerId, members]);
 
-  const actorRole = useMemo(() => {
-    if (!profile?.id) return null;
-    const membership = members.find(m => m.userId === profile.id);
-    if (membership) return membership.role;
-    if (ws?.ownerId === profile.id) return "owner" as const;
-    return null;
-  }, [members, profile?.id, ws?.ownerId]);
-
-  const canManageMembers = actorRole === "owner" || actorRole === "admin";
-
-  function canChangeRole(target: { userId: string; role: string }) {
-    if (!canManageMembers || !profile?.id || !target.userId) return false;
-    if (target.role === "owner" || target.userId === profile.id) return false;
-    if (actorRole === "admin" && target.role === "admin") return false;
-    return true;
-  }
-
   function canRemoveMember(target: { userId: string; role: string }) {
     if (!target.userId || target.role === "owner") return false;
     if (target.userId === profile?.id) return true;
-    if (!canManageMembers) return false;
-    if (actorRole === "admin" && target.role === "admin") return false;
-    return true;
-  }
-
-  async function handleRoleChange(targetUserId: string, role: "admin" | "member") {
-    if (!id) return;
-    setRoleUpdatingUserId(targetUserId);
-    try {
-      await workspaceApi.updateMemberRole(id, targetUserId, role);
-      await membersState.reload();
-      toast.success(`Role updated to ${role}`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Unable to update member role");
-    } finally {
-      setRoleUpdatingUserId(null);
-    }
+    return isOwner;
   }
 
   async function handleRemoveMember() {
@@ -168,7 +132,7 @@ export function WorkspaceDetailPage() {
           userId: member.userId,
           name: fallbackName,
           avatar: fallbackName.slice(0, 2).toUpperCase(),
-          role: member.role === "owner" ? "admin" : member.role,
+          role: member.role,
           status: liveStatus,
           title: "",
           joinedAt: member.joinedAt,
@@ -310,9 +274,11 @@ export function WorkspaceDetailPage() {
           <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex gap-0 flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700">
               <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{memberRows.length} Members</span>
-              <Button size="sm" className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setInviteOpen(true)}>
-                <UserPlus className="w-3.5 h-3.5" /> Invite
-              </Button>
+              {isOwner && (
+                <Button size="sm" className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setInviteOpen(true)}>
+                  <UserPlus className="w-3.5 h-3.5" /> Invite
+                </Button>
+              )}
             </div>
             <Table>
               <TableHeader>
@@ -338,38 +304,25 @@ export function WorkspaceDetailPage() {
                     <TableCell><RoleBadge role={member.role} /></TableCell>
                     <TableCell><span className="text-xs capitalize text-slate-500">{member.user.status}</span></TableCell>
                     <TableCell>
-                      {member.userId && (canChangeRole(member) || canRemoveMember(member)) ? (
+                      {member.userId && canRemoveMember(member) ? (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
                               size="icon"
                               className="w-7 h-7"
-                              disabled={roleUpdatingUserId === member.userId}
                             >
                               <MoreHorizontal className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            {canChangeRole(member) && actorRole === "owner" && member.role !== "admin" && (
-                              <DropdownMenuItem onClick={() => void handleRoleChange(member.userId, "admin")}>
-                                Make admin
-                              </DropdownMenuItem>
-                            )}
-                            {canChangeRole(member) && member.role !== "member" && (
-                              <DropdownMenuItem onClick={() => void handleRoleChange(member.userId, "member")}>
-                                Make member
-                              </DropdownMenuItem>
-                            )}
-                            {canRemoveMember(member) && (
-                              <DropdownMenuItem
-                                onClick={() => setRemoveTarget({ userId: member.userId, name: member.user.name })}
-                                className="text-red-600 dark:text-red-400"
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                {member.userId === profile?.id ? "Leave workspace" : "Remove member"}
-                              </DropdownMenuItem>
-                            )}
+                            <DropdownMenuItem
+                              onClick={() => setRemoveTarget({ userId: member.userId, name: member.user.name })}
+                              className="text-red-600 dark:text-red-400"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              {member.userId === profile?.id ? "Leave workspace" : "Remove member"}
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       ) : null}
@@ -434,7 +387,7 @@ export function WorkspaceDetailPage() {
               <Input value={settings.description} onChange={event => setSettings(prev => ({ ...prev, description: event.target.value }))} />
             </div>
             <div className="pt-2 flex gap-2 flex-wrap">
-              <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={saveSettings} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={saveSettings} disabled={saving || !isOwner}>{saving ? "Saving..." : "Save Changes"}</Button>
               {isOwner && (
                 <Button size="sm" variant="destructive" onClick={() => setDeleteOpen(true)}>
                   Delete Workspace
@@ -452,16 +405,6 @@ export function WorkspaceDetailPage() {
             <div className="space-y-1.5">
               <Label>Email address</Label>
               <Input type="email" placeholder="colleague@company.com" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Role</Label>
-              <Select value={inviteRole} onValueChange={setInviteRole} disabled>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="member">Member</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-slate-400">Backend invite currently accepts email only.</p>
             </div>
           </div>
           <DialogFooter>

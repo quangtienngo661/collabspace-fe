@@ -4,6 +4,7 @@ import { UserAvatar } from "../../shared/UserAvatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../ui/table";
 import { Paperclip } from "lucide-react";
 import { initials } from "../../../api/mappers";
+import { formatDueDate } from "../../../utils/format";
 
 interface TaskListViewProps {
   tasks: Task[];
@@ -61,7 +62,7 @@ export function TaskListView({ tasks, onTaskClick }: TaskListViewProps) {
                     </div>
                   ) : <span className="text-xs text-slate-400">Unassigned</span>}
                 </TableCell>
-                <TableCell className="py-2.5 hidden lg:table-cell text-xs text-slate-500">{task.dueDate || "N/A"}</TableCell>
+                <TableCell className="py-2.5 hidden lg:table-cell text-xs text-slate-500">{task.dueDate ? formatDueDate(task.dueDate) : "—"}</TableCell>
                 <TableCell className="py-2.5 hidden md:table-cell">
                   <div className="flex items-center gap-2 text-slate-400 text-xs">
                     {task.attachmentCount > 0 && <span className="flex items-center gap-0.5"><Paperclip className="w-3 h-3" />{task.attachmentCount}</span>}

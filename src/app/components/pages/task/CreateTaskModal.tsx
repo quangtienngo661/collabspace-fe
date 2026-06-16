@@ -38,6 +38,8 @@ interface CreateTaskModalProps {
 
   onCreated?: (task: Task) => void;
 
+  initialStatus?: TaskStatus;
+
 }
 
 
@@ -69,11 +71,12 @@ const EMPTY_FORM = {
 
 
 
-export function CreateTaskModal({ open, onClose, workspaceId, projectId = null, onCreated }: CreateTaskModalProps) {
+export function CreateTaskModal({ open, onClose, workspaceId, projectId = null, onCreated, initialStatus }: CreateTaskModalProps) {
 
   const [form, setForm] = useState({
     ...EMPTY_FORM,
     selectedProjectId: projectId ?? NO_PROJECT_VALUE,
+    status: initialStatus ?? ("TODO" as TaskStatus),
   });
 
   const [loading, setLoading] = useState(false);
@@ -100,13 +103,13 @@ export function CreateTaskModal({ open, onClose, workspaceId, projectId = null, 
 
     if (!open) {
 
-      setForm({ ...EMPTY_FORM, selectedProjectId: projectId ?? NO_PROJECT_VALUE });
+      setForm({ ...EMPTY_FORM, selectedProjectId: projectId ?? NO_PROJECT_VALUE, status: initialStatus ?? ("TODO" as TaskStatus) });
 
       setError("");
 
     }
 
-  }, [open, projectId]);
+  }, [open, projectId, initialStatus]);
 
 
 

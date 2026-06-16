@@ -44,21 +44,6 @@ export const workspaceApi = {
     });
   },
 
-  async updateMemberRole(
-    workspaceId: string,
-    userId: string,
-    role: "admin" | "member",
-  ): Promise<WorkspaceMember> {
-    const member = mapWorkspaceMember(
-      await apiRequest(`/workspaces/${workspaceId}/members/${userId}`, {
-        method: "PATCH",
-        body: { role },
-      }),
-    );
-    invalidateCachedRequestPrefix(`workspaces:members:${workspaceId}`);
-    return member;
-  },
-
   async removeMember(workspaceId: string, userId: string): Promise<void> {
     await apiRequest(`/workspaces/${workspaceId}/members/${userId}`, {
       method: "DELETE",

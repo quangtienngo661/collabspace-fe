@@ -1,7 +1,7 @@
 # CollabSpace FE ↔ BE — Backlog căn chỉnh API
 
 Tài liệu này liệt kê các chỗ **frontend** (`collabspace-fe`) còn cần sửa để khớp **backend** (`collabspace`).  
-Nguồn backend: [`docs/features.md`](../../collabspace/docs/features.md), [`docs/api-routes.md`](../../collabspace/docs/api-routes.md).
+Nguồn backend: [`docs/features.md`](../../collabspace/docs/features.md), [`docs/api-routes.md`](../../collabspace/docs/api-routes.md), [`docs/roles-and-permissions.md`](../../collabspace/docs/roles-and-permissions.md).
 
 **Agent docs:** `CLAUDE.md`, `.claude/docs/api-integration.md`, skill `/fe-be-alignment`.
 
@@ -27,7 +27,8 @@ Nguồn backend: [`docs/features.md`](../../collabspace/docs/features.md), [`doc
 | Notification polling | ✅ 45s `NotificationsContext` | list API | Done P3 |
 | User directory | ✅ `/users` page | `GET /users`, `/search`, `/:id` | Done P3 |
 | Archive notification | Disabled | Không có HTTP | Chờ BE |
-| Đổi role / remove member | Disabled | Không có end-user API | Chờ BE |
+| Remove member / leave | ✅ owner UI | `DELETE .../members/:userId` | Done |
+| Promote member → **manager** | Chưa có UI | `PATCH .../members/:userId` | **Planned** — xem [roles-and-permissions.md](../../collabspace/docs/roles-and-permissions.md) |
 | Gỡ permission khỏi role (admin) | Toast | Chỉ assign | Chờ BE |
 | `commentCount` Kanban | Không hiển thị | Board không trả field | Chờ BE hoặc N+1 |
 | List invitation của user | Manual ID + notifications | Chỉ list theo workspace | Chờ BE API |
@@ -200,7 +201,7 @@ Xóa copy *"Currently mocked frontend-only"* và logic `setTimeout` trong `saveC
 |------------|-----|
 | Bảng tất cả workspace | `GET /workspaces/admin/all` |
 | Force delete | `DELETE /workspaces/admin/{id}` |
-| Force join (audit) | `POST /workspaces/admin/{id}/force-join` — body `{ role: "admin", reason }` |
+| Force join (audit) | `POST /workspaces/admin/{id}/force-join` — body `{ role: "member", reason }` |
 
 Route đề xuất: `/admin/workspaces` trong `App.tsx` + nav item trong `AdminWorkspaceLayout.tsx`.
 

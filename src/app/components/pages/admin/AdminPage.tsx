@@ -257,8 +257,8 @@ export function AdminPage() {
     }
     try {
       setJoiningWorkspace(true);
-      await adminApi.forceJoin(forceJoinTarget.id, "admin", forceJoinReason);
-      toast.success(`Joined workspace '${forceJoinTarget.name}' as Admin`);
+      await adminApi.forceJoin(forceJoinTarget.id, "member", forceJoinReason);
+      toast.success(`Joined workspace '${forceJoinTarget.name}' as member`);
       setForceJoinTarget(null);
       setForceJoinReason("");
       await workspacesState.reload();

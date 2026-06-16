@@ -17,6 +17,7 @@ import { useNotifications } from "../../context/NotificationsContext";
 import { useWorkspaces } from "../../context/WorkspacesContext";
 import { useAuth } from "../../auth/AuthContext";
 import { useAsyncData } from "../../hooks/useAsyncData";
+import { formatDueDate } from "../../utils/format";
 import type { ActivityTimelineItem, Task } from "../../api/types";
 
 const statuses = ["TODO", "DOING", "DONE"] as const;
@@ -290,7 +291,7 @@ export function DashboardPage() {
                 <div key={task.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer" onClick={() => setSelectedTask(task)}>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{task.title}</p>
-                    <p className="text-xs text-slate-400">{task.dueDate ? `Due ${task.dueDate}` : "No due date"}</p>
+                    <p className="text-xs text-slate-400">{task.dueDate ? formatDueDate(task.dueDate) : "No due date"}</p>
                   </div>
                   <PriorityBadge priority={task.priority} />
                   <StatusBadge status={task.status} />
