@@ -23,7 +23,10 @@ export function ProjectListPage() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const workspaceState = useAsyncData(() => wsId ? workspaceApi.get(wsId) : Promise.reject(new Error("Workspace id is missing")), [wsId]);
-  const isOwner = Boolean(profile?.userId && workspaceState.data?.ownerId === profile.userId);
+  const membersState = useAsyncData(() => wsId ? workspaceApi.members(wsId) : Promise.resolve([]), [wsId]);
+  const isOwner = Boolean(profile?.id && workspaceState.data?.ownerId === profile.id);
+  const isManager = !isOwner && Boolean(profile?.id && (membersState.data ?? []).some(m => m.userId === profile!.id && m.role === "manager"));
+  const canManageProjects = isOwner || isManager;
   const projectState = useAsyncData(
     () => wsId ? workspaceApi.listProjects(wsId).then(enrichProjectsTaskCounts) : Promise.resolve([]),
     [wsId],
@@ -99,9 +102,11 @@ export function ProjectListPage() {
           <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { void workspaceState.reload(); void projectState.reload(); }}>
             <RefreshCw className="w-3.5 h-3.5" /> Refresh
           </Button>
-          <Button size="sm" className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white" onClick={openCreate}>
-            <Plus className="w-3.5 h-3.5" /> New Project
-          </Button>
+          {canManageProjects && (
+            <Button size="sm" className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white" onClick={openCreate}>
+              <Plus className="w-3.5 h-3.5" /> New Project
+            </Button>
+          )}
         </div>
       </div>
 
@@ -129,16 +134,15 @@ export function ProjectListPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        {isOwner && (
-                          <DropdownMenuItem onClick={e => { e.stopPropagation(); openEdit(project); }}>Settings</DropdownMenuItem>
-                        )}
-                        {isOwner && (
-                          <DropdownMenuItem onClick={e => { e.stopPropagation(); setDeleteId(project.id); }} className="text-red-600 dark:text-red-400">
-                            <Trash2 className="w-4 h-4 mr-2" /> Delete
-                          </DropdownMenuItem>
-                        )}
-                        {!isOwner && (
-                          <DropdownMenuItem disabled className="text-slate-400 text-xs">Only owner can edit</DropdownMenuItem>
+                        {canManageProjects ? (
+                          <>
+                            <DropdownMenuItem onClick={e => { e.stopPropagation(); openEdit(project); }}>Settings</DropdownMenuItem>
+                            <DropdownMenuItem onClick={e => { e.stopPropagation(); setDeleteId(project.id); }} className="text-red-600 dark:text-red-400">
+                              <Trash2 className="w-4 h-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </>
+                        ) : (
+                          <DropdownMenuItem disabled className="text-slate-400 text-xs">Only owner or manager can edit</DropdownMenuItem>
                         )}
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -154,10 +158,12 @@ export function ProjectListPage() {
             </Card>
           ))}
 
-          <button onClick={openCreate} className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-5 flex flex-col items-center justify-center gap-2 hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors text-slate-400 hover:text-blue-500">
-            <Plus className="w-7 h-7" />
-            <span className="text-sm font-medium">New project</span>
-          </button>
+          {canManageProjects && (
+            <button onClick={openCreate} className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-5 flex flex-col items-center justify-center gap-2 hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors text-slate-400 hover:text-blue-500">
+              <Plus className="w-7 h-7" />
+              <span className="text-sm font-medium">New project</span>
+            </button>
+          )}
         </div>
       )}
 

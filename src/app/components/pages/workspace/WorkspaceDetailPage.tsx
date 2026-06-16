@@ -443,14 +443,19 @@ export function WorkspaceDetailPage() {
 
         <TabsContent value="settings" className="mt-4">
           <Card className="p-6 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 space-y-4">
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Workspace Settings</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Workspace Settings</h2>
+              {!isOwner && (
+                <span className="text-xs text-slate-400 italic">Only the workspace owner can edit settings</span>
+              )}
+            </div>
             <div className="space-y-1.5">
               <Label>Workspace Name</Label>
-              <Input value={settings.name} onChange={event => setSettings(prev => ({ ...prev, name: event.target.value }))} />
+              <Input value={settings.name} onChange={event => setSettings(prev => ({ ...prev, name: event.target.value }))} disabled={!isOwner} />
             </div>
             <div className="space-y-1.5">
               <Label>Description</Label>
-              <Input value={settings.description} onChange={event => setSettings(prev => ({ ...prev, description: event.target.value }))} />
+              <Input value={settings.description} onChange={event => setSettings(prev => ({ ...prev, description: event.target.value }))} disabled={!isOwner} />
             </div>
             <div className="pt-2 flex gap-2 flex-wrap">
               <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={saveSettings} disabled={saving || !isOwner}>{saving ? "Saving..." : "Save Changes"}</Button>

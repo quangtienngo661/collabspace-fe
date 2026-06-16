@@ -48,7 +48,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const [projectsOpen, setProjectsOpen] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout, isAdmin } = useAuth();
+  const { logout, isAdmin, profile } = useAuth();
+  const canCreateWorkspace = profile?.role !== "viewer";
   const { workspaces, activeWorkspace, setActiveWorkspace } = useWorkspaces();
 
   const projectsState = useAsyncData(
@@ -190,16 +191,18 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                     <span className="text-xs text-slate-300 truncate">{ws.name}</span>
                   </button>
                 ))}
-                <button
-                  type="button"
-                  onClick={() => navigate("/workspaces?create=1")}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left hover:bg-slate-700/60 transition-colors"
-                >
-                  <span className="w-5 h-5 rounded border border-dashed border-slate-500 flex items-center justify-center">
-                    <Plus className="w-3 h-3 text-slate-400" />
-                  </span>
-                  <span className="text-xs text-slate-400">Add workspace</span>
-                </button>
+                {canCreateWorkspace && (
+                  <button
+                    type="button"
+                    onClick={() => navigate("/workspaces?create=1")}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left hover:bg-slate-700/60 transition-colors"
+                  >
+                    <span className="w-5 h-5 rounded border border-dashed border-slate-500 flex items-center justify-center">
+                      <Plus className="w-3 h-3 text-slate-400" />
+                    </span>
+                    <span className="text-xs text-slate-400">Add workspace</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
