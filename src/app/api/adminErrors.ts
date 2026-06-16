@@ -4,6 +4,7 @@ const ADMIN_ERROR_MESSAGES: Record<string, string> = {
   PLATFORM_ADMIN_REQUIRED: "Platform admin access required. Sign in with an admin account.",
   IDEMPOTENCY_KEY_REQUIRED: "Broadcast requires an Idempotency-Key header.",
   ROLE_IN_USE: "This role cannot be deleted while it is protected or assigned to users.",
+  ROLE_PERMISSION_NOT_FOUND: "This permission is not assigned to the selected role.",
   PERMISSION_ALREADY_EXISTS: "A permission with this name already exists.",
   DIRECTORY_QUERY_REQUIRED: "User directory search requires a query parameter.",
   BROADCAST_ALREADY_ENQUEUED: "A broadcast with this idempotency key was already submitted.",

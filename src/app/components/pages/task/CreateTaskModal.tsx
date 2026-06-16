@@ -16,7 +16,11 @@ import { toast } from "sonner";
 
 import { taskApi } from "../../../api/taskApi";
 
+import { workspaceApi } from "../../../api/workspaceApi";
+
 import { useWorkspaceMemberUsers } from "../../../hooks/useWorkspaceMemberUsers";
+
+import { useAsyncData } from "../../../hooks/useAsyncData";
 
 import type { Task, TaskStatus } from "../../../api/types";
 
@@ -39,6 +43,7 @@ interface CreateTaskModalProps {
 
 
 const UNASSIGNED_VALUE = "unassigned";
+const NO_PROJECT_VALUE = "none";
 
 
 
@@ -58,13 +63,18 @@ const EMPTY_FORM = {
 
   labels: "",
 
+  selectedProjectId: NO_PROJECT_VALUE,
+
 };
 
 
 
 export function CreateTaskModal({ open, onClose, workspaceId, projectId = null, onCreated }: CreateTaskModalProps) {
 
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm] = useState({
+    ...EMPTY_FORM,
+    selectedProjectId: projectId ?? NO_PROJECT_VALUE,
+  });
 
   const [loading, setLoading] = useState(false);
 
@@ -74,19 +84,29 @@ export function CreateTaskModal({ open, onClose, workspaceId, projectId = null, 
 
   const users = memberUsers?.map(u => ({ id: u.id, name: u.name })) ?? [];
 
+  const { data: projects } = useAsyncData(
+
+    () => workspaceId ? workspaceApi.listProjects(workspaceId) : Promise.resolve([]),
+
+    [workspaceId],
+
+    { enabled: open && Boolean(workspaceId) },
+
+  );
+
 
 
   useEffect(() => {
 
     if (!open) {
 
-      setForm(EMPTY_FORM);
+      setForm({ ...EMPTY_FORM, selectedProjectId: projectId ?? NO_PROJECT_VALUE });
 
       setError("");
 
     }
 
-  }, [open]);
+  }, [open, projectId]);
 
 
 
@@ -118,6 +138,9 @@ export function CreateTaskModal({ open, onClose, workspaceId, projectId = null, 
 
 
 
+      const resolvedProjectId =
+        form.selectedProjectId === NO_PROJECT_VALUE ? null : form.selectedProjectId;
+
       const created = await taskApi.create({
 
         title: form.title,
@@ -126,7 +149,7 @@ export function CreateTaskModal({ open, onClose, workspaceId, projectId = null, 
 
         workspaceId,
 
-        projectId,
+        projectId: resolvedProjectId,
 
         priority: form.priority,
 
@@ -152,7 +175,7 @@ export function CreateTaskModal({ open, onClose, workspaceId, projectId = null, 
 
       setLoading(false);
 
-      onCreated?.({ ...task, projectId, priority: form.priority as Task["priority"] });
+      onCreated?.({ ...task, projectId: resolvedProjectId, priority: form.priority as Task["priority"] });
 
       toast.success("Task created successfully");
 
@@ -174,7 +197,7 @@ export function CreateTaskModal({ open, onClose, workspaceId, projectId = null, 
 
   return (
 
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
 
       <DialogContent className="sm:max-w-md">
 
@@ -283,6 +306,34 @@ export function CreateTaskModal({ open, onClose, workspaceId, projectId = null, 
             </div>
 
           </div>
+
+          {projects && projects.length > 0 && (
+
+            <div className="space-y-1.5">
+
+              <Label>Project</Label>
+
+              <Select value={form.selectedProjectId} onValueChange={v => set("selectedProjectId", v)}>
+
+                <SelectTrigger><SelectValue placeholder="No project (workspace task)" /></SelectTrigger>
+
+                <SelectContent>
+
+                  <SelectItem value={NO_PROJECT_VALUE}>No project</SelectItem>
+
+                  {projects.map(p => (
+
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+
+                  ))}
+
+                </SelectContent>
+
+              </Select>
+
+            </div>
+
+          )}
 
           <div className="space-y-1.5">
 

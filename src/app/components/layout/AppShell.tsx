@@ -7,6 +7,7 @@ import { TopBar } from "./TopBar";
 import { MobileDrawer, BottomNav } from "./MobileNav";
 import { ActiveWorkspaceSync } from "./ActiveWorkspaceSync";
 import { CommandPalette, useCommandPaletteShortcut } from "./CommandPalette";
+import { useSessionPresence } from "../../hooks/useSessionPresence";
 
 interface AppShellProps {
   dark: boolean;
@@ -19,6 +20,7 @@ export function AppShell({ dark, onToggleDark }: AppShellProps) {
   const [commandOpen, setCommandOpen] = useState(false);
 
   useCommandPaletteShortcut(() => setCommandOpen(true));
+  useSessionPresence();
 
   return (
     <WorkspacesProvider>

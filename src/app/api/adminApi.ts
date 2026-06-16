@@ -60,6 +60,14 @@ export const adminApi = {
     );
   },
 
+  async unassignPermission(roleId: string, permissionId: string): Promise<AdminRole> {
+    return mapAdminRole(
+      await apiRequest(`/auth/admin/roles/${roleId}/permissions/${permissionId}`, {
+        method: "DELETE",
+      }),
+    );
+  },
+
   async listAuthUsers(): Promise<AdminAuthUser[]> {
     const rows = await apiRequest<any[]>("/auth/admin/users");
     return rows.map(mapAdminAuthUser);

@@ -172,7 +172,7 @@ export function DashboardPage() {
           </p>
         </div>
         <div className="flex w-full min-w-0 gap-2 sm:w-auto sm:justify-end">
-          <Button size="sm" variant="outline" onClick={() => activeWorkspace && navigate(`/workspaces/${activeWorkspace.id}`)} disabled={!activeWorkspace} className="hidden md:flex gap-1.5" title={!activeWorkspace ? "Create a workspace first" : undefined}>
+          <Button size="sm" variant="outline" onClick={() => activeWorkspace && navigate(`/workspaces/${activeWorkspace.id}?tab=members`)} disabled={!activeWorkspace} className="hidden md:flex gap-1.5" title={!activeWorkspace ? "Create a workspace first" : undefined}>
             <UserPlus className="w-3.5 h-3.5" /> Invite
           </Button>
           <Button size="sm" onClick={() => setCreateTask(true)} disabled={!activeWorkspace} className="w-full min-w-0 shrink gap-1.5 bg-blue-600 hover:bg-blue-700 text-white sm:w-auto sm:shrink-0">
@@ -290,7 +290,7 @@ export function DashboardPage() {
                 <div key={task.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer" onClick={() => setSelectedTask(task)}>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{task.title}</p>
-                    <p className="text-xs text-slate-400">{task.dueDate ? `Due ${task.dueDate}` : "No due date from backend"}</p>
+                    <p className="text-xs text-slate-400">{task.dueDate ? `Due ${task.dueDate}` : "No due date"}</p>
                   </div>
                   <PriorityBadge priority={task.priority} />
                   <StatusBadge status={task.status} />
@@ -304,7 +304,6 @@ export function DashboardPage() {
       <CreateTaskModal
         open={createTask}
         onClose={() => setCreateTask(false)}
-        projectId={projects[0]?.id ?? null}
         workspaceId={activeWorkspace?.id ?? ""}
         onCreated={addCreatedTask}
       />

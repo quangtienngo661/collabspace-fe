@@ -128,7 +128,7 @@ function NotifItem({ n, onRefresh }: { n: Notification; onRefresh: () => void })
           {!n.read && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-blue-500" />}
         </div>
         <div className="mt-3 flex gap-2" onClick={e => e.stopPropagation()}>
-          {type === "workspace_invited" && invitationId && !n.read && !actionDone && (
+          {type === "workspace_invited" && invitationId && !actionDone && (
             <>
               <Button size="sm" variant="default" disabled={loading} onClick={handleAccept}>Accept</Button>
               <Button size="sm" variant="outline" disabled={loading} onClick={handleReject}>Reject</Button>
@@ -148,16 +148,6 @@ function NotifItem({ n, onRefresh }: { n: Notification; onRefresh: () => void })
               className="flex cursor-pointer items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
             >
               <Check className="size-3" /> Mark read
-            </button>
-          )}
-          {!n.archived && (
-            <button
-              type="button"
-              disabled
-              title="Archive endpoint is not exposed by the backend yet"
-              className="flex cursor-not-allowed items-center gap-1 text-xs text-slate-400"
-            >
-              <Archive className="size-3" /> Archive
             </button>
           )}
         </div>

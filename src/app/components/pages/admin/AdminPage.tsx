@@ -199,16 +199,22 @@ export function AdminPage({ dark, onToggleDark }: AdminPageProps) {
     permissionName: string,
     checked: boolean
   ) {
-    if (!checked) {
-      toast.error("Auth Service does not support removing permissions from roles currently.");
-      return;
-    }
     try {
-      await adminApi.assignPermission(roleId, permissionId);
-      toast.success(`Assigned permission '${permissionName}' to role '${roleName}'`);
+      if (checked) {
+        await adminApi.assignPermission(roleId, permissionId);
+        toast.success(`Assigned permission '${permissionName}' to role '${roleName}'`);
+      } else {
+        await adminApi.unassignPermission(roleId, permissionId);
+        toast.success(`Removed permission '${permissionName}' from role '${roleName}'`);
+      }
       await rolesState.reload();
     } catch (err) {
-      toast.error(formatAdminApiError(err, "Unable to assign permission"));
+      toast.error(
+        formatAdminApiError(
+          err,
+          checked ? "Unable to assign permission" : "Unable to remove permission",
+        ),
+      );
     }
   }
 

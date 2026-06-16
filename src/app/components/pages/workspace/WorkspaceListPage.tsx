@@ -19,7 +19,7 @@ import { toast } from "sonner";
 
 export function WorkspaceListPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { profile } = useAuth();
   const { workspaces, loading: loadingList, error, reload, setActiveWorkspace } = useWorkspaces();
   const { data: enriched, reload: reloadStats } = useAsyncData(
@@ -39,6 +39,15 @@ export function WorkspaceListPage() {
       setCreateOpen(true);
     }
   }, [searchParams]);
+
+  function handleCreateOpenChange(open: boolean) {
+    setCreateOpen(open);
+    if (!open && searchParams.get("create") === "1") {
+      const next = new URLSearchParams(searchParams);
+      next.delete("create");
+      setSearchParams(next, { replace: true });
+    }
+  }
 
   function isWorkspaceOwner(ws: { ownerId: string }) {
     return Boolean(profile?.id && ws.ownerId === profile.id);
@@ -148,7 +157,7 @@ export function WorkspaceListPage() {
         </div>
       )}
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog open={createOpen} onOpenChange={handleCreateOpenChange}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Create Workspace</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
@@ -162,7 +171,7 @@ export function WorkspaceListPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => handleCreateOpenChange(false)}>Cancel</Button>
             <Button onClick={handleCreate} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white">{loading ? "Creating..." : "Create"}</Button>
           </DialogFooter>
         </DialogContent>

@@ -132,6 +132,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     invalidateCachedRequestPrefix("notifications:");
     setStoredSession(nextSession, { emit: false });
     setSession(nextSession);
+    await usersApi.declareOnline().catch(() => undefined);
+    sessionStorage.setItem("collabspace:session-presence", "1");
     const currentAuthUser = await refresh(true);
 
     return Boolean(
@@ -144,10 +146,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     const active = getStoredSession();
     try {
+      await usersApi.declareOffline().catch(() => undefined);
       if (active?.refreshToken) {
         await authApi.logout(active.refreshToken);
       }
     } finally {
+      sessionStorage.removeItem("collabspace:session-presence");
       clearStoredSession();
       invalidateCachedRequestPrefix("auth:");
       invalidateCachedRequestPrefix("users:");

@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from "react";
 import { useParams } from "react-router";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { Plus, List, Columns3, Search, Paperclip, AlertCircle, RefreshCw } from "lucide-react";
+import { Plus, List, Columns3, Search, Paperclip, RefreshCw } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
@@ -127,7 +127,6 @@ export function KanbanBoardPage() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterAssignee, setFilterAssignee] = useState("all");
   const [filterPriority, setFilterPriority] = useState("all");
-  const [invalidMove, setInvalidMove] = useState<string | null>(null);
 
   const projectState = useAsyncData(async () => {
     if (!wsId || !pid) return null;
@@ -160,12 +159,6 @@ export function KanbanBoardPage() {
 
   const handleDrop = useCallback(async (taskId: string, newStatus: TaskStatus, fromStatus: TaskStatus) => {
     if (fromStatus === newStatus) return;
-    if (fromStatus === "DONE" && newStatus === "TODO") {
-      setInvalidMove(taskId);
-      toast.error("Cannot move a completed task back to Todo directly.");
-      setTimeout(() => setInvalidMove(null), 2000);
-      return;
-    }
 
     const previous = taskState.data ?? [];
     taskState.setData(prev => (prev ?? []).map(t => t.id === taskId ? { ...t, status: newStatus } : t));
@@ -253,13 +246,6 @@ export function KanbanBoardPage() {
             <Plus className="w-3.5 h-3.5" /> Task
           </Button>
         </div>
-
-        {invalidMove && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
-            <AlertCircle className="w-4 h-4 text-red-500" />
-            <p className="text-xs text-red-700 dark:text-red-400">Invalid transition: cannot move DONE -&gt; TODO directly</p>
-          </div>
-        )}
 
         {taskState.error && (
           <div className="p-4">

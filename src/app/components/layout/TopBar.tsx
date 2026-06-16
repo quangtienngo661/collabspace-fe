@@ -76,7 +76,7 @@ export function TopBar({ onMenuClick, dark, onToggleDark, onOpenCommandPalette }
     if (!profile) return;
     try {
       await usersApi.updateStatus(status);
-      setProfile({ ...profile, status });
+      setProfile(await usersApi.me());
       toast.success(`Status updated to ${status}`);
     } catch (e: any) {
       toast.error(e.message || "Failed to update status");

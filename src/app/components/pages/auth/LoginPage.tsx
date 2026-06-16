@@ -39,7 +39,7 @@ export function LoginPage() {
       try {
         const list = await workspaceApi.list();
         if (list.length === 0) {
-          navigate("/workspaces?create=1");
+          navigate("/workspaces");
         } else {
           navigate("/dashboard");
         }

@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
-import { UserPlus, Trash2, MoreHorizontal, FolderOpen, Settings, Users, RefreshCw, ArrowLeft, Activity } from "lucide-react";
+import { UserPlus, FolderOpen, Settings, Users, RefreshCw, ArrowLeft, Activity } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../ui/tabs";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
@@ -9,7 +9,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../ui/dropdown-menu";
 import { workspaceApi } from "../../../api/workspaceApi";
 import { enrichProjectsTaskCounts } from "../../../api/clientStats";
 import { usersApi } from "../../../api/usersApi";
@@ -270,21 +269,9 @@ export function WorkspaceDetailPage() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell><RoleBadge role={member.role === "owner" ? "admin" : member.role} /></TableCell>
+                    <TableCell><RoleBadge role={member.role} /></TableCell>
                     <TableCell><span className="text-xs capitalize text-slate-500">{member.user.status}</span></TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="w-7 h-7"><MoreHorizontal className="w-4 h-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem disabled>Change role unavailable</DropdownMenuItem>
-                          <DropdownMenuItem disabled className="text-red-600 dark:text-red-400">
-                            <Trash2 className="w-4 h-4 mr-2" /> Remove unavailable
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+                    <TableCell />
                   </TableRow>
                 ))}
               </TableBody>

@@ -69,6 +69,21 @@ export const usersApi = {
       method: "PATCH",
       body: { status: uiStatusToApi(status), lastSeenAt: new Date().toISOString() },
     });
+    invalidateCachedRequestPrefix("users:");
+  },
+
+  /** Mark the current session as online (login / app resume). */
+  async declareOnline(): Promise<void> {
+    await this.updateStatus("online");
+  },
+
+  /** Mark offline before ending the session (logout). */
+  async declareOffline(): Promise<void> {
+    await apiRequest("/users/me/status", {
+      method: "PATCH",
+      body: { status: "offline", lastSeenAt: new Date().toISOString() },
+    });
+    invalidateCachedRequestPrefix("users:");
   },
 
   async status(userId: string): Promise<UserStatus> {
