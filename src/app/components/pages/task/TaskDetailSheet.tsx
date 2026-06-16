@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { X, Edit2, Check, Trash2, Paperclip, Upload, ExternalLink } from "lucide-react";
-import { Sheet, SheetContent, SheetHeader } from "../../ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../../ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../ui/tabs";
 import { StatusBadge } from "../../shared/StatusBadge";
 import { UserAvatar } from "../../shared/UserAvatar";
@@ -180,6 +180,7 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted }: T
       <Sheet open={open} onOpenChange={onClose}>
         <SheetContent side="right" className="w-full sm:w-[560px] p-0 flex flex-col bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 overflow-hidden">
           <SheetHeader className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex-row items-center justify-between space-y-0">
+            <SheetTitle className="sr-only">{task.title}</SheetTitle>
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <StatusBadge status={task.status} />
               {editingTitle ? (
@@ -259,7 +260,6 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted }: T
                         ))}
                       </SelectContent>
                     </Select>
-                    {assignee && <p className="text-[10px] text-slate-400">{assignee.displayName || assignee.fullName}</p>}
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-slate-400 uppercase tracking-wider">Due date</p>

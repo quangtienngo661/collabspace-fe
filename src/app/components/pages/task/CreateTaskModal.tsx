@@ -287,23 +287,16 @@ export function CreateTaskModal({ open, onClose, workspaceId, projectId = null, 
 
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
 
-            <div className="space-y-1.5">
+            <Label>Due date</Label>
 
-              <Label>Due date</Label>
-
-              <Input type="datetime-local" value={form.dueDate} onChange={e => set("dueDate", e.target.value)} />
-
-            </div>
-
-            <div className="space-y-1.5">
-
-              <Label>Labels</Label>
-
-              <Input placeholder="bug, frontend" value={form.labels} onChange={e => set("labels", e.target.value)} />
-
-            </div>
+            <Input
+              type="datetime-local"
+              value={form.dueDate}
+              onChange={e => set("dueDate", e.target.value)}
+              className="w-full"
+            />
 
           </div>
 
@@ -335,27 +328,39 @@ export function CreateTaskModal({ open, onClose, workspaceId, projectId = null, 
 
           )}
 
-          <div className="space-y-1.5">
+          <div className="grid grid-cols-2 gap-3">
 
-            <Label>Assignee</Label>
+            <div className="space-y-1.5">
 
-            <Select value={form.assigneeId} onValueChange={v => set("assigneeId", v)}>
+              <Label>Assignee</Label>
 
-              <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
+              <Select value={form.assigneeId} onValueChange={v => set("assigneeId", v)}>
 
-              <SelectContent>
+                <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
 
-                <SelectItem value={UNASSIGNED_VALUE}>Unassigned</SelectItem>
+                <SelectContent>
 
-                {users.map(u => (
+                  <SelectItem value={UNASSIGNED_VALUE}>Unassigned</SelectItem>
 
-                  <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                  {users.map(u => (
 
-                ))}
+                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
 
-              </SelectContent>
+                  ))}
 
-            </Select>
+                </SelectContent>
+
+              </Select>
+
+            </div>
+
+            <div className="space-y-1.5">
+
+              <Label>Labels</Label>
+
+              <Input placeholder="bug, frontend" value={form.labels} onChange={e => set("labels", e.target.value)} />
+
+            </div>
 
           </div>
 

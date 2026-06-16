@@ -38,12 +38,7 @@ import { adminApi } from "../../../api/adminApi";
 import { formatAdminApiError } from "../../../api/adminErrors";
 import type { AdminRole, Role } from "../../../api/types";
 
-interface AdminPageProps {
-  dark: boolean;
-  onToggleDark: () => void;
-}
-
-export function AdminPage({ dark, onToggleDark }: AdminPageProps) {
+export function AdminPage() {
   // 1. Fetch data from backend admin API
   const rolesState = useAsyncData(() => adminApi.listRoles(), []);
   const permissionsState = useAsyncData(() => adminApi.listPermissions(), []);
@@ -336,8 +331,6 @@ export function AdminPage({ dark, onToggleDark }: AdminPageProps) {
     <AdminWorkspaceLayout
       title="Platform Management"
       description="Administrative interface for Roles, Users, Workspaces, and Broadcasts."
-      dark={dark}
-      onToggleDark={onToggleDark}
       action={
         <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs" onClick={reloadAll}>
           <RefreshCw className="size-3.5" /> Sync Data

@@ -8,11 +8,6 @@ import type { HealthResult } from "../../../api/types";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 import { AdminWorkspaceLayout } from "./AdminWorkspaceLayout";
 
-interface HealthPageProps {
-  dark: boolean;
-  onToggleDark: () => void;
-}
-
 function statusIcon(status: HealthResult["status"]) {
   if (status === "healthy") return <CheckCircle className="size-4 text-green-500" />;
   if (status === "down") return <XCircle className="size-4 text-red-500" />;
@@ -31,7 +26,7 @@ function statusPill(status: HealthResult["status"]) {
   return "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300";
 }
 
-export function HealthPage({ dark, onToggleDark }: HealthPageProps) {
+export function HealthPage() {
   const healthState = useAsyncData(() => healthApi.all(), []);
   const services = healthState.data ?? [];
   const healthy = services.filter(s => s.status === "healthy").length;
@@ -47,8 +42,6 @@ export function HealthPage({ dark, onToggleDark }: HealthPageProps) {
     <AdminWorkspaceLayout
       title="System Health"
       description="Service status from gateway health endpoints. Missing backend metrics are shown as N/A."
-      dark={dark}
-      onToggleDark={onToggleDark}
       action={
         <Button size="sm" variant="outline" className="gap-1.5" onClick={refresh} disabled={healthState.loading}>
           <RefreshCw className={`size-3.5 ${healthState.loading ? "animate-spin" : ""}`} />

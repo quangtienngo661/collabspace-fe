@@ -230,7 +230,7 @@ export function MyProfilePage() {
                     value={profileForm.username}
                     onChange={e => setProfileForm(prev => ({ ...prev, username: e.target.value.toLowerCase() }))}
                     placeholder="letters, numbers, . _ -"
-                    pattern="^[a-z0-9._-]+$"
+                    pattern="^[a-z0-9._\-]+$"
                   />
                   <p className="text-xs text-slate-400">Used for @mentions in task comments</p>
                 </div>

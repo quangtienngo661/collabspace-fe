@@ -14,6 +14,7 @@ import {
   Shield,
   Users,
   Settings2,
+  Activity,
 } from "lucide-react";
 import { cn } from "../ui/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
@@ -288,9 +289,14 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               label: "Workspace settings",
               icon: Settings2,
               to: workspaceSettingsPath(activeWorkspace.id),
-            }, false)}
+            })}
             {renderNavItem({ label: "Profile", icon: User, to: "/profile" })}
-            {isAdmin && renderNavItem({ label: "Admin", icon: Shield, to: "/admin" })}
+            {isAdmin && (
+              <>
+                {renderNavItem({ label: "Platform Admin", icon: Shield, to: "/admin" })}
+                {renderNavItem({ label: "System Health", icon: Activity, to: "/admin/health" })}
+              </>
+            )}
           </div>
         </nav>
 

@@ -49,8 +49,6 @@ export default function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/403" element={<ForbiddenPage />} />
-        <Route path="/admin" element={<AdminRoute><AdminPage dark={dark} onToggleDark={() => setDark(d => !d)} /></AdminRoute>} />
-        <Route path="/admin/health" element={<AdminRoute><HealthPage dark={dark} onToggleDark={() => setDark(d => !d)} /></AdminRoute>} />
 
         {/* App routes (with sidebar) */}
         <Route element={<ProtectedRoute><AppShell dark={dark} onToggleDark={() => setDark(d => !d)} /></ProtectedRoute>}>
@@ -64,6 +62,8 @@ export default function App() {
           <Route path="/users" element={<UsersDirectoryPage />} />
           <Route path="/invitations" element={<InvitationsPage />} />
           <Route path="/profile" element={<MyProfilePage />} />
+          <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
+          <Route path="/admin/health" element={<AdminRoute><HealthPage /></AdminRoute>} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
