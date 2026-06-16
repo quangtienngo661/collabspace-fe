@@ -189,14 +189,6 @@ export interface Session {
   isActive: boolean;
 }
 
-export interface HealthResult {
-  name: string;
-  status: "healthy" | "down" | "unknown";
-  message: string;
-  latency: number | null;
-  lastCheck: string;
-}
-
 export interface AdminRole {
   id: string;
   name: string;

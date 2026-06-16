@@ -9,7 +9,6 @@ import type {
   Attachment,
   AuthUser,
   Comment,
-  HealthResult,
   Notification,
   Priority,
   Project,
@@ -321,6 +320,21 @@ export function mapAdminPermission(raw: AnyRecord): AdminPermission {
   };
 }
 
+export function adminUserDisplayName(user: {
+  displayName?: string | null;
+  fullName?: string | null;
+  username?: string | null;
+  email: string;
+}): string {
+  return (
+    user.displayName
+    || user.fullName
+    || (user.username ? `@${user.username}` : "")
+    || user.email.split("@")[0]
+    || "User"
+  );
+}
+
 export function mapAdminAuthUser(raw: AnyRecord): AdminAuthUser {
   return {
     id: raw.id,
@@ -369,15 +383,5 @@ export function mapSession(raw: AnyRecord, currentRefreshToken?: string): Sessio
     lastActive: raw.lastUsedAt ?? raw.expiresAt ?? "",
     current: Boolean(currentRefreshToken && raw.tokenId && currentRefreshToken.includes(raw.tokenId)),
     isActive: Boolean(active),
-  };
-}
-
-export function mapHealth(name: string, startedAt: number, raw: AnyRecord): HealthResult {
-  return {
-    name,
-    status: raw?.status === "ok" ? "healthy" : "unknown",
-    message: raw?.status === "ok" ? "Service responded" : "Unknown response",
-    latency: Date.now() - startedAt,
-    lastCheck: new Date().toISOString(),
   };
 }

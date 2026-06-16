@@ -20,8 +20,8 @@ import { toast } from "sonner";
 export function WorkspaceListPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { profile } = useAuth();
-  const canCreateWorkspace = profile?.role !== "viewer";
+  const { profile, isAdmin } = useAuth();
+  const canCreateWorkspace = !isAdmin && profile?.role !== "viewer";
   const { workspaces, loading: loadingList, error, reload, setActiveWorkspace } = useWorkspaces();
   const { data: enriched, reload: reloadStats } = useAsyncData(
     () => enrichWorkspacesStats(workspaces),

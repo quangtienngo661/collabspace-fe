@@ -9,7 +9,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { usersApi } from "../../api/usersApi";
 import { useAuth } from "../../auth/AuthContext";
 import { UserAvatar } from "../shared/UserAvatar";
-import { RoleBadge } from "../shared/StatusBadge";
 import { EmptyState, ErrorState } from "../shared/EmptyState";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { usePresenceMap } from "../../hooks/usePresenceMap";
@@ -68,7 +67,9 @@ export function UsersDirectoryPage() {
         <div>
           <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">User directory</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {isAdmin ? "Search users or browse the full directory" : "Search by name or email to find users"}
+            {isAdmin
+              ? "Search users by name or email (platform roles are managed under Platform Admin → User Accounts)"
+              : "Search by name or email to find users"}
           </p>
         </div>
         <Button size="sm" variant="outline" className="gap-1.5" onClick={() => void listState.reload()}>
@@ -105,7 +106,6 @@ export function UsersDirectoryPage() {
               <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Username</TableHead>
-                <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -128,7 +128,6 @@ export function UsersDirectoryPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-slate-500">{user.username ? `@${user.username}` : "—"}</TableCell>
-                    <TableCell><RoleBadge role={user.role} /></TableCell>
                     <TableCell className="text-xs capitalize text-slate-500">{live.status}</TableCell>
                   </TableRow>
                 );

@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Plus,
   User,
+  Shield,
   Users,
 } from "lucide-react";
 import {
@@ -20,6 +21,7 @@ import {
   CommandShortcut,
 } from "../ui/command";
 import { useWorkspaces } from "../../context/WorkspacesContext";
+import { useAuth } from "../../auth/AuthContext";
 import { usersApi } from "../../api/usersApi";
 import { workspaceApi } from "../../api/workspaceApi";
 import { taskApi } from "../../api/taskApi";
@@ -32,6 +34,7 @@ interface CommandPaletteProps {
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const { workspaces, activeWorkspace, setActiveWorkspace } = useWorkspaces();
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<DomainUser[]>([]);
@@ -79,17 +82,20 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       void (async () => {
         setSearching(true);
         try {
-          const [userResult, projectList, taskResult] = await Promise.all([
-            usersApi.search(q, 6).catch(() => ({ items: [] as DomainUser[] })),
-            activeWorkspace
-              ? workspaceApi.listProjects(activeWorkspace.id).catch(() => [] as Project[])
-              : Promise.resolve([] as Project[]),
-            activeWorkspace
-              ? taskApi.search({ workspaceId: activeWorkspace.id, q, limit: 8 }).catch(() => [] as Task[])
-              : Promise.resolve([] as Task[]),
+          const userResult = await usersApi.search(q, 6).catch(() => ({ items: [] as DomainUser[] }));
+          setUsers(userResult.items);
+
+          if (isAdmin || !activeWorkspace) {
+            setProjects([]);
+            setTasks([]);
+            return;
+          }
+
+          const [projectList, taskResult] = await Promise.all([
+            workspaceApi.listProjects(activeWorkspace.id).catch(() => [] as Project[]),
+            taskApi.search({ workspaceId: activeWorkspace.id, q, limit: 8 }).catch(() => [] as Task[]),
           ]);
 
-          setUsers(userResult.items);
           const lower = q.toLowerCase();
           setProjects(
             projectList
@@ -108,16 +114,16 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     }, 250);
 
     return () => window.clearTimeout(timer);
-  }, [query, activeWorkspace]);
+  }, [query, activeWorkspace, isAdmin]);
 
-  const filteredWorkspaces = query.trim()
+  const filteredWorkspaces = !isAdmin && query.trim()
     ? workspaces.filter(ws => ws.name.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 6)
-    : workspaces.slice(0, 6);
+    : !isAdmin ? workspaces.slice(0, 6) : [];
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange} title="Command palette" description="Search or jump to…">
       <CommandInput
-        placeholder="Search tasks, projects, users, workspaces…"
+        placeholder={isAdmin ? "Search users…" : "Search tasks, projects, users, workspaces…"}
         value={query}
         onValueChange={setQuery}
       />
@@ -126,24 +132,39 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
         {!query.trim() && (
           <CommandGroup heading="Quick actions">
-            <CommandItem onSelect={() => go("/dashboard")}>
-              <LayoutDashboard className="mr-2 h-4 w-4" />
-              Go to Home
-            </CommandItem>
-            <CommandItem onSelect={() => go("/workspaces?create=1")}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create workspace
-            </CommandItem>
-            {activeWorkspace && (
-              <CommandItem onSelect={() => go(`/workspaces/${activeWorkspace.id}/projects`)}>
-                <FolderOpen className="mr-2 h-4 w-4" />
-                Browse projects in {activeWorkspace.name}
-              </CommandItem>
+            {isAdmin ? (
+              <>
+                <CommandItem onSelect={() => go("/admin")}>
+                  <Shield className="mr-2 h-4 w-4" />
+                  Platform Admin
+                </CommandItem>
+                <CommandItem onSelect={() => go("/admin?tab=users")}>
+                  <Users className="mr-2 h-4 w-4" />
+                  User accounts
+                </CommandItem>
+              </>
+            ) : (
+              <>
+                <CommandItem onSelect={() => go("/dashboard")}>
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  Go to Home
+                </CommandItem>
+                <CommandItem onSelect={() => go("/workspaces?create=1")}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create workspace
+                </CommandItem>
+                {activeWorkspace && (
+                  <CommandItem onSelect={() => go(`/workspaces/${activeWorkspace.id}/projects`)}>
+                    <FolderOpen className="mr-2 h-4 w-4" />
+                    Browse projects in {activeWorkspace.name}
+                  </CommandItem>
+                )}
+                <CommandItem onSelect={() => go("/users")}>
+                  <Users className="mr-2 h-4 w-4" />
+                  User directory
+                </CommandItem>
+              </>
             )}
-            <CommandItem onSelect={() => go("/users")}>
-              <Users className="mr-2 h-4 w-4" />
-              User directory
-            </CommandItem>
           </CommandGroup>
         )}
 
@@ -164,7 +185,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           </>
         )}
 
-        {projects.length > 0 && activeWorkspace && (
+        {projects.length > 0 && !isAdmin && activeWorkspace && (
           <>
             <CommandSeparator />
             <CommandGroup heading="Projects">
@@ -181,7 +202,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           </>
         )}
 
-        {tasks.length > 0 && activeWorkspace && (
+        {tasks.length > 0 && !isAdmin && activeWorkspace && (
           <>
             <CommandSeparator />
             <CommandGroup heading="Tasks">
