@@ -134,11 +134,16 @@ export function mapWorkspace(raw: AnyRecord): Workspace {
 }
 
 export function mapWorkspaceMember(raw: AnyRecord, profile?: User): WorkspaceMember {
+  const normalizedRole: WorkspaceMember["role"] =
+    raw.role === "owner" || raw.role === "manager" || raw.role === "member"
+      ? raw.role
+      : "member";
+
   return {
     id: raw.id ?? `${raw.workspace_id ?? raw.workspaceId}-${raw.user_id ?? raw.userId}`,
     workspaceId: raw.workspaceId ?? raw.workspace_id ?? "",
     userId: raw.userId ?? raw.user_id ?? "",
-    role: raw.role ?? "member",
+    role: normalizedRole,
     joinedAt: raw.joinedAt ?? raw.joined_at ?? "",
     profile,
   };

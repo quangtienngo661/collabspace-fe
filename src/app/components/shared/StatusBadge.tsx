@@ -1,6 +1,6 @@
 import { cn } from "../ui/utils";
 import { normalizeTaskPriority } from "../../api/mappers";
-import type { TaskStatus, Priority, Role, UserStatus } from "../../api/types";
+import type { TaskStatus, Priority, Role, UserStatus, WorkspaceRole } from "../../api/types";
 
 interface StatusBadgeProps {
   status: TaskStatus;
@@ -52,13 +52,14 @@ export function PriorityBadge({ priority, className }: PriorityBadgeProps) {
 }
 
 interface RoleBadgeProps {
-  role: Role | "owner";
+  role: Role | WorkspaceRole;
   className?: string;
 }
 
 export function RoleBadge({ role, className }: RoleBadgeProps) {
   const map: Record<string, { label: string; cls: string }> = {
     owner: { label: "Owner", cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
+    manager: { label: "Manager", cls: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" },
     admin: { label: "Admin", cls: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300" },
     member: { label: "Member", cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
     viewer: { label: "Viewer", cls: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400" },
