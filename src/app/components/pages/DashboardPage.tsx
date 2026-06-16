@@ -1,25 +1,23 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { CheckSquare, Users, Bell, FolderOpen, Plus, UserPlus, TrendingUp, Clock, RefreshCw } from "lucide-react";
+import { CheckSquare, Users, Bell, FolderOpen, Plus, UserPlus, TrendingUp, Clock, RefreshCw, Mail, Building2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { StatusBadge, PriorityBadge } from "../shared/StatusBadge";
-import { UserAvatar } from "../shared/UserAvatar";
 import { CreateTaskModal } from "./task/CreateTaskModal";
 import { TaskDetailSheet } from "./task/TaskDetailSheet";
 import { EmptyState, ErrorState } from "../shared/EmptyState";
+import { WorkspaceActivityFeed } from "../shared/WorkspaceActivityFeed";
+import { getNotificationInvitationId } from "../../api/mappers";
 import { workspaceApi } from "../../api/workspaceApi";
 import { enrichProjectsTaskCounts } from "../../api/clientStats";
 import { taskApi } from "../../api/taskApi";
 import { useNotifications } from "../../context/NotificationsContext";
 import { useWorkspaces } from "../../context/WorkspacesContext";
-import { initials } from "../../api/mappers";
 import { useAuth } from "../../auth/AuthContext";
 import { useAsyncData } from "../../hooks/useAsyncData";
-import type { Task } from "../../api/types";
-import { timeAgo } from "../../utils/format";
-import { toast } from "sonner";
+import type { ActivityTimelineItem, Task } from "../../api/types";
 
 const statuses = ["TODO", "DOING", "DONE"] as const;
 
@@ -49,9 +47,8 @@ export function DashboardPage() {
   const { profile } = useAuth();
   const [createTask, setCreateTask] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const { workspaces, loading: workspacesLoading, error: workspacesError, reload: reloadWorkspaces } = useWorkspaces();
+  const { workspaces, loading: workspacesLoading, error: workspacesError, reload: reloadWorkspaces, activeWorkspace } = useWorkspaces();
   const { data: notifData, error: notificationsError, reload: reloadNotifications, unreadCount } = useNotifications();
-  const activeWorkspace = workspaces[0] ?? null;
   const hasWorkspace = Boolean(activeWorkspace);
 
   const membersState = useAsyncData(
@@ -81,7 +78,32 @@ export function DashboardPage() {
   const tasks = tasksState.data ?? [];
   const projects = projectsState.data ?? [];
   const notifications = notifData?.notifications ?? [];
+  const inviteNotifications = (notifData?.notifications ?? []).filter(
+    n => getNotificationInvitationId(n) && !n.archived,
+  );
+
+  function handleActivityClick(item: ActivityTimelineItem) {
+    if (!activeWorkspace) return;
+    const taskId =
+      typeof item.meta?.taskId === "string"
+        ? item.meta.taskId
+        : typeof item.meta?.targetId === "string"
+          ? item.meta.targetId
+          : null;
+    const projectId = typeof item.meta?.projectId === "string" ? item.meta.projectId : null;
+    if (taskId && projectId) {
+      navigate(`/workspaces/${activeWorkspace.id}/projects/${projectId}?task=${taskId}`);
+      return;
+    }
+    if (taskId) {
+      const existing = tasks.find(t => t.id === taskId);
+      if (existing) setSelectedTask(existing);
+    }
+  }
+
   const activity = (activityState.data?.items ?? []).slice(0, 6);
+
+  const workspaceLabel = activeWorkspace?.name ?? "your workspace";
 
   const chartData = useMemo(() => {
     return statuses.map(status => ({
@@ -144,7 +166,10 @@ export function DashboardPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">Dashboard</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Welcome back, {profile?.name ?? "there"}. Live data from the API gateway.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Welcome back, {profile?.name ?? "there"}.
+            {hasWorkspace ? ` Overview for ${workspaceLabel}.` : " Get started by creating or joining a workspace."}
+          </p>
         </div>
         <div className="flex w-full min-w-0 gap-2 sm:w-auto sm:justify-end">
           <Button size="sm" variant="outline" onClick={() => activeWorkspace && navigate(`/workspaces/${activeWorkspace.id}`)} disabled={!activeWorkspace} className="hidden md:flex gap-1.5" title={!activeWorkspace ? "Create a workspace first" : undefined}>
@@ -170,7 +195,45 @@ export function DashboardPage() {
       {showDashboardSkeleton ? (
         <DashboardSkeleton />
       ) : showEmptyWorkspaces ? (
-        <EmptyState icon={FolderOpen} title="No workspaces yet" description="Your account has no workspaces on the server yet. Create one or accept an invitation to get started." action={{ label: "Create workspace", onClick: () => navigate("/workspaces") }} />
+        <div className="space-y-6">
+          <EmptyState
+            icon={FolderOpen}
+            title="No workspaces yet"
+            description="Create a workspace or accept an invitation to unlock your team home."
+            action={{ label: "Create workspace", onClick: () => navigate("/workspaces?create=1") }}
+          />
+          {inviteNotifications.length > 0 && (
+            <Card className="p-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
+                <Mail className="w-4 h-4" /> Pending invitations
+              </h2>
+              <div className="space-y-2">
+                {inviteNotifications.slice(0, 5).map(n => (
+                  <div key={n.id} className="flex items-center justify-between gap-3 py-2 border-b border-slate-100 dark:border-slate-700 last:border-0">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{n.title}</p>
+                      <p className="text-xs text-slate-500 truncate">{n.body}</p>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => navigate(n.link || "/invitations")}>
+                      Review
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+          <Card className="p-4 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-900/30">
+            <div className="flex flex-wrap items-center gap-3">
+              <Building2 className="w-5 h-5 text-slate-400" />
+              <p className="text-sm text-slate-600 dark:text-slate-400 flex-1">
+                Have an invite link? Open it from notifications or paste the invitation ID.
+              </p>
+              <Button size="sm" variant="outline" onClick={() => navigate("/invitations")}>
+                Enter invitation
+              </Button>
+            </div>
+          </Card>
+        </div>
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -205,37 +268,12 @@ export function DashboardPage() {
 
             <Card className="min-w-0 p-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex flex-col h-[280px]">
               <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3 shrink-0">Recent Activity</h2>
-              <div className="space-y-3 overflow-y-auto pr-2">
-                {activityState.loading ? (
-                  <p className="py-8 text-center text-sm text-slate-400">Loading activity...</p>
-                ) : activity.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-slate-400">No activity yet</p>
-                ) : activity.map(act => (
-                  <div key={act.id} className="flex items-start gap-2.5">
-                    <UserAvatar
-                      user={{
-                        id: act.actorId ?? act.id,
-                        userId: act.actorId ?? act.id,
-                        name: act.actorName,
-                        email: "",
-                        avatar: initials(act.actorName),
-                        avatarUrl: act.actorAvatarUrl,
-                        role: "member",
-                        status: "offline",
-                        joinedAt: "",
-                      }}
-                      size="xs"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-slate-700 dark:text-slate-300">
-                        <span className="font-medium">{act.actorName}</span>
-                        {" "}
-                        <span>{act.summary}</span>
-                      </p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">{timeAgo(act.occurredAt)}</p>
-                    </div>
-                  </div>
-                ))}
+              <div className="overflow-y-auto pr-2 flex-1">
+                <WorkspaceActivityFeed
+                  items={activity}
+                  loading={activityState.loading}
+                  onItemClick={handleActivityClick}
+                />
               </div>
             </Card>
           </div>

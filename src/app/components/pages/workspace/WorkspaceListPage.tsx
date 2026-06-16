@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import { Plus, Building2, Users, FolderOpen, MoreHorizontal, Trash2, Settings, RefreshCw } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
@@ -19,8 +19,9 @@ import { toast } from "sonner";
 
 export function WorkspaceListPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { profile } = useAuth();
-  const { workspaces, loading: loadingList, error, reload } = useWorkspaces();
+  const { workspaces, loading: loadingList, error, reload, setActiveWorkspace } = useWorkspaces();
   const { data: enriched, reload: reloadStats } = useAsyncData(
     () => enrichWorkspacesStats(workspaces),
     [workspaces],
@@ -32,6 +33,12 @@ export function WorkspaceListPage() {
   const [loading, setLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("create") === "1") {
+      setCreateOpen(true);
+    }
+  }, [searchParams]);
 
   function isWorkspaceOwner(ws: { ownerId: string }) {
     return Boolean(profile?.id && ws.ownerId === profile.id);
@@ -57,12 +64,14 @@ export function WorkspaceListPage() {
     if (!form.name.trim()) { toast.error("Workspace name is required"); return; }
     setLoading(true);
     try {
-      await workspaceApi.create(form);
+      const created = await workspaceApi.create(form);
       await reload();
       void reloadStats();
       setForm({ name: "", description: "" });
       setCreateOpen(false);
+      setActiveWorkspace(created.id);
       toast.success(`Workspace "${form.name}" created`);
+      navigate(`/workspaces/${created.id}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Unable to create workspace");
     } finally {
@@ -94,7 +103,7 @@ export function WorkspaceListPage() {
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {wsList.map(ws => (
-            <Card key={ws.id} className="p-5 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:shadow-md transition-shadow cursor-pointer group" onClick={() => navigate(`/workspaces/${ws.id}`)}>
+            <Card key={ws.id} className="p-5 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:shadow-md transition-shadow cursor-pointer group" onClick={() => { setActiveWorkspace(ws.id); navigate(`/workspaces/${ws.id}`); }}>
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-indigo-500 flex items-center justify-center text-white font-bold text-lg">{ws.name[0]}</div>

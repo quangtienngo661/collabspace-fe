@@ -1,6 +1,6 @@
-import { apiRequest } from "./httpClient";
+import { apiRequest, ApiError } from "./httpClient";
 import { apiStatusToUi, mapPreferences, mapUserProfile, mapUserSummary, uiStatusToApi } from "./mappers";
-import { cachedRequest } from "./requestCache";
+import { cachedRequest, invalidateCachedRequestPrefix } from "./requestCache";
 import type { AuthUser, User, UserPreferences, UserStatus } from "./types";
 
 async function fetchPresenceMap(userIds: string[]): Promise<Record<string, UserStatus>> {
@@ -30,14 +30,30 @@ export const usersApi = {
   },
 
   async uploadAvatar(file: File): Promise<User> {
-    const formData = new FormData();
-    formData.append("file", file);
+    async function send(retryOnUnauthorized: boolean) {
+      const formData = new FormData();
+      formData.append("file", file);
+      return mapUserProfile(
+        await apiRequest("/users/me/avatar", {
+          method: "POST",
+          body: formData,
+          retryOnUnauthorized,
+        }),
+      );
+    }
 
-    const result = await apiRequest("/users/me/avatar", {
-      method: "POST",
-      body: formData,
-    });
-    return mapUserProfile(result);
+    try {
+      const user = await send(true);
+      invalidateCachedRequestPrefix("users:");
+      return user;
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        const user = await send(false);
+        invalidateCachedRequestPrefix("users:");
+        return user;
+      }
+      throw error;
+    }
   },
 
   async preferences(): Promise<UserPreferences> {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import { Search, User as UserIcon, RefreshCw } from "lucide-react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
@@ -6,6 +7,7 @@ import { Card } from "../ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { usersApi } from "../../api/usersApi";
+import { useAuth } from "../../auth/AuthContext";
 import { UserAvatar } from "../shared/UserAvatar";
 import { RoleBadge } from "../shared/StatusBadge";
 import { EmptyState, ErrorState } from "../shared/EmptyState";
@@ -14,19 +16,33 @@ import { usePresenceMap } from "../../hooks/usePresenceMap";
 import type { User } from "../../api/types";
 
 export function UsersDirectoryPage() {
-  const [query, setQuery] = useState("");
+  const { isAdmin } = useAuth();
+  const [searchParams] = useSearchParams();
+  const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
   const [debounced, setDebounced] = useState("");
   const [selected, setSelected] = useState<User | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+
+  useEffect(() => {
+    const fromUrl = searchParams.get("q");
+    if (fromUrl) {
+      setQuery(fromUrl);
+      setDebounced(fromUrl.trim());
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const t = window.setTimeout(() => setDebounced(query.trim()), 300);
     return () => window.clearTimeout(t);
   }, [query]);
 
+  const hasQuery = debounced.length > 0;
+  const canBrowseAll = isAdmin && !hasQuery;
+
   const listState = useAsyncData(
-    () => (debounced ? usersApi.search(debounced, 50) : usersApi.list({ limit: 50 })),
-    [debounced],
+    () => (hasQuery ? usersApi.search(debounced, 50) : usersApi.list({ limit: 50 })),
+    [debounced, isAdmin],
+    { enabled: hasQuery || canBrowseAll },
   );
 
   const users = listState.data?.items ?? [];
@@ -51,7 +67,9 @@ export function UsersDirectoryPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">User directory</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Search and browse platform users</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {isAdmin ? "Search users or browse the full directory" : "Search by name or email to find users"}
+          </p>
         </div>
         <Button size="sm" variant="outline" className="gap-1.5" onClick={() => void listState.reload()}>
           <RefreshCw className="w-3.5 h-3.5" /> Refresh
@@ -71,7 +89,13 @@ export function UsersDirectoryPage() {
       {listState.error && <ErrorState title="Unable to load users" description={listState.error} />}
 
       <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
-        {listState.loading && users.length === 0 ? (
+        {!hasQuery && !canBrowseAll ? (
+          <EmptyState
+            icon={Search}
+            title="Search the directory"
+            description="Type a name or email above. Browsing all users requires a platform admin account."
+          />
+        ) : listState.loading && users.length === 0 ? (
           <div className="p-8 text-sm text-slate-500">Loading users...</div>
         ) : users.length === 0 ? (
           <EmptyState icon={UserIcon} title="No users found" description="Try a different search query." />

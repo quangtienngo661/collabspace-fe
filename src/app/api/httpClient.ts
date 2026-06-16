@@ -24,6 +24,12 @@ const DEFAULT_BASE_URL = "/api/v1";
 export const API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, "") || DEFAULT_BASE_URL;
 
+if (import.meta.env.DEV && /^https?:\/\//i.test(API_BASE_URL)) {
+  console.warn(
+    "[collabspace] VITE_API_BASE_URL is cross-origin. Use VITE_API_BASE_URL=/api/v1 and VITE_API_PROXY_TARGET instead to avoid CORS and spurious logouts.",
+  );
+}
+
 let refreshPromise: Promise<AuthSession> | null = null;
 
 function buildUrl(path: string): string {
@@ -68,11 +74,17 @@ async function parsePayload(response: Response): Promise<unknown> {
   return text.length ? text : null;
 }
 
+function logoutAfterRefreshFailure(): void {
+  clearStoredSession();
+  window.dispatchEvent(new Event("collabspace:session-expired"));
+}
+
 async function refreshSession(): Promise<AuthSession> {
   if (!refreshPromise) {
     const session = getStoredSession();
 
     if (!session?.refreshToken) {
+      logoutAfterRefreshFailure();
       throw new ApiError(401, "Session expired");
     }
 
@@ -91,10 +103,9 @@ async function refreshSession(): Promise<AuthSession> {
         return nextSession;
       })
       .catch(error => {
-        clearStoredSession();
-        window.dispatchEvent(new Event("collabspace:session-expired"));
-        if (!window.location.pathname.startsWith("/login")) {
-          window.location.assign("/login");
+        // Network/CORS errors must not wipe session — only explicit auth rejection.
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+          logoutAfterRefreshFailure();
         }
         throw error;
       })
@@ -125,16 +136,29 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     }
   }
 
-  const response = await fetch(buildUrl(path), {
-    ...init,
-    headers: requestHeaders,
-    body: requestBody,
-  });
+  let response: Response;
+  try {
+    response = await fetch(buildUrl(path), {
+      ...init,
+      headers: requestHeaders,
+      body: requestBody,
+    });
+  } catch (error) {
+    throw new ApiError(
+      0,
+      error instanceof Error ? error.message : "Network request failed",
+      error,
+    );
+  }
 
   const payload = await parsePayload(response);
 
   if (response.status === 401 && auth && retryOnUnauthorized) {
     await refreshSession();
+    // FormData body cannot be replayed after the first fetch attempt.
+    if (body instanceof FormData) {
+      throw new ApiError(401, "Session refreshed — retry the upload");
+    }
     return apiRequest<T>(path, { ...options, retryOnUnauthorized: false });
   }
 

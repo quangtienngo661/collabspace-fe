@@ -25,7 +25,8 @@ Tóm tắt mức độ **UI** đã phủ backend MVP. Chi tiết API: [fe-be-ali
 | Activity | **Done** | Workspace + task timelines |
 | Platform admin | **Done** | Roles, users, workspaces, broadcast, health |
 | Presence | **Done** | Poll `/users/presence` — members, Kanban, directory |
-| User directory | **Done** | `/users` — list, search, `GET /users/:id` drawer |
+| User directory | **Done** | `/users` — search-required for non-admin; admin browse-all; `?q=` deep link |
+| Workspace UX | **Done** | Active workspace context, project sidebar, ⌘K palette, onboarding home |
 | Idempotency | **Done** | Workspace create/invite, task create/assign |
 
 ## Còn lại (chờ BE)

@@ -56,7 +56,7 @@ export function MyProfilePage() {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get("tab") || "profile";
   const navigate = useNavigate();
-  const { authUser, profile, preferences, session, refresh, logout, setPreferences } = useAuth();
+  const { authUser, profile, preferences, session, refresh, logout, setPreferences, setProfile } = useAuth();
   const [activeTab, setActiveTab] = useState(defaultTab);
   const sessionsState = useAsyncData(() => authApi.sessions(), [], { enabled: activeTab === "sessions" });
   const currentUser = profile ?? fallbackUser(authUser?.email);
@@ -116,8 +116,8 @@ export function MyProfilePage() {
 
     try {
       setIsUploading(true);
-      await usersApi.uploadAvatar(file);
-      await refresh(true);
+      const updated = await usersApi.uploadAvatar(file);
+      setProfile(updated);
       toast.success("Avatar updated successfully");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to upload avatar");

@@ -7,6 +7,7 @@ import { Label } from "../../ui/label";
 import { Checkbox } from "../../ui/checkbox";
 import { toast } from "sonner";
 import { useAuth } from "../../../auth/AuthContext";
+import { workspaceApi } from "../../../api/workspaceApi";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -32,10 +33,19 @@ export function LoginPage() {
     if (Object.keys(e).length) { setErrors(e); return; }
     setLoading(true);
     try {
-      const isAdmin = await login(email, password);
+      await login(email, password);
       setLoading(false);
       toast.success("Welcome back");
-      navigate("/dashboard");
+      try {
+        const list = await workspaceApi.list();
+        if (list.length === 0) {
+          navigate("/workspaces?create=1");
+        } else {
+          navigate("/dashboard");
+        }
+      } catch {
+        navigate("/dashboard");
+      }
     } catch (error) {
       setLoading(false);
       toast.error(error instanceof Error ? error.message : "Unable to sign in");

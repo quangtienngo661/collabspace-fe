@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router";
-import { UserPlus, Trash2, MoreHorizontal, FolderOpen, Settings, Users, RefreshCw, ArrowLeft } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router";
+import { UserPlus, Trash2, MoreHorizontal, FolderOpen, Settings, Users, RefreshCw, ArrowLeft, Activity } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../ui/tabs";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
@@ -16,6 +16,7 @@ import { usersApi } from "../../../api/usersApi";
 import { RoleBadge } from "../../shared/StatusBadge";
 import { UserAvatar } from "../../shared/UserAvatar";
 import { EmptyState, ErrorState } from "../../shared/EmptyState";
+import { WorkspaceActivityFeed } from "../../shared/WorkspaceActivityFeed";
 import { ConfirmDialog } from "../../shared/ConfirmDialog";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 import { usePresenceMap } from "../../../hooks/usePresenceMap";
@@ -27,8 +28,10 @@ import { toast } from "sonner";
 export function WorkspaceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") ?? "members";
   const { profile } = useAuth();
-  const { reload: reloadWorkspaces } = useWorkspaces();
+  const { reload: reloadWorkspaces, setActiveWorkspace } = useWorkspaces();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("member");
@@ -61,6 +64,16 @@ export function WorkspaceDetailPage() {
     () => id ? workspaceApi.invitations(id) : Promise.resolve([]),
     [id],
   );
+
+  const activityState = useAsyncData(
+    () => (id ? workspaceApi.getActivity(id, 0, 20) : Promise.resolve({ items: [], total: 0 })),
+    [id],
+    { enabled: Boolean(id) },
+  );
+
+  useEffect(() => {
+    if (id) setActiveWorkspace(id);
+  }, [id, setActiveWorkspace]);
 
   const ws = workspaceState.data?.id === id ? workspaceState.data : null;
   const wsProjects = projectsState.data ?? [];
@@ -169,6 +182,14 @@ export function WorkspaceDetailPage() {
   }
 
   if (!ws && workspaceState.error) {
+    const denied =
+      workspaceState.error.toLowerCase().includes("forbidden")
+      || workspaceState.error.toLowerCase().includes("403")
+      || workspaceState.error.toLowerCase().includes("not a member");
+    if (denied) {
+      navigate("/403", { replace: true });
+      return null;
+    }
     return (
       <div className="p-6 space-y-4">
         <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/workspaces")}>
@@ -212,10 +233,11 @@ export function WorkspaceDetailPage() {
 
       {error && <ErrorState title="Some workspace data could not load" description={error} />}
 
-      <Tabs defaultValue="members">
+      <Tabs value={activeTab} onValueChange={value => setSearchParams({ tab: value }, { replace: true })}>
         <TabsList className="bg-slate-100 dark:bg-slate-800">
           <TabsTrigger value="members" className="gap-1.5"><Users className="w-3.5 h-3.5" />Members</TabsTrigger>
           <TabsTrigger value="projects" className="gap-1.5"><FolderOpen className="w-3.5 h-3.5" />Projects</TabsTrigger>
+          <TabsTrigger value="activity" className="gap-1.5"><Activity className="w-3.5 h-3.5" />Activity</TabsTrigger>
           <TabsTrigger value="settings" className="gap-1.5"><Settings className="w-3.5 h-3.5" />Settings</TabsTrigger>
         </TabsList>
 
@@ -287,6 +309,28 @@ export function WorkspaceDetailPage() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="activity" className="mt-4">
+          <Card className="p-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">Workspace activity</h2>
+            <WorkspaceActivityFeed
+              items={activityState.data?.items ?? []}
+              loading={activityState.loading}
+              onItemClick={item => {
+                const taskId =
+                  typeof item.meta?.taskId === "string"
+                    ? item.meta.taskId
+                    : typeof item.meta?.targetId === "string"
+                      ? item.meta.targetId
+                      : null;
+                const projectId = typeof item.meta?.projectId === "string" ? item.meta.projectId : null;
+                if (taskId && projectId && id) {
+                  navigate(`/workspaces/${id}/projects/${projectId}?task=${taskId}`);
+                }
+              }}
+            />
+          </Card>
         </TabsContent>
 
         <TabsContent value="settings" className="mt-4">

@@ -1,8 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { Search, Bell, ChevronRight, Menu, Sun, Moon, User, Settings, Key, LogOut, Monitor, ClipboardList, MessageSquare, Building2, AlertTriangle, type LucideIcon } from "lucide-react";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
@@ -16,42 +14,22 @@ import { workspaceApi } from "../../api/workspaceApi";
 import { navigateFromNotification } from "../../utils/notificationNavigation";
 import { usersApi } from "../../api/usersApi";
 import { useAsyncData } from "../../hooks/useAsyncData";
-import type { Notification, User as DomainUser, UserStatus } from "../../api/types";
+import type { Notification, UserStatus } from "../../api/types";
+import { buildBreadcrumbSegments } from "../../utils/breadcrumbs";
 import { timeAgo } from "../../utils/format";
-
-function isUuid(str: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
-}
-
-const ROUTE_MAP: Record<string, string> = {
-  dashboard: "Dashboard",
-  workspaces: "Workspaces",
-  projects: "Projects",
-  tasks: "Tasks",
-  notifications: "Notifications",
-  profile: "My Profile",
-  settings: "Settings",
-  admin: "Admin",
-  login: "Login",
-  register: "Register",
-  otp: "Verify Email",
-};
 
 interface TopBarProps {
   onMenuClick: () => void;
   dark: boolean;
   onToggleDark: () => void;
+  onOpenCommandPalette?: () => void;
 }
 
-export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
+export function TopBar({ onMenuClick, dark, onToggleDark, onOpenCommandPalette }: TopBarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { profile, logout, setProfile } = useAuth();
   const [notifOpen, setNotifOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchResults, setSearchResults] = useState<DomainUser[]>([]);
   
   const { getById: getWorkspaceById } = useWorkspaces();
   const { data: notifData, error: notifError, setData: setNotifs, unreadCount: unreadBadgeCount } = useNotifications();
@@ -68,43 +46,15 @@ export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
 
   const notifs = (notifData?.notifications ?? []).slice(0, 8);
 
-  useEffect(() => {
-    const query = searchQuery.trim();
-    if (!query) {
-      setSearchResults([]);
-      setSearchLoading(false);
-      return;
+  const breadcrumbSegments = buildBreadcrumbSegments(location.pathname, (id, index, segments) => {
+    const prev = segments[index - 1];
+    if (prev === "workspaces" || id === wsId) {
+      const ws = getWorkspaceById(id);
+      if (ws) return ws.name;
     }
-
-    const timer = window.setTimeout(() => {
-      void (async () => {
-        setSearchLoading(true);
-        try {
-          const result = await usersApi.search(query, 8);
-          setSearchResults(result.items);
-        } catch {
-          setSearchResults([]);
-        } finally {
-          setSearchLoading(false);
-        }
-      })();
-    }, 300);
-
-    return () => window.clearTimeout(timer);
-  }, [searchQuery]);
-
-  const breadcrumbs = location.pathname.split("/").filter(Boolean).map(p => {
-    if (ROUTE_MAP[p]) return ROUTE_MAP[p];
-    if (isUuid(p)) {
-      if (wsId === p) {
-        const ws = getWorkspaceById(p);
-        if (ws) return ws.name;
-      }
-      const proj = projects?.find(pr => pr.id === p);
-      if (proj) return proj.name;
-      return p.slice(0, 8) + "…";
-    }
-    return p.charAt(0).toUpperCase() + p.slice(1);
+    const proj = projects?.find(pr => pr.id === id);
+    if (proj) return proj.name;
+    return null;
   });
 
   async function markAllRead() {
@@ -153,68 +103,43 @@ export function TopBar({ onMenuClick, dark, onToggleDark }: TopBarProps) {
         <Menu className="w-4 h-4" />
       </button>
 
-      {/* Breadcrumbs */}
       <nav className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 flex-1 min-w-0">
-        {breadcrumbs.map((crumb, i) => (
-          <span key={i} className="flex items-center gap-1">
+        {breadcrumbSegments.map((crumb, i) => (
+          <span key={`${crumb.label}-${i}`} className="flex items-center gap-1 min-w-0">
             {i > 0 && <ChevronRight className="w-3 h-3 shrink-0" />}
-            <span className={cn("truncate", i === breadcrumbs.length - 1 ? "text-slate-900 dark:text-slate-100 font-medium" : "hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer")}>{crumb}</span>
+            {crumb.path ? (
+              <button
+                type="button"
+                onClick={() => navigate(crumb.path!)}
+                className="truncate hover:text-slate-700 dark:hover:text-slate-200"
+              >
+                {crumb.label}
+              </button>
+            ) : (
+              <span className="truncate text-slate-900 dark:text-slate-100 font-medium">{crumb.label}</span>
+            )}
           </span>
         ))}
       </nav>
 
-      {/* Global search */}
-      <Popover open={searchOpen} onOpenChange={setSearchOpen}>
-        <PopoverTrigger asChild>
-          <div className="hidden md:flex items-center relative">
-            <Search className="w-3.5 h-3.5 absolute left-2.5 text-slate-400 pointer-events-none" />
-            <Input
-              placeholder="Search users..."
-              className="pl-8 h-7 w-52 text-xs bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
-              value={searchQuery}
-              onChange={e => {
-                setSearchQuery(e.target.value);
-                setSearchOpen(true);
-              }}
-              onFocus={() => setSearchOpen(true)}
-            />
-          </div>
-        </PopoverTrigger>
-        <PopoverContent align="end" className="w-72 p-0">
-          <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-700">
-            <p className="text-xs font-medium text-slate-500">User search</p>
-          </div>
-          <div className="max-h-64 overflow-y-auto">
-            {searchLoading && (
-              <p className="px-3 py-4 text-xs text-slate-500">Searching...</p>
-            )}
-            {!searchLoading && !searchQuery.trim() && (
-              <p className="px-3 py-4 text-xs text-slate-500">Type a name or email</p>
-            )}
-            {!searchLoading && searchQuery.trim() && searchResults.length === 0 && (
-              <p className="px-3 py-4 text-xs text-slate-500">No users found</p>
-            )}
-            {searchResults.map(user => (
-              <button
-                key={user.id}
-                type="button"
-                className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
-                onClick={() => {
-                  setSearchOpen(false);
-                  setSearchQuery("");
-                  toast.message(user.name, { description: user.email ?? user.username ?? "No email" });
-                }}
-              >
-                <UserAvatar user={user} size="xs" />
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-slate-900 dark:text-slate-100 truncate">{user.name}</p>
-                  <p className="text-[10px] text-slate-400 truncate">{user.email}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
+      <button
+        type="button"
+        onClick={onOpenCommandPalette}
+        className="md:hidden p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500"
+        aria-label="Search"
+      >
+        <Search className="w-4 h-4" />
+      </button>
+
+      <button
+        type="button"
+        onClick={onOpenCommandPalette}
+        className="hidden md:flex items-center gap-2 h-7 px-2.5 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-750"
+      >
+        <Search className="w-3.5 h-3.5" />
+        <span>Search…</span>
+        <kbd className="ml-2 text-[10px] text-slate-400">⌘K</kbd>
+      </button>
 
       {/* Dark mode toggle */}
       <button onClick={onToggleDark} className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors">
