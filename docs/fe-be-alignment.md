@@ -9,7 +9,7 @@ Nguồn backend: [`docs/features.md`](../../collabspace/docs/features.md), [`doc
 **Trạng thái backend MVP:** Auth, User, Workspace, Task, Comment, Notification — **Done**  
 **Trạng thái Platform Admin API:** **Done** — xem [admin-backlog.md](../../collabspace/docs/team/admin-backlog.md)
 
-**Trạng thái FE (main):** Phase 2 ✅ · Phase 3 ✅ · Phase Admin ✅ · Phase 4 ✅ · Phase 5 ✅ · Phase 6 (USER-T1 pickers) ✅
+**Trạng thái FE (main):** Phase 2 ✅ · Phase 3 ✅ · Phase Admin ✅ · Phase 4 ✅ · Phase 5 ✅ · Phase 6 (USER-T1 pickers) ✅ · UX/Role gating ✅
 
 ---
 
@@ -17,21 +17,13 @@ Nguồn backend: [`docs/features.md`](../../collabspace/docs/features.md), [`doc
 
 | Mục | FE | BE | Ghi chú |
 |-----|----|----|---------|
-| Xóa workspace (owner) | ✅ `workspaceApi.delete` + UI | `DELETE /workspaces/:id` | Done P0 |
-| Idempotency-Key mutations | ✅ create workspace/invite/task/assign | Hỗ trợ | Done P1 |
-| Create task dueDate/labels | ✅ `CreateTaskModal` | `POST /tasks` | Done P1 |
-| Presence live | ✅ `usePresenceMap` poll 30s | `GET /users/presence` | Done P2 |
-| Comment thread `parentId` | ✅ `TaskComments` tree + reply | Done | Done P2 |
-| Priority filter Kanban | ✅ client filter + `taskApi.list` param | `?priority=` | Done P2 |
-| @mention autocomplete | ✅ `MentionCommentInput` | parse `@username` | Done P3 |
-| Notification polling | ✅ 45s `NotificationsContext` | list API | Done P3 |
-| User directory | ✅ `/users` page | `GET /users`, `/search`, `/:id` | Done P3 |
-| Archive notification | Disabled | Không có HTTP | Chờ BE |
-| Remove member / leave | ✅ owner UI | `DELETE .../members/:userId` | Done |
+| Archive notification | Disabled | Không có HTTP endpoint | Chờ BE |
 | Promote member → **manager** | Chưa có UI | `PATCH .../members/:userId` | **Planned** — xem [roles-and-permissions.md](../../collabspace/docs/roles-and-permissions.md) |
 | Gỡ permission khỏi role (admin) | Toast | Chỉ assign | Chờ BE |
 | `commentCount` Kanban | Không hiển thị | Board không trả field | Chờ BE hoặc N+1 |
 | List invitation của user | Manual ID + notifications | Chỉ list theo workspace | Chờ BE API |
+| Tab Workspaces admin | Chưa có UI | `GET/DELETE /workspaces/admin/*`, `force-join` | Planned |
+| Tab Broadcast admin | Chưa có UI | `POST /notifications/admin/broadcast` | Planned |
 
 **Không còn mismatch API nghiêm trọng** cho các endpoint end-user/admin đã expose.
 
@@ -50,15 +42,13 @@ Nguồn backend: [`docs/features.md`](../../collabspace/docs/features.md), [`doc
 
 ---
 
-## Phase 2 — Bug gây lỗi API (400)
+## Phase 2 — Bug gây lỗi API (400) ✅ Đã sửa
 
-Các flow **đang gọi BE nhưng body/request sai** → dễ trả `400 Bad Request` (`forbidNonWhitelisted: true`).
-
-| # | Vấn đề | File FE | Backend mong đợi | Cách sửa |
-|---|--------|---------|------------------|----------|
-| 2.1 | Resend OTP gửi `userId` | `src/app/api/authApi.ts`, `src/app/components/pages/auth/OtpPage.tsx` | `POST /api/v1/auth/resend-verification-otp` body `{ email }` | Đổi `resendVerificationOtp(email)`; gửi email từ `sessionStorage` (`collabspace.pendingVerificationEmail`) |
-| 2.2 | Profile save gửi field không hỗ trợ | `src/app/api/usersApi.ts`, `src/app/components/pages/profile/MyProfilePage.tsx` | `PATCH /api/v1/users/me` — chỉ `fullName`, `displayName`, `username`, `bio` | Bỏ `jobTitle`, `department`, `location`, `timezone` khỏi body; thêm input `username` (pattern `^[a-z0-9._-]+$`) |
-| 2.3 | Sửa task title gửi thừa `taskId` | `src/app/api/taskApi.ts`, `src/app/components/pages/task/TaskDetailSheet.tsx` | `PATCH /api/v1/tasks/:id/details` — `{ title, description?, priority?, dueDate?, labels? }` | Bỏ `taskId` khỏi body PATCH |
+| # | Vấn đề | Trạng thái |
+|---|--------|-----------|
+| 2.1 | Resend OTP gửi `userId` thay vì `email` | ✅ `authApi.resendVerificationOtp(email)` + `OtpPage` lấy email từ `sessionStorage.pendingVerificationEmail` |
+| 2.2 | Profile save gửi field thừa (`jobTitle`, `department`…) | ✅ `usersApi.updateMe` chỉ nhận `fullName, displayName, username, bio`; `MyProfilePage` gửi đúng 4 field |
+| 2.3 | Task edit gửi thừa `taskId` trong body | ✅ `taskApi.updateDetails` chỉ đặt taskId trong URL path, body sạch |
 
 ---
 
@@ -265,6 +255,12 @@ Admin-0 (adminApi) → Admin-1/2 (AdminPage RBAC + users) → Admin-3 (workspace
 | M2 | Activity API dùng `skip` | Đổi sang `offset` (workspace + task) |
 | M3 | Task activity parse `{ items, total }` + field BE | `mapActivityTimelineItem`, `TaskActivity.tsx` |
 | M4 | Dashboard activity field ảo (`user`, `action`) | Dùng `actorName`, `summary`, `occurredAt` |
+| M5 | Workspace role badge map `owner → admin` | `RoleBadge` nhận `"owner"` trực tiếp, amber badge riêng |
+| M6 | Task delete không gate creator | `canDeleteTask = profile.userId === task.creatorId` |
+| M7 | Project edit/delete không gate owner | `isOwner = workspace.ownerId === profile.userId` |
+| M8 | Due date hiển thị raw ISO string | `formatDueDate()` + `dueDateStatus()` in `format.ts` |
+| M9 | Kanban `+` button không pre-fill status | `createStatus` state + `onAdd(status: TaskStatus)` callback |
+| M10 | Invite dialog gửi role field không tồn tại | Bỏ `inviteRole` state và Select; chỉ gửi `email` |
 
 ---
 
