@@ -87,7 +87,7 @@ export function AdminPage() {
   const [workspaceSearch, setWorkspaceSearch] = useState("");
 
   // Helper check for protected roles
-  const isProtectedRole = (name: string) => ["admin", "member", "viewer"].includes(name.toLowerCase());
+  const isProtectedRole = (name: string) => ["admin", "user"].includes(name.toLowerCase());
 
   // Reload all datasets
   async function reloadAll() {

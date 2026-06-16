@@ -64,7 +64,8 @@ export function mapAuthUser(raw: AnyRecord): AuthUser {
 
 export function mapUserProfile(raw: AnyRecord, auth?: Partial<AuthUser>): User {
   const fullName = raw.fullName ?? raw.displayName ?? "Current User";
-  const role = ((auth?.role ?? auth?.roles?.[0] ?? "member") as Role) || "member";
+  const rawRole = auth?.role ?? auth?.roles?.[0];
+  const role: Role = rawRole === "admin" ? "admin" : "user";
   return {
     id: raw.userId ?? raw.id ?? auth?.userId ?? "",
     userId: raw.userId ?? raw.id ?? auth?.userId ?? "",

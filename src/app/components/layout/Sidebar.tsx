@@ -53,7 +53,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, isAdmin, profile } = useAuth();
-  const canCreateWorkspace = !isAdmin && profile?.role !== "viewer";
+  const canCreateWorkspace = !isAdmin;
   const { workspaces, activeWorkspace, setActiveWorkspace } = useWorkspaces();
 
   const projectsState = useAsyncData(
