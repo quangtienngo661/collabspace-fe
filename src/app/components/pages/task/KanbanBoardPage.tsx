@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from "react";
 import { useParams } from "react-router";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { Plus, List, Columns3, Search, Paperclip, RefreshCw } from "lucide-react";
+import { Plus, List, Columns3, Search, Paperclip, MessageSquare, RefreshCw } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
@@ -54,6 +54,12 @@ function KanbanCard({ task, onClick, presenceStatus }: { task: Task; onClick: ()
       </div>
       <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-2 text-slate-400">
+          {task.commentCount > 0 && (
+            <span className="flex items-center gap-0.5 text-[10px]">
+              <MessageSquare className="w-3 h-3" />
+              {task.commentCount}
+            </span>
+          )}
           {task.attachmentCount > 0 && <span className="flex items-center gap-0.5 text-[10px]"><Paperclip className="w-3 h-3" />{task.attachmentCount}</span>}
         </div>
         {assignee ? (

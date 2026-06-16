@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
-import { UserPlus, FolderOpen, Settings, Users, RefreshCw, ArrowLeft, Activity } from "lucide-react";
+import { UserPlus, FolderOpen, Settings, Users, RefreshCw, ArrowLeft, Activity, MoreHorizontal, Trash2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../ui/tabs";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../ui/dropdown-menu";
 import { workspaceApi } from "../../../api/workspaceApi";
 import { enrichProjectsTaskCounts } from "../../../api/clientStats";
 import { usersApi } from "../../../api/usersApi";
@@ -38,6 +39,9 @@ export function WorkspaceDetailPage() {
   const [saving, setSaving] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<{ userId: string; name: string } | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const [roleUpdatingUserId, setRoleUpdatingUserId] = useState<string | null>(null);
 
   const workspaceState = useAsyncData(async () => {
     if (!id) throw new Error("Workspace id is missing");
@@ -88,6 +92,68 @@ export function WorkspaceDetailPage() {
     if (ws?.ownerId === profile.id) return true;
     return members.some(m => m.userId === profile.id && m.role === "owner");
   }, [profile?.id, ws?.ownerId, members]);
+
+  const actorRole = useMemo(() => {
+    if (!profile?.id) return null;
+    const membership = members.find(m => m.userId === profile.id);
+    if (membership) return membership.role;
+    if (ws?.ownerId === profile.id) return "owner" as const;
+    return null;
+  }, [members, profile?.id, ws?.ownerId]);
+
+  const canManageMembers = actorRole === "owner" || actorRole === "admin";
+
+  function canChangeRole(target: { userId: string; role: string }) {
+    if (!canManageMembers || !profile?.id || !target.userId) return false;
+    if (target.role === "owner" || target.userId === profile.id) return false;
+    if (actorRole === "admin" && target.role === "admin") return false;
+    return true;
+  }
+
+  function canRemoveMember(target: { userId: string; role: string }) {
+    if (!target.userId || target.role === "owner") return false;
+    if (target.userId === profile?.id) return true;
+    if (!canManageMembers) return false;
+    if (actorRole === "admin" && target.role === "admin") return false;
+    return true;
+  }
+
+  async function handleRoleChange(targetUserId: string, role: "admin" | "member") {
+    if (!id) return;
+    setRoleUpdatingUserId(targetUserId);
+    try {
+      await workspaceApi.updateMemberRole(id, targetUserId, role);
+      await membersState.reload();
+      toast.success(`Role updated to ${role}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Unable to update member role");
+    } finally {
+      setRoleUpdatingUserId(null);
+    }
+  }
+
+  async function handleRemoveMember() {
+    if (!id || !removeTarget) return;
+    setRemoving(true);
+    try {
+      await workspaceApi.removeMember(id, removeTarget.userId);
+      const isSelf = removeTarget.userId === profile?.id;
+      if (isSelf) {
+        await reloadWorkspaces();
+        toast.success("You left the workspace");
+        setRemoveTarget(null);
+        navigate("/workspaces");
+        return;
+      }
+      await membersState.reload();
+      toast.success(`Removed ${removeTarget.name} from workspace`);
+      setRemoveTarget(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Unable to remove member");
+    } finally {
+      setRemoving(false);
+    }
+  }
 
   const memberRows = useMemo(() => {
     const regularMembers = members.map(member => {
@@ -271,7 +337,43 @@ export function WorkspaceDetailPage() {
                     </TableCell>
                     <TableCell><RoleBadge role={member.role} /></TableCell>
                     <TableCell><span className="text-xs capitalize text-slate-500">{member.user.status}</span></TableCell>
-                    <TableCell />
+                    <TableCell>
+                      {member.userId && (canChangeRole(member) || canRemoveMember(member)) ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="w-7 h-7"
+                              disabled={roleUpdatingUserId === member.userId}
+                            >
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {canChangeRole(member) && actorRole === "owner" && member.role !== "admin" && (
+                              <DropdownMenuItem onClick={() => void handleRoleChange(member.userId, "admin")}>
+                                Make admin
+                              </DropdownMenuItem>
+                            )}
+                            {canChangeRole(member) && member.role !== "member" && (
+                              <DropdownMenuItem onClick={() => void handleRoleChange(member.userId, "member")}>
+                                Make member
+                              </DropdownMenuItem>
+                            )}
+                            {canRemoveMember(member) && (
+                              <DropdownMenuItem
+                                onClick={() => setRemoveTarget({ userId: member.userId, name: member.user.name })}
+                                className="text-red-600 dark:text-red-400"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                {member.userId === profile?.id ? "Leave workspace" : "Remove member"}
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : null}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -368,6 +470,22 @@ export function WorkspaceDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(removeTarget)}
+        onOpenChange={open => { if (!open) setRemoveTarget(null); }}
+        title={removeTarget?.userId === profile?.id ? "Leave workspace?" : "Remove member?"}
+        description={
+          removeTarget
+            ? removeTarget.userId === profile?.id
+              ? "You will lose access to this workspace until invited again."
+              : `Remove "${removeTarget.name}" from this workspace?`
+            : ""
+        }
+        confirmLabel={removing ? "Removing..." : removeTarget?.userId === profile?.id ? "Leave" : "Remove"}
+        destructive
+        onConfirm={() => void handleRemoveMember()}
+      />
 
       <ConfirmDialog
         open={deleteOpen}

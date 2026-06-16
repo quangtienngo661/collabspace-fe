@@ -85,19 +85,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               ? workspaceApi.listProjects(activeWorkspace.id).catch(() => [] as Project[])
               : Promise.resolve([] as Project[]),
             activeWorkspace
-              ? taskApi
-                  .list({ workspaceId: activeWorkspace.id })
-                  .then(r => {
-                    const lower = q.toLowerCase();
-                    return r.tasks
-                      .filter(
-                        t =>
-                          t.title.toLowerCase().includes(lower)
-                          || (t.description ?? "").toLowerCase().includes(lower),
-                      )
-                      .slice(0, 8);
-                  })
-                  .catch(() => [] as Task[])
+              ? taskApi.search({ workspaceId: activeWorkspace.id, q, limit: 8 }).catch(() => [] as Task[])
               : Promise.resolve([] as Task[]),
           ]);
 

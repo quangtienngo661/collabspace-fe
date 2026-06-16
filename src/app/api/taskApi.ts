@@ -4,17 +4,38 @@ import { mapActivityTimelineItem, mapAttachment, mapComment, mapTask } from "./m
 import type { ActivityTimelineItem, Attachment, Comment, Task, TaskStatus } from "./types";
 
 export const taskApi = {
-  async list(params: { workspaceId: string; projectId?: string; status?: string; assigneeId?: string; priority?: string }): Promise<{ tasks: Task[]; total: number }> {
+  async list(params: {
+    workspaceId: string;
+    projectId?: string;
+    status?: string;
+    assigneeId?: string;
+    priority?: string;
+    q?: string;
+    skip?: number;
+    limit?: number;
+  }): Promise<{ tasks: Task[]; total: number }> {
     const search = new URLSearchParams({ workspaceId: params.workspaceId });
     if (params.projectId) search.set("projectId", params.projectId);
     if (params.status && params.status !== "all") search.set("status", params.status);
     if (params.assigneeId && params.assigneeId !== "all") search.set("assigneeId", params.assigneeId);
     if (params.priority && params.priority !== "all") search.set("priority", params.priority);
+    if (params.q?.trim()) search.set("q", params.q.trim());
+    if (params.skip != null) search.set("skip", String(params.skip));
+    if (params.limit != null) search.set("limit", String(params.limit));
     const result = await apiRequest<{ tasks: any[]; total: number }>(`/tasks?${search}`);
     return {
       tasks: (result.tasks ?? []).map(mapTask),
       total: result.total ?? 0,
     };
+  },
+
+  async search(params: { workspaceId: string; q: string; limit?: number }): Promise<Task[]> {
+    const result = await this.list({
+      workspaceId: params.workspaceId,
+      q: params.q,
+      limit: params.limit ?? 8,
+    });
+    return result.tasks;
   },
 
   async get(id: string): Promise<Task> {

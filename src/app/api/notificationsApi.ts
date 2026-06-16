@@ -36,10 +36,11 @@ async function available<T>(request: Promise<T>): Promise<T> {
 }
 
 export const notificationsApi = {
-  async list(params?: { skip?: number; limit?: number }): Promise<{ notifications: Notification[]; total: number; unreadCount: number }> {
+  async list(params?: { skip?: number; limit?: number; status?: "active" | "archived" }): Promise<{ notifications: Notification[]; total: number; unreadCount: number }> {
     const search = new URLSearchParams();
     if (params?.skip !== undefined) search.set("skip", params.skip.toString());
     if (params?.limit !== undefined) search.set("limit", params.limit.toString());
+    if (params?.status) search.set("status", params.status);
     const query = search.toString();
     const cacheKey = `notifications:list:${query || "default"}`;
 
@@ -60,6 +61,11 @@ export const notificationsApi = {
 
   async markAllRead(): Promise<void> {
     await apiRequest("/notifications/read-all", { method: "PATCH" });
+    invalidateCachedRequestPrefix("notifications:");
+  },
+
+  async archive(id: string): Promise<void> {
+    await apiRequest(`/notifications/${id}/archive`, { method: "PATCH" });
     invalidateCachedRequestPrefix("notifications:");
   },
 };

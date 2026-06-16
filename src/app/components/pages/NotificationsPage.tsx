@@ -54,6 +54,18 @@ function NotifItem({ n, onRefresh }: { n: Notification; onRefresh: () => void })
   const Icon = notificationIconMap[type] || Bell;
   const invitationId = getNotificationInvitationId(n);
 
+  async function handleArchive() {
+    try {
+      setLoading(true);
+      await notificationsApi.archive(n.id);
+      onRefresh();
+      toast.success("Notification archived");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to archive");
+      setLoading(false);
+    }
+  }
+
   async function handleMarkRead() {
     try {
       setLoading(true);
@@ -150,6 +162,16 @@ function NotifItem({ n, onRefresh }: { n: Notification; onRefresh: () => void })
               <Check className="size-3" /> Mark read
             </button>
           )}
+          {!n.archived && (
+            <button
+              type="button"
+              disabled={loading}
+              onClick={handleArchive}
+              className="flex cursor-pointer items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+            >
+              <Archive className="size-3" /> Archive
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -160,26 +182,32 @@ const PAGE_SIZE = 20;
 
 export function NotificationsPage() {
   const [typeFilter, setTypeFilter] = useState("all");
+  const [tab, setTab] = useState<"inbox" | "all" | "archived">("inbox");
   const [markAllLoading, setMarkAllLoading] = useState(false);
   const [page, setPage] = useState(0);
   useNotificationOpenTaskRedirect();
 
+  const listStatus = tab === "archived" ? "archived" : "active";
+
   const notificationsState = useAsyncData<{ notifications: Notification[]; total: number; unreadCount: number }>(
-    () => notificationsApi.list({ skip: page * PAGE_SIZE, limit: PAGE_SIZE }),
-    [page],
+    () => notificationsApi.list({ skip: page * PAGE_SIZE, limit: PAGE_SIZE, status: listStatus }),
+    [page, listStatus],
   );
   const notifs = notificationsState.data?.notifications ?? [];
   const total = notificationsState.data?.total ?? 0;
   const unreadCount = notificationsState.data?.unreadCount ?? 0;
-  const active = notifs.filter(n => !n.archived);
-  const archived = notifs.filter(n => n.archived);
-  const unread = active.filter(n => !n.read);
+  const unread = notifs.filter(n => !n.read);
   const pageStart = total === 0 ? 0 : page * PAGE_SIZE + 1;
   const pageEnd = Math.min((page + 1) * PAGE_SIZE, total);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   function filtered(list: Notification[]) {
     return list.filter(n => typeFilter === "all" || normalizedType(n.type) === typeFilter);
+  }
+
+  function handleTabChange(value: string) {
+    setTab(value as "inbox" | "all" | "archived");
+    setPage(0);
   }
 
   function handleTypeFilterChange(value: string) {
@@ -243,7 +271,7 @@ export function NotificationsPage() {
           className="rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"
         />
       ) : (
-        <Tabs defaultValue="inbox">
+        <Tabs value={tab} onValueChange={handleTabChange}>
           <TabsList className="bg-slate-100 dark:bg-slate-800">
             <TabsTrigger value="inbox">
               Inbox
@@ -265,17 +293,17 @@ export function NotificationsPage() {
 
           <TabsContent value="all" className="mt-4">
             <div className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
-              {filtered(active).length === 0 ? (
-                <EmptyState icon={Bell} title="No notifications" description="The backend returned no active notifications." />
-              ) : filtered(active).map(n => <NotifItem key={n.id} n={n} onRefresh={notificationsState.reload} />)}
+              {filtered(notifs).length === 0 ? (
+                <EmptyState icon={Bell} title="No notifications" description="You have no active notifications." />
+              ) : filtered(notifs).map(n => <NotifItem key={n.id} n={n} onRefresh={notificationsState.reload} />)}
             </div>
           </TabsContent>
 
           <TabsContent value="archived" className="mt-4">
             <div className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
-              {filtered(archived).length === 0 ? (
+              {filtered(notifs).length === 0 ? (
                 <EmptyState icon={Archive} title="No archived notifications" />
-              ) : filtered(archived).map(n => <NotifItem key={n.id} n={n} onRefresh={notificationsState.reload} />)}
+              ) : filtered(notifs).map(n => <NotifItem key={n.id} n={n} onRefresh={notificationsState.reload} />)}
             </div>
           </TabsContent>
 

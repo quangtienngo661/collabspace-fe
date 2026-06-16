@@ -17,11 +17,11 @@ Tóm tắt mức độ **UI** đã phủ backend MVP. Chi tiết API: [fe-be-ali
 |------|------------|---------|
 | Auth & sessions | **Done** | Login, register, OTP, password, sessions, logout-all |
 | Profile & preferences | **Done** | Avatar, username cho @mention |
-| Workspace & project | **Done** | CRUD, owner delete, members, invite |
+| Workspace & project | **Done** | CRUD, owner delete, members, invite, change role, remove member |
 | Task & board | **Done** | Board API, Kanban, priority filter, create w/ dueDate/labels |
 | Comments | **Done** | CRUD, threads, `@mention` autocomplete |
-| Notifications | **Partial** | List, mark read, 45s poll; archive **Disabled** |
-| Invitations | **Done** | Notifications + `/invitations` |
+| Notifications | **Done** | List, mark read, archive, 45s poll |
+| Invitations | **Done** | `GET /invitations/me` list + notifications + `/invitations` |
 | Activity | **Done** | Workspace + task timelines |
 | Platform admin | **Done** | Roles, users, workspaces, broadcast, health |
 | Presence | **Done** | Poll `/users/presence` — members, Kanban, directory |
@@ -31,10 +31,9 @@ Tóm tắt mức độ **UI** đã phủ backend MVP. Chi tiết API: [fe-be-ali
 
 ## Còn lại (chờ BE)
 
-- **Notification archive** — không có HTTP endpoint
-- **Đổi role / remove member** — không có end-user API
-- **List invitations by invitee** — chỉ list theo workspace admin
-- **commentCount** trên Kanban — board API không trả field
-- **Admin unassign permission** — BE chỉ assign
+- **List invitations by invitee** — Done (`GET /invitations/me`)
+- **Notification archive** — Done (`PATCH /notifications/:id/archive`)
+- **commentCount** trên Kanban — Done (board/list API)
+- **Server task search** — Done (`GET /tasks?q=`)
 
 Agent backlog chi tiết: [fe-be-alignment.md](./fe-be-alignment.md).

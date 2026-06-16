@@ -44,6 +44,43 @@ export const workspaceApi = {
     });
   },
 
+  async updateMemberRole(
+    workspaceId: string,
+    userId: string,
+    role: "admin" | "member",
+  ): Promise<WorkspaceMember> {
+    const member = mapWorkspaceMember(
+      await apiRequest(`/workspaces/${workspaceId}/members/${userId}`, {
+        method: "PATCH",
+        body: { role },
+      }),
+    );
+    invalidateCachedRequestPrefix(`workspaces:members:${workspaceId}`);
+    return member;
+  },
+
+  async removeMember(workspaceId: string, userId: string): Promise<void> {
+    await apiRequest(`/workspaces/${workspaceId}/members/${userId}`, {
+      method: "DELETE",
+    });
+    invalidateCachedRequestPrefix(`workspaces:members:${workspaceId}`);
+    invalidateCachedRequestPrefix("workspaces:list");
+  },
+
+  async listMyInvitations(): Promise<
+    { id: string; workspaceId: string; workspaceName: string | null; inviteeEmail: string; createdAt: string; expiresAt: string }[]
+  > {
+    const rows = await apiRequest<any[]>("/invitations/me");
+    return rows.map(row => ({
+      id: row.id,
+      workspaceId: row.workspaceId ?? row.workspace_id,
+      workspaceName: row.workspaceName ?? row.workspace_name ?? null,
+      inviteeEmail: row.inviteeEmail ?? row.invitee_email ?? row.email,
+      createdAt: row.createdAt ?? row.created_at,
+      expiresAt: row.expiresAt ?? row.expires_at,
+    }));
+  },
+
   async invitations(id: string): Promise<{ id: string; email: string; status: string; createdAt: string }[]> {
     const rows = await apiRequest<any[]>(`/workspaces/${id}/invitations`);
     return rows.map(row => ({

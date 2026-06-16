@@ -85,6 +85,24 @@ export function TopBar({ onMenuClick, dark, onToggleDark, onOpenCommandPalette }
 
   async function handleNotificationClick(notification: Notification) {
     setNotifOpen(false);
+    if (!notification.read) {
+      try {
+        await notificationsApi.markRead(notification.id);
+        setNotifs(prev =>
+          prev
+            ? {
+                ...prev,
+                notifications: prev.notifications.map(n =>
+                  n.id === notification.id ? { ...n, read: true } : n,
+                ),
+                unreadCount: Math.max(0, prev.unreadCount - 1),
+              }
+            : prev,
+        );
+      } catch {
+        // Navigation still proceeds if mark-read fails.
+      }
+    }
     await navigateFromNotification(navigate, notification);
   }
 
