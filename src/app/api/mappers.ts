@@ -9,7 +9,6 @@ import type {
   Attachment,
   AuthUser,
   Comment,
-  HealthResult,
   Notification,
   Priority,
   Project,
@@ -134,11 +133,16 @@ export function mapWorkspace(raw: AnyRecord): Workspace {
 }
 
 export function mapWorkspaceMember(raw: AnyRecord, profile?: User): WorkspaceMember {
+  const normalizedRole: WorkspaceMember["role"] =
+    raw.role === "owner" || raw.role === "manager" || raw.role === "member"
+      ? raw.role
+      : "member";
+
   return {
     id: raw.id ?? `${raw.workspace_id ?? raw.workspaceId}-${raw.user_id ?? raw.userId}`,
     workspaceId: raw.workspaceId ?? raw.workspace_id ?? "",
     userId: raw.userId ?? raw.user_id ?? "",
-    role: raw.role ?? "member",
+    role: normalizedRole,
     joinedAt: raw.joinedAt ?? raw.joined_at ?? "",
     profile,
   };
@@ -316,6 +320,21 @@ export function mapAdminPermission(raw: AnyRecord): AdminPermission {
   };
 }
 
+export function adminUserDisplayName(user: {
+  displayName?: string | null;
+  fullName?: string | null;
+  username?: string | null;
+  email: string;
+}): string {
+  return (
+    user.displayName
+    || user.fullName
+    || (user.username ? `@${user.username}` : "")
+    || user.email.split("@")[0]
+    || "User"
+  );
+}
+
 export function mapAdminAuthUser(raw: AnyRecord): AdminAuthUser {
   return {
     id: raw.id,
@@ -364,15 +383,5 @@ export function mapSession(raw: AnyRecord, currentRefreshToken?: string): Sessio
     lastActive: raw.lastUsedAt ?? raw.expiresAt ?? "",
     current: Boolean(currentRefreshToken && raw.tokenId && currentRefreshToken.includes(raw.tokenId)),
     isActive: Boolean(active),
-  };
-}
-
-export function mapHealth(name: string, startedAt: number, raw: AnyRecord): HealthResult {
-  return {
-    name,
-    status: raw?.status === "ok" ? "healthy" : "unknown",
-    message: raw?.status === "ok" ? "Service responded" : "Unknown response",
-    latency: Date.now() - startedAt,
-    lastCheck: new Date().toISOString(),
   };
 }

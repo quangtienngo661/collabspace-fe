@@ -1,4 +1,5 @@
 import { apiRequest } from "./httpClient";
+import { usersApi } from "./usersApi";
 import {
   mapAdminAuthUser,
   mapAdminPermission,
@@ -98,23 +99,50 @@ export const adminApi = {
 
   /** Merges auth-only fields (e.g. lastLoginAt) when missing from the aggregate DTO. */
   async listAllUsersEnriched(): Promise<AdminUserAggregate[]> {
-    const [aggregates, authUsers] = await Promise.all([
+    const [aggregateResult, authResult] = await Promise.allSettled([
       adminApi.listAllUsers(),
       adminApi.listAuthUsers(),
     ]);
+
+    const authUsers = authResult.status === "fulfilled" ? authResult.value : [];
     const authById = new Map(authUsers.map(user => [user.id, user]));
-    return aggregates.map(user => {
-      const auth = authById.get(user.id);
-      if (!auth) return user;
-      return {
-        ...user,
-        emailVerified: user.emailVerified ?? auth.emailVerified,
-        isActive: user.isActive ?? auth.isActive,
-        lastLoginAt: user.lastLoginAt ?? auth.lastLoginAt,
-        roles: user.roles.length > 0 ? user.roles : auth.roles,
-        createdAt: user.createdAt || auth.createdAt,
-      };
-    });
+
+    if (aggregateResult.status === "fulfilled") {
+      return aggregateResult.value.map(user => {
+        const auth = authById.get(user.id);
+        if (!auth) return user;
+        return {
+          ...user,
+          emailVerified: user.emailVerified ?? auth.emailVerified,
+          isActive: user.isActive ?? auth.isActive,
+          lastLoginAt: user.lastLoginAt ?? auth.lastLoginAt,
+          roles: user.roles.length > 0 ? user.roles : auth.roles,
+          createdAt: user.createdAt || auth.createdAt,
+        };
+      });
+    }
+
+    if (authUsers.length > 0) {
+      const profiles = await usersApi.bulk(authUsers.map(user => user.id)).catch(() => []);
+      const profileById = new Map(profiles.map(profile => [profile.id, profile]));
+      return authUsers.map(auth => {
+        const profile = profileById.get(auth.id);
+        return {
+          ...auth,
+          fullName: profile?.name ?? null,
+          displayName: profile?.displayName ?? null,
+          username: profile?.username ?? null,
+          avatarUrl: profile?.avatarUrl ?? null,
+          bio: profile?.bio ?? null,
+        };
+      });
+    }
+
+    throw aggregateResult.status === "rejected"
+      ? aggregateResult.reason
+      : authResult.status === "rejected"
+        ? authResult.reason
+        : new Error("Unable to load user accounts");
   },
 
   async deleteUser(id: string): Promise<void> {
@@ -128,13 +156,6 @@ export const adminApi = {
 
   async deleteWorkspace(id: string): Promise<void> {
     await apiRequest(`/workspaces/admin/${id}`, { method: "DELETE" });
-  },
-
-  async forceJoin(id: string, role: string, reason: string): Promise<void> {
-    await apiRequest(`/workspaces/admin/${id}/force-join`, {
-      method: "POST",
-      body: { role, reason },
-    });
   },
 
   async broadcast(title: string, message: string): Promise<AdminBroadcastResult> {

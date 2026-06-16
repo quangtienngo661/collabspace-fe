@@ -33,16 +33,16 @@ export function LoginPage() {
     if (Object.keys(e).length) { setErrors(e); return; }
     setLoading(true);
     try {
-      await login(email, password);
+      const isAdminUser = await login(email, password);
       setLoading(false);
       toast.success("Welcome back");
+      if (isAdminUser) {
+        navigate("/admin");
+        return;
+      }
       try {
         const list = await workspaceApi.list();
-        if (list.length === 0) {
-          navigate("/workspaces");
-        } else {
-          navigate("/dashboard");
-        }
+        navigate(list.length === 0 ? "/workspaces" : "/dashboard");
       } catch {
         navigate("/dashboard");
       }

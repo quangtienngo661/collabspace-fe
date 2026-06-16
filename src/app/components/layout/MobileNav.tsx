@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { NavLink, useNavigate, useLocation } from "react-router";
+import { NavLink, useNavigate } from "react-router";
 import {
   LayoutDashboard,
   Building2,
@@ -16,9 +15,15 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../ui/sheet";
 import { useWorkspaces } from "../../context/WorkspacesContext";
 import { useAuth } from "../../auth/AuthContext";
 
-const bottomItems = [
+const memberBottomItems = [
   { label: "Home", icon: LayoutDashboard, to: "/dashboard" },
   { label: "Workspaces", icon: Building2, to: "/workspaces" },
+  { label: "Notifs", icon: Bell, to: "/notifications" },
+  { label: "Profile", icon: User, to: "/profile" },
+];
+
+const adminBottomItems = [
+  { label: "Admin", icon: Shield, to: "/admin" },
   { label: "Notifs", icon: Bell, to: "/notifications" },
   { label: "Profile", icon: User, to: "/profile" },
 ];
@@ -32,17 +37,17 @@ interface MobileNavProps {
 export function MobileDrawer({ open, onClose, onOpenSearch }: MobileNavProps) {
   const { isAdmin } = useAuth();
   const { workspaces, activeWorkspace, setActiveWorkspace } = useWorkspaces();
-  const location = useLocation();
   const navigate = useNavigate();
 
-  const projectLink = activeWorkspace
-    ? `/workspaces/${activeWorkspace.id}/projects`
-    : "/workspaces";
-
-  const navItems = [
+  const memberNavItems = [
     { label: "Home", icon: LayoutDashboard, to: "/dashboard" },
     { label: "All workspaces", icon: Building2, to: "/workspaces" },
-    { label: "Projects", icon: FolderOpen, to: projectLink, requiresWorkspace: true },
+    {
+      label: "Projects",
+      icon: FolderOpen,
+      to: activeWorkspace ? `/workspaces/${activeWorkspace.id}/projects` : "/workspaces",
+      requiresWorkspace: true,
+    },
     { label: "Users", icon: Users, to: "/users" },
     { label: "Notifications", icon: Bell, to: "/notifications" },
     {
@@ -52,12 +57,15 @@ export function MobileDrawer({ open, onClose, onOpenSearch }: MobileNavProps) {
       requiresWorkspace: true,
     },
     { label: "Profile", icon: User, to: "/profile" },
-    ...(isAdmin ? [{ label: "Admin", icon: Shield, to: "/admin" }] : []),
   ];
 
-  function isProjectsActive(path: string) {
-    return path.includes("/projects");
-  }
+  const adminNavItems = [
+    { label: "Platform Admin", icon: Shield, to: "/admin" },
+    { label: "Notifications", icon: Bell, to: "/notifications" },
+    { label: "Profile", icon: User, to: "/profile" },
+  ];
+
+  const navItems = isAdmin ? adminNavItems : memberNavItems;
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
@@ -67,7 +75,14 @@ export function MobileDrawer({ open, onClose, onOpenSearch }: MobileNavProps) {
             <span className="w-7 h-7 rounded-lg bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
               CS
             </span>
-            CollabSpace
+            <span>
+              CollabSpace
+              {isAdmin && (
+                <span className="block text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                  Platform Admin
+                </span>
+              )}
+            </span>
           </SheetTitle>
         </SheetHeader>
 
@@ -88,39 +103,41 @@ export function MobileDrawer({ open, onClose, onOpenSearch }: MobileNavProps) {
           </div>
         )}
 
-        <div className="px-2 py-2 border-b border-slate-700/60">
-          <p className="text-xs text-slate-500 uppercase tracking-wider px-2 mb-1">Active workspace</p>
-          {workspaces.length === 0 ? (
-            <p className="px-2 text-xs text-slate-400">No workspace yet</p>
-          ) : (
-            workspaces.map(ws => (
-              <button
-                key={ws.id}
-                type="button"
-                onClick={() => {
-                  setActiveWorkspace(ws.id);
-                  navigate(`/workspaces/${ws.id}`);
-                  onClose();
-                }}
-                className={cn(
-                  "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors text-left",
-                  activeWorkspace?.id === ws.id
-                    ? "bg-blue-600 text-white"
-                    : "text-slate-300 hover:bg-slate-700/60",
-                )}
-              >
-                <span className="w-5 h-5 rounded bg-indigo-500/70 flex items-center justify-center text-white text-xs font-bold">
-                  {ws.name[0]}
-                </span>
-                {ws.name}
-              </button>
-            ))
-          )}
-        </div>
+        {!isAdmin && (
+          <div className="px-2 py-2 border-b border-slate-700/60">
+            <p className="text-xs text-slate-500 uppercase tracking-wider px-2 mb-1">Active workspace</p>
+            {workspaces.length === 0 ? (
+              <p className="px-2 text-xs text-slate-400">No workspace yet</p>
+            ) : (
+              workspaces.map(ws => (
+                <button
+                  key={ws.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveWorkspace(ws.id);
+                    navigate(`/workspaces/${ws.id}`);
+                    onClose();
+                  }}
+                  className={cn(
+                    "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors text-left",
+                    activeWorkspace?.id === ws.id
+                      ? "bg-blue-600 text-white"
+                      : "text-slate-300 hover:bg-slate-700/60",
+                  )}
+                >
+                  <span className="w-5 h-5 rounded bg-indigo-500/70 flex items-center justify-center text-white text-xs font-bold">
+                    {ws.name[0]}
+                  </span>
+                  {ws.name}
+                </button>
+              ))
+            )}
+          </div>
+        )}
 
         <nav className="px-2 py-3 space-y-0.5">
           {navItems.map(item => {
-            const disabled = item.requiresWorkspace && !activeWorkspace;
+            const disabled = "requiresWorkspace" in item && item.requiresWorkspace && !activeWorkspace;
             return (
               <NavLink
                 key={item.label}
@@ -133,7 +150,7 @@ export function MobileDrawer({ open, onClose, onOpenSearch }: MobileNavProps) {
                 className={({ isActive }) =>
                   cn(
                     "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
-                    (isActive || (item.label === "Projects" && isProjectsActive(location.pathname)))
+                    isActive
                       ? "bg-blue-600 text-white"
                       : "text-slate-400 hover:bg-slate-700/60 hover:text-slate-100",
                     disabled && "opacity-50 pointer-events-none",
@@ -152,6 +169,9 @@ export function MobileDrawer({ open, onClose, onOpenSearch }: MobileNavProps) {
 }
 
 export function BottomNav() {
+  const { isAdmin } = useAuth();
+  const bottomItems = isAdmin ? adminBottomItems : memberBottomItems;
+
   return (
     <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 flex">
       {bottomItems.map(item => (

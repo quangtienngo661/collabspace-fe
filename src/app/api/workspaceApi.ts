@@ -52,6 +52,19 @@ export const workspaceApi = {
     invalidateCachedRequestPrefix("workspaces:list");
   },
 
+  async updateMemberRole(
+    workspaceId: string,
+    userId: string,
+    input: { role: "manager" | "member" },
+  ): Promise<void> {
+    await apiRequest(`/workspaces/${workspaceId}/members/${userId}`, {
+      method: "PATCH",
+      body: input,
+    });
+    invalidateCachedRequestPrefix(`workspaces:members:${workspaceId}`);
+    invalidateCachedRequestPrefix("workspaces:list");
+  },
+
   async listMyInvitations(): Promise<
     { id: string; workspaceId: string; workspaceName: string | null; inviteeEmail: string; createdAt: string; expiresAt: string }[]
   > {

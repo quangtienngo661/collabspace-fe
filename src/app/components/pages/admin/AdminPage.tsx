@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router";
 import { 
   Check, 
   ShieldCheck, 
@@ -8,7 +9,6 @@ import {
   Trash2, 
   Plus, 
   Pencil,
-  Info, 
   Ban, 
   ShieldAlert, 
   RefreshCw, 
@@ -36,9 +36,17 @@ import { toast } from "sonner";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 import { adminApi } from "../../../api/adminApi";
 import { formatAdminApiError } from "../../../api/adminErrors";
+import { adminUserDisplayName } from "../../../api/mappers";
 import type { AdminRole, Role } from "../../../api/types";
 
+const ADMIN_TABS = ["roles", "users", "workspaces", "broadcast"] as const;
+
 export function AdminPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const activeTab = ADMIN_TABS.includes(tabParam as (typeof ADMIN_TABS)[number])
+    ? (tabParam as (typeof ADMIN_TABS)[number])
+    : "roles";
   // 1. Fetch data from backend admin API
   const rolesState = useAsyncData(() => adminApi.listRoles(), []);
   const permissionsState = useAsyncData(() => adminApi.listPermissions(), []);
@@ -65,10 +73,6 @@ export function AdminPage() {
   
   const [toggleActiveTarget, setToggleActiveTarget] = useState<{ id: string; name: string; isActive: boolean } | null>(null);
   const [deleteUserTarget, setDeleteUserTarget] = useState<{ id: string; name: string } | null>(null);
-
-  const [forceJoinTarget, setForceJoinTarget] = useState<{ id: string; name: string } | null>(null);
-  const [forceJoinReason, setForceJoinReason] = useState("");
-  const [joiningWorkspace, setJoiningWorkspace] = useState(false);
 
   const [deleteWorkspaceTarget, setDeleteWorkspaceTarget] = useState<{ id: string; name: string } | null>(null);
 
@@ -249,26 +253,6 @@ export function AdminPage() {
   }
 
   // --- TAB 3: Workspaces handlers ---
-  async function handleForceJoin() {
-    if (!forceJoinTarget) return;
-    if (!forceJoinReason.trim()) {
-      toast.error("Audit reason is required to force-join workspaces");
-      return;
-    }
-    try {
-      setJoiningWorkspace(true);
-      await adminApi.forceJoin(forceJoinTarget.id, "member", forceJoinReason);
-      toast.success(`Joined workspace '${forceJoinTarget.name}' as member`);
-      setForceJoinTarget(null);
-      setForceJoinReason("");
-      await workspacesState.reload();
-    } catch (err) {
-      toast.error(formatAdminApiError(err, "Unable to join workspace"));
-    } finally {
-      setJoiningWorkspace(false);
-    }
-  }
-
   async function handleDeleteWorkspace() {
     if (!deleteWorkspaceTarget) return;
     try {
@@ -309,9 +293,9 @@ export function AdminPage() {
   // Filter users
   const filteredUsers = (usersState.data ?? []).filter(u => {
     const search = userSearch.toLowerCase();
+    const label = adminUserDisplayName(u).toLowerCase();
     return (
-      (u.fullName || "").toLowerCase().includes(search) ||
-      (u.displayName || "").toLowerCase().includes(search) ||
+      label.includes(search) ||
       (u.email || "").toLowerCase().includes(search) ||
       (u.username || "").toLowerCase().includes(search)
     );
@@ -337,7 +321,12 @@ export function AdminPage() {
         </Button>
       }
     >
-      <Tabs defaultValue="roles">
+      <Tabs
+        value={activeTab}
+        onValueChange={value => {
+          setSearchParams(value === "roles" ? {} : { tab: value }, { replace: true });
+        }}
+      >
         <TabsList className="bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
           <TabsTrigger value="roles"><ShieldCheck className="mr-1.5 size-3.5" />Roles & Permissions</TabsTrigger>
           <TabsTrigger value="users"><Users className="mr-1.5 size-3.5" />User Accounts</TabsTrigger>
@@ -504,6 +493,7 @@ export function AdminPage() {
                       const userRoleName = user.roles?.[0] || "member";
                       const roleObj = roles.find(r => r.name === userRoleName);
                       const currentRoleId = roleObj?.id || "";
+                      const displayName = adminUserDisplayName(user);
 
                       return (
                         <TableRow key={user.id} className="border-slate-100 hover:bg-slate-50/20 dark:border-slate-700 dark:hover:bg-slate-900/10">
@@ -513,10 +503,10 @@ export function AdminPage() {
                                 user={{
                                   id: user.id,
                                   userId: user.id,
-                                  name: user.displayName || user.fullName || "User",
+                                  name: displayName,
                                   email: user.email,
                                   avatarUrl: user.avatarUrl,
-                                  role: "member",
+                                  role: userRoleName as Role,
                                   status: "offline",
                                   joinedAt: "",
                                 }}
@@ -524,7 +514,7 @@ export function AdminPage() {
                               />
                               <div>
                                 <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                                  {user.displayName || user.fullName || "User"}
+                                  {displayName}
                                 </p>
                                 {user.username && (
                                   <p className="text-[10px] text-slate-400 font-mono">@{user.username}</p>
@@ -609,7 +599,7 @@ export function AdminPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 shadow-xs">
             <div>
               <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Active Workspace Directory</p>
-              <p className="text-xs text-slate-400">Perform auditing force-joins and deletions on platform workspaces.</p>
+              <p className="text-xs text-slate-400">View platform workspace statistics and perform force-deletions when required.</p>
             </div>
             <div className="relative w-full sm:max-w-xs">
               <Input
@@ -669,24 +659,14 @@ export function AdminPage() {
                           {ws.createdAt ? new Date(ws.createdAt).toLocaleDateString() : "N/A"}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="xs"
-                              variant="outline"
-                              className="text-xs h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/20"
-                              onClick={() => setForceJoinTarget({ id: ws.id, name: ws.name })}
-                            >
-                              Join Admin
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
-                              onClick={() => setDeleteWorkspaceTarget({ id: ws.id, name: ws.name })}
-                            >
-                              <Trash2 className="size-3.5" />
-                            </Button>
-                          </div>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
+                            onClick={() => setDeleteWorkspaceTarget({ id: ws.id, name: ws.name })}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))
@@ -860,42 +840,6 @@ export function AdminPage() {
             </DialogClose>
             <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleUpdateRole} disabled={updatingRole}>
               {updatingRole ? "Saving..." : "Save Changes"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* DIALOG: Force Join Workspace */}
-      <Dialog open={!!forceJoinTarget} onOpenChange={(open) => { if (!open) setForceJoinTarget(null); }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Force Join Workspace</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/20 p-2.5 rounded-lg border border-amber-200/50">
-              <Info className="size-4 text-amber-500 shrink-0 mt-0.5" />
-              <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
-                You are forcing yourself into the workspace <strong>{forceJoinTarget?.name}</strong> as an <strong>Admin</strong>. 
-                This bypasses membership invitations and will be logged.
-              </p>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="join-reason" className="text-xs font-semibold">Audit Justification / Reason</Label>
-              <Textarea
-                id="join-reason"
-                placeholder="Compliance audit of workspace projects"
-                value={forceJoinReason}
-                onChange={e => setForceJoinReason(e.target.value)}
-                rows={3}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="ghost" size="sm">Cancel</Button>
-            </DialogClose>
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleForceJoin} disabled={joiningWorkspace}>
-              {joiningWorkspace ? "Joining..." : "Force Join"}
             </Button>
           </DialogFooter>
         </DialogContent>

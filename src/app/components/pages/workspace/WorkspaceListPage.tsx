@@ -20,7 +20,8 @@ import { toast } from "sonner";
 export function WorkspaceListPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { profile } = useAuth();
+  const { profile, isAdmin } = useAuth();
+  const canCreateWorkspace = !isAdmin && profile?.role !== "viewer";
   const { workspaces, loading: loadingList, error, reload, setActiveWorkspace } = useWorkspaces();
   const { data: enriched, reload: reloadStats } = useAsyncData(
     () => enrichWorkspacesStats(workspaces),
@@ -99,16 +100,18 @@ export function WorkspaceListPage() {
           <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { void reload(); void reloadStats(); }}>
             <RefreshCw className="w-3.5 h-3.5" /> Refresh
           </Button>
-          <Button size="sm" className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setCreateOpen(true)}>
-            <Plus className="w-3.5 h-3.5" /> New Workspace
-          </Button>
+          {canCreateWorkspace && (
+            <Button size="sm" className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setCreateOpen(true)}>
+              <Plus className="w-3.5 h-3.5" /> New Workspace
+            </Button>
+          )}
         </div>
       </div>
 
       {error ? (
         <ErrorState title="Unable to load workspaces" description={error} />
       ) : wsList.length === 0 && !loadingList ? (
-        <EmptyState icon={Building2} title="No workspaces yet" description="Create your first workspace to start collaborating." action={{ label: "New Workspace", onClick: () => setCreateOpen(true) }} />
+        <EmptyState icon={Building2} title="No workspaces yet" description="Create your first workspace to start collaborating." action={canCreateWorkspace ? { label: "New Workspace", onClick: () => setCreateOpen(true) } : undefined} />
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {wsList.map(ws => (
@@ -150,10 +153,12 @@ export function WorkspaceListPage() {
             </Card>
           ))}
 
-          <button onClick={() => setCreateOpen(true)} className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-5 flex flex-col items-center justify-center gap-2 hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors text-slate-400 hover:text-blue-500">
-            <Building2 className="w-8 h-8" />
-            <span className="text-sm font-medium">Create new workspace</span>
-          </button>
+          {canCreateWorkspace && (
+            <button onClick={() => setCreateOpen(true)} className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-5 flex flex-col items-center justify-center gap-2 hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors text-slate-400 hover:text-blue-500">
+              <Building2 className="w-8 h-8" />
+              <span className="text-sm font-medium">Create new workspace</span>
+            </button>
+          )}
         </div>
       )}
 

@@ -1,7 +1,6 @@
 export * from "./adminApi";
 export * from "./adminErrors";
 export * from "./authApi";
-export * from "./healthApi";
 export * from "./httpClient";
 export * from "./notificationsApi";
 export * from "./taskApi";

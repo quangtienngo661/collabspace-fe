@@ -79,6 +79,8 @@ export function DashboardPage() {
   const tasks = tasksState.data ?? [];
   const projects = projectsState.data ?? [];
   const notifications = notifData?.notifications ?? [];
+  const currentUserRole = (membersState.data ?? []).find((m) => m.userId === profile?.id)?.role ?? null;
+  const canDeleteAnyTask = currentUserRole === "owner" || currentUserRole === "manager";
   const inviteNotifications = (notifData?.notifications ?? []).filter(
     n => getNotificationInvitationId(n) && !n.archived,
   );
@@ -316,6 +318,7 @@ export function DashboardPage() {
           onClose={() => setSelectedTask(null)}
           onUpdated={handleTaskUpdated}
           onDeleted={handleTaskDeleted}
+          canDeleteAnyTask={canDeleteAnyTask}
         />
       )}
     </div>

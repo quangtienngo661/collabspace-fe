@@ -16,11 +16,23 @@ import { KanbanBoardPage } from "./components/pages/task/KanbanBoardPage";
 import { NotificationsPage } from "./components/pages/NotificationsPage";
 import { MyProfilePage } from "./components/pages/profile/MyProfilePage";
 import { AdminPage } from "./components/pages/admin/AdminPage";
-import { HealthPage } from "./components/pages/admin/HealthPage";
 import { InvitationsPage } from "./components/pages/InvitationsPage";
 import { UsersDirectoryPage } from "./components/pages/UsersDirectoryPage";
 import { ForbiddenPage, NotFoundPage } from "./components/pages/ErrorPages";
-import { AdminRoute, AuthProvider, ProtectedRoute } from "./auth/AuthContext";
+import { AdminRoute, AuthProvider, CollaborationRoute, ProtectedRoute, useAuth } from "./auth/AuthContext";
+
+function HomeRedirect() {
+  const { isAdmin } = useAuth();
+  return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
+}
+
+function UsersDirectoryRoute() {
+  const { isAdmin } = useAuth();
+  if (isAdmin) {
+    return <Navigate to="/admin?tab=users" replace />;
+  }
+  return <UsersDirectoryPage />;
+}
 
 export default function App() {
   const [dark, setDark] = useState(() => {
@@ -52,18 +64,17 @@ export default function App() {
 
         {/* App routes (with sidebar) */}
         <Route element={<ProtectedRoute><AppShell dark={dark} onToggleDark={() => setDark(d => !d)} /></ProtectedRoute>}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/workspaces" element={<WorkspaceListPage />} />
-          <Route path="/workspaces/:id" element={<WorkspaceDetailPage />} />
-          <Route path="/workspaces/:id/projects" element={<ProjectListPage />} />
-          <Route path="/workspaces/:id/projects/:pid" element={<KanbanBoardPage />} />
+          <Route index element={<HomeRedirect />} />
+          <Route path="/dashboard" element={<CollaborationRoute><DashboardPage /></CollaborationRoute>} />
+          <Route path="/workspaces" element={<CollaborationRoute><WorkspaceListPage /></CollaborationRoute>} />
+          <Route path="/workspaces/:id" element={<CollaborationRoute><WorkspaceDetailPage /></CollaborationRoute>} />
+          <Route path="/workspaces/:id/projects" element={<CollaborationRoute><ProjectListPage /></CollaborationRoute>} />
+          <Route path="/workspaces/:id/projects/:pid" element={<CollaborationRoute><KanbanBoardPage /></CollaborationRoute>} />
           <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/users" element={<UsersDirectoryPage />} />
-          <Route path="/invitations" element={<InvitationsPage />} />
+          <Route path="/users" element={<UsersDirectoryRoute />} />
+          <Route path="/invitations" element={<CollaborationRoute><InvitationsPage /></CollaborationRoute>} />
           <Route path="/profile" element={<MyProfilePage />} />
           <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
-          <Route path="/admin/health" element={<AdminRoute><HealthPage /></AdminRoute>} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

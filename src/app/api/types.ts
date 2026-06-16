@@ -1,5 +1,5 @@
 export type Role = "admin" | "member" | "viewer";
-export type WorkspaceRole = "owner" | "member";
+export type WorkspaceRole = "owner" | "manager" | "member";
 export type UserStatus = "online" | "away" | "busy" | "offline";
 export type ApiUserStatus = "online" | "away" | "dnd" | "offline";
 export type TaskStatus = "TODO" | "DOING" | "DONE";
@@ -187,14 +187,6 @@ export interface Session {
   lastActive: string;
   current: boolean;
   isActive: boolean;
-}
-
-export interface HealthResult {
-  name: string;
-  status: "healthy" | "down" | "unknown";
-  message: string;
-  latency: number | null;
-  lastCheck: string;
 }
 
 export interface AdminRole {

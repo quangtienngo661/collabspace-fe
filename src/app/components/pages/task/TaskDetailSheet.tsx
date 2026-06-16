@@ -27,6 +27,8 @@ interface TaskDetailSheetProps {
   onClose: () => void;
   onUpdated: (task: Task) => void;
   onDeleted?: (taskId: string) => void;
+  /** Owner / manager can delete any task, not just their own. */
+  canDeleteAnyTask?: boolean;
 }
 
 const UNASSIGNED_VALUE = "unassigned";
@@ -45,9 +47,9 @@ function fromDatetimeLocalValue(value: string): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
-export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted }: TaskDetailSheetProps) {
+export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted, canDeleteAnyTask }: TaskDetailSheetProps) {
   const { profile } = useAuth();
-  const canDeleteTask = Boolean(profile?.userId && profile.userId === task.creatorId);
+  const canDeleteTask = canDeleteAnyTask || Boolean(profile?.id && profile.id === task.creatorId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleVal, setTitleVal] = useState(task.title);

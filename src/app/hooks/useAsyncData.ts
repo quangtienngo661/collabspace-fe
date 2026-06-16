@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type DependencyList, type Dispatch, type SetStateAction } from "react";
+import { formatApiError } from "../api/adminErrors";
 
 export interface AsyncDataState<T> {
   data: T | null;
@@ -33,7 +34,7 @@ export function useAsyncData<T>(
     try {
       setData(await loader());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load data");
+      setError(formatApiError(err, "Unable to load data"));
     } finally {
       setLoading(false);
     }

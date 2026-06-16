@@ -18,10 +18,12 @@ import { cn } from "../../ui/utils";
 import { taskApi } from "../../../api/taskApi";
 import { workspaceApi } from "../../../api/workspaceApi";
 import { useWorkspaceMemberUsers } from "../../../hooks/useWorkspaceMemberUsers";
+import { useCurrentWorkspaceRole } from "../../../hooks/useCurrentWorkspaceRole";
 import { initials } from "../../../api/mappers";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 import { useTaskDeepLink } from "../../../hooks/useTaskDeepLink";
 import { usePresenceMap } from "../../../hooks/usePresenceMap";
+import { useAuth } from "../../../auth/AuthContext";
 import type { Task, TaskStatus, UserStatus } from "../../../api/types";
 
 const COLUMNS: { status: TaskStatus; label: string; color: string }[] = [
@@ -150,6 +152,7 @@ function KanbanColumn({ status, label, color, tasks, presenceMap, onDrop, onCard
 
 export function KanbanBoardPage() {
   const { id: wsId, pid } = useParams<{ id: string; pid: string }>();
+  const { profile } = useAuth();
   const [createOpen, setCreateOpen] = useState(false);
   const [createStatus, setCreateStatus] = useState<TaskStatus>("TODO");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -169,6 +172,9 @@ export function KanbanBoardPage() {
     () => wsId ? taskApi.getBoard({ workspaceId: wsId, projectId: pid }) : Promise.resolve([]),
     [wsId, pid],
   );
+
+  const currentUserRole = useCurrentWorkspaceRole(wsId, profile?.id);
+  const canDeleteAnyTask = currentUserRole === "owner" || currentUserRole === "manager";
 
   const usersState = useWorkspaceMemberUsers(wsId, Boolean(wsId));
   const users = (usersState.data ?? []).map(u => ({ userId: u.id, name: u.name }));
@@ -309,7 +315,7 @@ export function KanbanBoardPage() {
         <CreateTaskModal open={createOpen} onClose={() => setCreateOpen(false)} projectId={pid ?? null} workspaceId={wsId || ""} onCreated={handleTaskCreated} initialStatus={createStatus} />
 
         {selectedTask && (
-          <TaskDetailSheet task={selectedTask} open={!!selectedTask} onClose={() => setSelectedTask(null)} onUpdated={handleTaskUpdated} onDeleted={handleTaskDeleted} />
+          <TaskDetailSheet task={selectedTask} open={!!selectedTask} onClose={() => setSelectedTask(null)} onUpdated={handleTaskUpdated} onDeleted={handleTaskDeleted} canDeleteAnyTask={canDeleteAnyTask} />
         )}
       </div>
     </DndProvider>

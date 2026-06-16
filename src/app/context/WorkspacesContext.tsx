@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { workspaceApi } from "../api/workspaceApi";
+import { useAuth } from "../auth/AuthContext";
 import { useAsyncData } from "../hooks/useAsyncData";
 import type { Workspace } from "../api/types";
 import { readStoredActiveWorkspaceId, writeStoredActiveWorkspaceId } from "../utils/activeWorkspaceStorage";
@@ -27,7 +28,8 @@ interface WorkspacesContextValue {
 const WorkspacesContext = createContext<WorkspacesContextValue | null>(null);
 
 export function WorkspacesProvider({ children }: { children: ReactNode }) {
-  const state = useAsyncData(() => workspaceApi.list(), []);
+  const { isAdmin } = useAuth();
+  const state = useAsyncData(() => workspaceApi.list(), [], { enabled: !isAdmin });
   const workspaces = state.data ?? [];
   const [activeWorkspaceId, setActiveWorkspaceIdState] = useState<string | null>(() =>
     readStoredActiveWorkspaceId(),

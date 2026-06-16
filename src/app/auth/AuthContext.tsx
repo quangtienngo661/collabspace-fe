@@ -210,6 +210,20 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+export function CollaborationRoute({ children }: { children: ReactNode }) {
+  const { loading, isAdmin } = useAuth();
+
+  if (loading) {
+    return <div className="flex min-h-screen items-center justify-center bg-slate-950 text-sm text-slate-300">Loading session...</div>;
+  }
+
+  if (isAdmin) {
+    return <Navigate to="/admin" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 export function AdminRoute({ children }: { children: ReactNode }) {
   const { session, loading, isAdmin } = useAuth();
   const location = useLocation();

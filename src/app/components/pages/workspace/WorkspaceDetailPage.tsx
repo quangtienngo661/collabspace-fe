@@ -37,8 +37,13 @@ export function WorkspaceDetailPage() {
   const [saving, setSaving] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [removeTarget, setRemoveTarget] = useState<{ userId: string; name: string } | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<{
+    userId: string;
+    name: string;
+    role: WorkspaceMember["role"];
+  } | null>(null);
   const [removing, setRemoving] = useState(false);
+  const [updatingRoleUserId, setUpdatingRoleUserId] = useState<string | null>(null);
 
   const workspaceState = useAsyncData(async () => {
     if (!id) throw new Error("Workspace id is missing");
@@ -90,10 +95,25 @@ export function WorkspaceDetailPage() {
     return members.some(m => m.userId === profile.id && m.role === "owner");
   }, [profile?.id, ws?.ownerId, members]);
 
-  function canRemoveMember(target: { userId: string; role: string }) {
+  const isManager = useMemo(() => {
+    if (!profile?.id) return false;
+    if (ws?.ownerId === profile.id) return false;
+    return members.some(m => m.userId === profile.id && m.role === "manager");
+  }, [profile?.id, ws?.ownerId, members]);
+
+  function canRemoveMember(target: { userId: string; role: WorkspaceMember["role"] }) {
     if (!target.userId || target.role === "owner") return false;
-    if (target.userId === profile?.id) return true;
-    return isOwner;
+
+    // Self leave is allowed for manager/member (but backend blocks owner).
+    if (target.userId === profile?.id) return !isOwner;
+
+    // Owner can remove anyone except owner.
+    if (isOwner) return true;
+
+    // Manager can remove only members.
+    if (isManager) return target.role === "member";
+
+    return false;
   }
 
   async function handleRemoveMember() {
@@ -116,6 +136,24 @@ export function WorkspaceDetailPage() {
       toast.error(err instanceof Error ? err.message : "Unable to remove member");
     } finally {
       setRemoving(false);
+    }
+  }
+
+  async function handleUpdateMemberRole(targetUserId: string, nextRole: "manager" | "member") {
+    if (!id) return;
+    setUpdatingRoleUserId(targetUserId);
+    try {
+      await workspaceApi.updateMemberRole(id, targetUserId, { role: nextRole });
+      await membersState.reload();
+      toast.success(
+        nextRole === "manager"
+          ? "Promoted to manager"
+          : "Demoted to member",
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Unable to update member role");
+    } finally {
+      setUpdatingRoleUserId(null);
     }
   }
 
@@ -274,7 +312,7 @@ export function WorkspaceDetailPage() {
           <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex gap-0 flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700">
               <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{memberRows.length} Members</span>
-              {isOwner && (
+              {(isOwner || isManager) && (
                 <Button size="sm" className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setInviteOpen(true)}>
                   <UserPlus className="w-3.5 h-3.5" /> Invite
                 </Button>
@@ -316,12 +354,40 @@ export function WorkspaceDetailPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            {isOwner && member.role === "member" && (
+                              <DropdownMenuItem
+                                onClick={() => void handleUpdateMemberRole(member.userId, "manager")}
+                                disabled={updatingRoleUserId === member.userId}
+                              >
+                                Make manager
+                              </DropdownMenuItem>
+                            )}
+
+                            {isOwner && member.role === "manager" && (
+                              <DropdownMenuItem
+                                onClick={() => void handleUpdateMemberRole(member.userId, "member")}
+                                disabled={updatingRoleUserId === member.userId}
+                              >
+                                Demote to member
+                              </DropdownMenuItem>
+                            )}
+
                             <DropdownMenuItem
-                              onClick={() => setRemoveTarget({ userId: member.userId, name: member.user.name })}
+                              onClick={() =>
+                                setRemoveTarget({
+                                  userId: member.userId,
+                                  name: member.user.name,
+                                  role: member.role,
+                                })
+                              }
                               className="text-red-600 dark:text-red-400"
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
-                              {member.userId === profile?.id ? "Leave workspace" : "Remove member"}
+                              {member.userId === profile?.id
+                                ? "Leave workspace"
+                                : member.role === "manager"
+                                  ? "Remove manager"
+                                  : "Remove member"}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -377,14 +443,19 @@ export function WorkspaceDetailPage() {
 
         <TabsContent value="settings" className="mt-4">
           <Card className="p-6 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 space-y-4">
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Workspace Settings</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Workspace Settings</h2>
+              {!isOwner && (
+                <span className="text-xs text-slate-400 italic">Only the workspace owner can edit settings</span>
+              )}
+            </div>
             <div className="space-y-1.5">
               <Label>Workspace Name</Label>
-              <Input value={settings.name} onChange={event => setSettings(prev => ({ ...prev, name: event.target.value }))} />
+              <Input value={settings.name} onChange={event => setSettings(prev => ({ ...prev, name: event.target.value }))} disabled={!isOwner} />
             </div>
             <div className="space-y-1.5">
               <Label>Description</Label>
-              <Input value={settings.description} onChange={event => setSettings(prev => ({ ...prev, description: event.target.value }))} />
+              <Input value={settings.description} onChange={event => setSettings(prev => ({ ...prev, description: event.target.value }))} disabled={!isOwner} />
             </div>
             <div className="pt-2 flex gap-2 flex-wrap">
               <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={saveSettings} disabled={saving || !isOwner}>{saving ? "Saving..." : "Save Changes"}</Button>
@@ -417,7 +488,13 @@ export function WorkspaceDetailPage() {
       <ConfirmDialog
         open={Boolean(removeTarget)}
         onOpenChange={open => { if (!open) setRemoveTarget(null); }}
-        title={removeTarget?.userId === profile?.id ? "Leave workspace?" : "Remove member?"}
+        title={
+          removeTarget?.userId === profile?.id
+            ? "Leave workspace?"
+            : removeTarget?.role === "manager"
+              ? "Remove manager?"
+              : "Remove member?"
+        }
         description={
           removeTarget
             ? removeTarget.userId === profile?.id
@@ -425,7 +502,15 @@ export function WorkspaceDetailPage() {
               : `Remove "${removeTarget.name}" from this workspace?`
             : ""
         }
-        confirmLabel={removing ? "Removing..." : removeTarget?.userId === profile?.id ? "Leave" : "Remove"}
+        confirmLabel={
+          removing
+            ? "Removing..."
+            : removeTarget?.userId === profile?.id
+              ? "Leave"
+              : removeTarget?.role === "manager"
+                ? "Remove manager"
+                : "Remove"
+        }
         destructive
         onConfirm={() => void handleRemoveMember()}
       />
