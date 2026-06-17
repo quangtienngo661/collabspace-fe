@@ -23,6 +23,14 @@ import { useAuth } from "../../../auth/AuthContext";
 import { useWorkspaces } from "../../../context/WorkspacesContext";
 import type { WorkspaceMember } from "../../../api/types";
 import { toast } from "sonner";
+import { timeAgo } from "../../../utils/format";
+
+function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "N/A";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "N/A";
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
 
 export function WorkspaceDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -163,6 +171,7 @@ export function WorkspaceDetailPage() {
       const liveStatus = presenceMap[member.userId] ?? member.profile?.status ?? "offline";
       return {
         ...member,
+        expiresAt: undefined,
         user: member.profile
           ? { ...member.profile, status: liveStatus }
           : {
@@ -184,6 +193,7 @@ export function WorkspaceDetailPage() {
       workspaceId: id!,
       role: "member",
       joinedAt: invitation.createdAt,
+      expiresAt: invitation.expiresAt,
       user: {
         id: invitation.id,
         userId: "",
@@ -311,7 +321,12 @@ export function WorkspaceDetailPage() {
         <TabsContent value="members" className="mt-4">
           <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex gap-0 flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-              <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{memberRows.length} Members</span>
+              <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {members.length} {members.length === 1 ? "Member" : "Members"}
+                {invitations.length > 0 && (
+                  <span className="text-slate-500 dark:text-slate-400 font-normal"> · {invitations.length} pending</span>
+                )}
+              </span>
               {(isOwner || isManager) && (
                 <Button size="sm" className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setInviteOpen(true)}>
                   <UserPlus className="w-3.5 h-3.5" /> Invite
@@ -324,23 +339,51 @@ export function WorkspaceDetailPage() {
                   <TableHead className="text-xs text-slate-500">Member</TableHead>
                   <TableHead className="text-xs text-slate-500">Role</TableHead>
                   <TableHead className="text-xs text-slate-500">Status</TableHead>
+                  <TableHead className="text-xs text-slate-500 hidden lg:table-cell">Joined</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {memberRows.map(member => (
-                  <TableRow key={member.id} className="border-slate-100 dark:border-slate-700">
+                  <TableRow key={member.id} className={`border-slate-100 dark:border-slate-700 ${member.user.status === "pending" ? "opacity-60 bg-amber-50/10 dark:bg-amber-950/5" : ""}`}>
                     <TableCell>
                       <div className="flex items-center gap-2.5 my-[5px] mx-[5px]" >
                         <UserAvatar user={member.user} size="sm" showPresence />
                         <div>
                           <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{member.user.name}</p>
                           <p className="text-xs text-slate-400">{member.user.email}</p>
+                          {member.user.status === "pending" && (
+                            <p className="text-[10px] font-medium text-amber-600 dark:text-amber-400 mt-0.5">Pending invitation</p>
+                          )}
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell><RoleBadge role={member.role} /></TableCell>
-                    <TableCell><span className="text-xs capitalize text-slate-500">{member.user.status}</span></TableCell>
+                    <TableCell>
+                      {member.user.status === "pending" ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-900/50">
+                          Pending
+                        </span>
+                      ) : (
+                        <RoleBadge role={member.role} />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <span className={`text-xs capitalize ${member.user.status === "pending" ? "text-amber-600 dark:text-amber-400 font-medium" : "text-slate-500"}`}>
+                        {member.user.status === "pending" ? "Invited" : member.user.status}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-xs text-slate-500 hidden lg:table-cell">
+                      {member.user.status === "pending" ? (
+                        <span className="italic text-amber-600 dark:text-amber-400">
+                          Invited {member.joinedAt ? timeAgo(member.joinedAt) : ""}
+                          {member.expiresAt && ` (Expires ${formatDate(member.expiresAt)})`}
+                        </span>
+                      ) : (
+                        <span title={member.joinedAt ? new Date(member.joinedAt).toLocaleString() : undefined}>
+                          {member.joinedAt ? timeAgo(member.joinedAt) : "N/A"}
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       {member.userId && canRemoveMember(member) ? (
                         <DropdownMenu>
@@ -385,9 +428,7 @@ export function WorkspaceDetailPage() {
                               <Trash2 className="w-4 h-4 mr-2" />
                               {member.userId === profile?.id
                                 ? "Leave workspace"
-                                : member.role === "manager"
-                                  ? "Remove manager"
-                                  : "Remove member"}
+                                : "Remove from workspace"}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -412,7 +453,9 @@ export function WorkspaceDetailPage() {
                     <span className={`text-xs px-2 py-0.5 rounded-full ${p.status === "active" ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" : "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400"}`}>{p.status}</span>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">{p.description || "No description"}</p>
-                  <p className="text-xs text-slate-400">{p.taskCount} tasks · Created {p.createdAt || "N/A"}</p>
+                  <p className="text-xs text-slate-400" title={p.createdAt ? new Date(p.createdAt).toLocaleString() : undefined}>
+                    {p.taskCount} tasks · Created {formatDate(p.createdAt)}
+                  </p>
                 </Card>
               ))}
             </div>
@@ -491,9 +534,7 @@ export function WorkspaceDetailPage() {
         title={
           removeTarget?.userId === profile?.id
             ? "Leave workspace?"
-            : removeTarget?.role === "manager"
-              ? "Remove manager?"
-              : "Remove member?"
+            : "Remove from workspace?"
         }
         description={
           removeTarget
@@ -507,9 +548,7 @@ export function WorkspaceDetailPage() {
             ? "Removing..."
             : removeTarget?.userId === profile?.id
               ? "Leave"
-              : removeTarget?.role === "manager"
-                ? "Remove manager"
-                : "Remove"
+              : "Remove"
         }
         destructive
         onConfirm={() => void handleRemoveMember()}

@@ -79,13 +79,14 @@ export const workspaceApi = {
     }));
   },
 
-  async invitations(id: string): Promise<{ id: string; email: string; status: string; createdAt: string }[]> {
+  async invitations(id: string): Promise<{ id: string; email: string; status: string; createdAt: string; expiresAt?: string }[]> {
     const rows = await apiRequest<any[]>(`/workspaces/${id}/invitations`);
     return rows.map(row => ({
       id: row.id,
       email: row.invitee_email ?? row.inviteeEmail ?? row.email,
       status: row.status,
       createdAt: row.created_at ?? row.createdAt,
+      expiresAt: row.expires_at ?? row.expiresAt,
     }));
   },
 

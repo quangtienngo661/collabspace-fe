@@ -111,7 +111,20 @@ export function WorkspaceListPage() {
       {error ? (
         <ErrorState title="Unable to load workspaces" description={error} />
       ) : wsList.length === 0 && !loadingList ? (
-        <EmptyState icon={Building2} title="No workspaces yet" description="Create your first workspace to start collaborating." action={canCreateWorkspace ? { label: "New Workspace", onClick: () => setCreateOpen(true) } : undefined} />
+        <EmptyState
+          icon={Building2}
+          title="No workspaces yet"
+          description={
+            canCreateWorkspace
+              ? "Create your first workspace to start collaborating."
+              : "You don't have access to any workspaces yet. Ask an admin or workspace owner to invite you."
+          }
+          action={
+            canCreateWorkspace
+              ? { label: "New Workspace", onClick: () => setCreateOpen(true) }
+              : undefined
+          }
+        />
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {wsList.map(ws => (
@@ -147,8 +160,17 @@ export function WorkspaceListPage() {
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{ws.description || "No description"}</p>
               <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
-                <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{ws.memberCount} members</span>
-                <span className="flex items-center gap-1"><FolderOpen className="w-3.5 h-3.5" />{ws.projectCount} projects</span>
+                {!enriched ? (
+                  <>
+                    <span className="h-4 w-20 bg-slate-200 dark:bg-slate-700 animate-pulse rounded" />
+                    <span className="h-4 w-20 bg-slate-200 dark:bg-slate-700 animate-pulse rounded" />
+                  </>
+                ) : (
+                  <>
+                    <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{ws.memberCount} members</span>
+                    <span className="flex items-center gap-1"><FolderOpen className="w-3.5 h-3.5" />{ws.projectCount} projects</span>
+                  </>
+                )}
               </div>
             </Card>
           ))}
