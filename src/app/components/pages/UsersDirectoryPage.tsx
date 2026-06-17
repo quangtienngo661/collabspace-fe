@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { usersApi } from "../../api/usersApi";
 import { useAuth } from "../../auth/AuthContext";
 import { UserAvatar } from "../shared/UserAvatar";
+import { SkeletonRow } from "../shared/SkeletonCard";
 import { EmptyState, ErrorState } from "../shared/EmptyState";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { usePresenceMap } from "../../hooks/usePresenceMap";
@@ -97,47 +98,49 @@ export function UsersDirectoryPage() {
             description="Type a name or email above. Browsing all users requires a platform admin account."
           />
         ) : listState.loading && users.length === 0 ? (
-          <div className="p-8 text-sm text-slate-500">Loading users...</div>
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">{[1, 2, 3, 4, 5].map((i) => <SkeletonRow key={i} />)}</div>
         ) : users.length === 0 ? (
           <EmptyState icon={UserIcon} title="No users found" description="Try a different search query." />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Username</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map(user => {
-                const live = { ...user, status: presenceMap[user.id] ?? user.status };
-                return (
-                  <TableRow
-                    key={user.id}
-                    className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/40"
-                    onClick={() => void openUser(user)}
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <UserAvatar user={live} size="sm" showPresence />
-                        <div>
-                          <p className="text-sm font-medium">{user.name}</p>
-                          <p className="text-xs text-slate-400">{user.email}</p>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Username</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map(user => {
+                  const live = { ...user, status: presenceMap[user.id] ?? user.status };
+                  return (
+                    <TableRow
+                      key={user.id}
+                      className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/40"
+                      onClick={() => void openUser(user)}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <UserAvatar user={live} size="sm" showPresence />
+                          <div>
+                            <p className="text-sm font-medium">{user.name}</p>
+                            <p className="text-xs text-slate-400">{user.email}</p>
+                          </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-slate-500">{user.username ? `@${user.username}` : "—"}</TableCell>
-                    <TableCell className="text-xs capitalize text-slate-500">{live.status}</TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      </TableCell>
+                      <TableCell className="text-sm text-slate-500">{user.username ? `@${user.username}` : "—"}</TableCell>
+                      <TableCell className="text-xs capitalize text-slate-500">{live.status}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </Card>
 
-      <Dialog open={Boolean(selected)} onOpenChange={open => { if (!open) setSelected(null); }}>
+      <Dialog open={!!selected} onOpenChange={open => !open && setSelected(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>User profile</DialogTitle>

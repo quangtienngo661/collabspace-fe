@@ -25,3 +25,9 @@ SPA application root. Full docs: `.claude/docs/frontend-architecture.md`.
 - `NotificationsContext` — notification list + unread
 
 Do not re-fetch these in child layout components.
+
+## Engineering notes
+
+- No TanStack Query — pages use `useAsyncData` + optional `requestCache`
+- No `ErrorBoundary` yet — render errors crash the shell
+- Routes are static imports in `App.tsx` (no `React.lazy` yet)

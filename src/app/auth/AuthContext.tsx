@@ -23,7 +23,10 @@ interface AuthState {
 const AuthContext = createContext<AuthState | null>(null);
 
 function normalizeRole(role?: string | null): Role {
-  return role === "admin" || role === "viewer" || role === "member" ? role : "member";
+  if (role === "admin") return "admin";
+  // Legacy JWT from before platform role simplification
+  if (role === "member" || role === "viewer" || role === "user") return "user";
+  return "user";
 }
 
 function fallbackProfile(authUser: AuthUser): User {

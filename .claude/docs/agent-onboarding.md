@@ -39,7 +39,7 @@ docs/                        # fe-be-alignment.md, features.md
 | Workspace, project, invite | `workspaceApi.ts` | `workspace/*`, `InvitationsPage` |
 | Task, board, comments | `taskApi.ts` | `task/*`, `TaskComments`, `TaskActivity` |
 | Notifications | `notificationsApi.ts` | `NotificationsPage`, `TopBar`, `NotificationsContext` |
-| Platform admin | `adminApi.ts`, `healthApi.ts` | `admin/*` |
+| Platform admin | `adminApi.ts` | `admin/*` |
 | Layout / shell | — | `AppShell`, `Sidebar`, `MobileNav` |
 | Global workspace list | `WorkspacesContext` | Sidebar, Dashboard, workspace pickers |
 

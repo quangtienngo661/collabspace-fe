@@ -24,6 +24,7 @@ import { useWorkspaces } from "../../../context/WorkspacesContext";
 import type { WorkspaceMember } from "../../../api/types";
 import { toast } from "sonner";
 import { timeAgo } from "../../../utils/format";
+import { formatInviteError, findLocalInviteConflict } from "../../../utils/workspaceInviteErrors";
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return "N/A";
@@ -229,6 +230,13 @@ export function WorkspaceDetailPage() {
   async function handleInvite() {
     if (!id) return;
     if (!inviteEmail) { toast.error("Email is required"); return; }
+
+    const localConflict = findLocalInviteConflict(inviteEmail, members, invitations);
+    if (localConflict) {
+      toast.error(localConflict);
+      return;
+    }
+
     try {
       await workspaceApi.invite(id, inviteEmail);
       toast.success(`Invitation sent to ${inviteEmail}`);
@@ -236,7 +244,7 @@ export function WorkspaceDetailPage() {
       setInviteOpen(false);
       void invitationsState.reload();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Unable to send invitation");
+      toast.error(formatInviteError(err));
     }
   }
 

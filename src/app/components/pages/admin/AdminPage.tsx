@@ -37,7 +37,8 @@ import { useAsyncData } from "../../../hooks/useAsyncData";
 import { adminApi } from "../../../api/adminApi";
 import { formatAdminApiError } from "../../../api/adminErrors";
 import { adminUserDisplayName } from "../../../api/mappers";
-import type { AdminRole, Role } from "../../../api/types";
+import type { AdminRole, Role, AdminWorkspace } from "../../../api/types";
+import { DateDisplay } from "../../shared/DateDisplay";
 
 const ADMIN_TABS = ["roles", "users", "workspaces", "broadcast"] as const;
 
@@ -75,6 +76,7 @@ export function AdminPage() {
   const [deleteUserTarget, setDeleteUserTarget] = useState<{ id: string; name: string } | null>(null);
 
   const [deleteWorkspaceTarget, setDeleteWorkspaceTarget] = useState<{ id: string; name: string } | null>(null);
+  const [viewWorkspaceTarget, setViewWorkspaceTarget] = useState<AdminWorkspace | null>(null);
 
   // Broadcast state
   const [broadcastTitle, setBroadcastTitle] = useState("");
@@ -87,7 +89,7 @@ export function AdminPage() {
   const [workspaceSearch, setWorkspaceSearch] = useState("");
 
   // Helper check for protected roles
-  const isProtectedRole = (name: string) => ["admin", "member", "viewer"].includes(name.toLowerCase());
+  const isProtectedRole = (name: string) => ["admin", "user"].includes(name.toLowerCase());
 
   // Reload all datasets
   async function reloadAll() {
@@ -321,6 +323,27 @@ export function AdminPage() {
         </Button>
       }
     >
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <Card className="p-4 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm">
+          <p className="text-xs font-semibold text-slate-500 mb-1">Total Users</p>
+          <p className="text-2xl font-bold">{usersState.data?.length ?? 0}</p>
+        </Card>
+        <Card className="p-4 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm">
+          <p className="text-xs font-semibold text-slate-500 mb-1">Active / Banned</p>
+          <p className="text-2xl font-bold">
+            {usersState.data?.filter(u => u.isActive).length ?? 0} <span className="text-sm font-normal text-slate-400">/ {(usersState.data?.length ?? 0) - (usersState.data?.filter(u => u.isActive).length ?? 0)}</span>
+          </p>
+        </Card>
+        <Card className="p-4 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm">
+          <p className="text-xs font-semibold text-slate-500 mb-1">Total Workspaces</p>
+          <p className="text-2xl font-bold">{workspacesState.data?.length ?? 0}</p>
+        </Card>
+        <Card className="p-4 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm">
+          <p className="text-xs font-semibold text-slate-500 mb-1">Workspace Members</p>
+          <p className="text-2xl font-bold">{workspacesState.data?.reduce((sum, w) => sum + (w.memberCount ?? 0), 0) ?? 0}</p>
+        </Card>
+      </div>
+
       <Tabs
         value={activeTab}
         onValueChange={value => {
@@ -418,17 +441,21 @@ export function AdminPage() {
                           <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed">{perm.description || "No description provided."}</p>
                         </td>
                         {roles.map(role => {
-                          const isAssigned = role.permissions?.includes(perm.name);
+                          const isAdminRole = role.name.toLowerCase() === "admin";
+                          const isAssigned = isAdminRole ? true : role.permissions?.includes(perm.name);
                           return (
                             <td key={role.id} className="px-4 py-3 text-center">
-                              <Checkbox 
-                                checked={isAssigned} 
-                                onCheckedChange={(val) => 
-                                  handlePermissionToggle(role.id, role.name, perm.id, perm.name, Boolean(val))
-                                }
-                                className="mx-auto" 
-                                disabled={role.name.toLowerCase() === "admin"} // Admin has implicit wildcards
-                              />
+                              {isAdminRole ? (
+                                <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded-sm" title="Implicit All Permissions">All</span>
+                              ) : (
+                                <Checkbox 
+                                  checked={isAssigned} 
+                                  onCheckedChange={(val) => 
+                                    handlePermissionToggle(role.id, role.name, perm.id, perm.name, Boolean(val))
+                                  }
+                                  className="mx-auto" 
+                                />
+                              )}
                             </td>
                           );
                         })}
@@ -470,6 +497,7 @@ export function AdminPage() {
                     <TableHead className="text-xs font-semibold text-slate-500 dark:text-slate-400">User Profile</TableHead>
                     <TableHead className="text-xs font-semibold text-slate-500 dark:text-slate-400">Email Address</TableHead>
                     <TableHead className="text-xs font-semibold text-slate-500 dark:text-slate-400">Account Status</TableHead>
+                    <TableHead className="text-xs font-semibold text-slate-500 dark:text-slate-400">Workspaces</TableHead>
                     <TableHead className="text-xs font-semibold text-slate-500 dark:text-slate-400">Current Role</TableHead>
                     <TableHead className="text-xs font-semibold text-slate-500 dark:text-slate-400">Update Role</TableHead>
                     <TableHead className="w-20 text-xs font-semibold text-slate-500 dark:text-slate-400" />
@@ -526,7 +554,7 @@ export function AdminPage() {
                             <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">{user.email}</p>
                             {user.lastLoginAt ? (
                               <p className="text-[9px] text-slate-400">
-                                Active: {new Date(user.lastLoginAt).toLocaleString()}
+                                Last login: <DateDisplay date={user.lastLoginAt} format="relative" />
                               </p>
                             ) : (
                               <p className="text-[9px] text-slate-400">Never signed in</p>
@@ -544,7 +572,14 @@ export function AdminPage() {
                             </span>
                           </TableCell>
                           <TableCell>
-                            <RoleBadge role={userRoleName as Role} />
+                            <span className="text-xs text-slate-500 dark:text-slate-400">-</span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {(user.roles && user.roles.length > 0 ? user.roles : ["member"]).map(r => (
+                                <RoleBadge key={r} role={r as Role} />
+                              ))}
+                            </div>
                           </TableCell>
                           <TableCell>
                             <Select 
@@ -554,7 +589,7 @@ export function AdminPage() {
                             >
                               <SelectTrigger className="h-7 w-28 text-xs"><SelectValue placeholder="Role" /></SelectTrigger>
                               <SelectContent>
-                                {roles.map(r => (
+                                {roles.filter(r => isProtectedRole(r.name)).map(r => (
                                   <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                                 ))}
                               </SelectContent>
@@ -641,7 +676,7 @@ export function AdminPage() {
                     </TableRow>
                   ) : (
                     filteredWorkspaces.map(ws => (
-                      <TableRow key={ws.id} className="border-slate-100 hover:bg-slate-50/20 dark:border-slate-700 dark:hover:bg-slate-900/10">
+                      <TableRow key={ws.id} className="border-slate-100 hover:bg-slate-50/20 dark:border-slate-700 dark:hover:bg-slate-900/10 cursor-pointer" onClick={() => setViewWorkspaceTarget(ws)}>
                         <TableCell>
                           <div>
                             <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{ws.name}</p>
@@ -651,19 +686,28 @@ export function AdminPage() {
                           </div>
                         </TableCell>
                         <TableCell className="font-mono text-xs text-slate-500">{ws.slug}</TableCell>
-                        <TableCell className="font-mono text-xs text-slate-500">{ws.ownerId}</TableCell>
+                        <TableCell className="text-xs text-slate-500">
+                          {(() => {
+                            const owner = usersState.data?.find(u => u.id === ws.ownerId);
+                            if (owner) return <span title={ws.ownerId}>{adminUserDisplayName(owner)}</span>;
+                            return <span className="font-mono">{ws.ownerId}</span>;
+                          })()}
+                        </TableCell>
                         <TableCell className="text-center font-medium text-xs text-slate-700 dark:text-slate-300">
                           {ws.memberCount ?? 0}
                         </TableCell>
                         <TableCell className="text-xs text-slate-500">
-                          {ws.createdAt ? new Date(ws.createdAt).toLocaleDateString() : "N/A"}
+                          {ws.createdAt ? <DateDisplay date={ws.createdAt} format="absolute" /> : "N/A"}
                         </TableCell>
                         <TableCell>
                           <Button
                             size="icon"
                             variant="ghost"
                             className="h-7 w-7 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
-                            onClick={() => setDeleteWorkspaceTarget({ id: ws.id, name: ws.name })}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteWorkspaceTarget({ id: ws.id, name: ws.name });
+                            }}
                           >
                             <Trash2 className="size-3.5" />
                           </Button>
@@ -892,6 +936,50 @@ export function AdminPage() {
         destructive
         onConfirm={handleDeleteWorkspace}
       />
+
+      {/* DIALOG: View Workspace Info */}
+      <Dialog open={!!viewWorkspaceTarget} onOpenChange={(open) => { if (!open) setViewWorkspaceTarget(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Workspace Information</DialogTitle>
+          </DialogHeader>
+          {viewWorkspaceTarget && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-500">Workspace Name</Label>
+                <p className="text-sm font-medium">{viewWorkspaceTarget.name}</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-500">Slug</Label>
+                <p className="text-sm font-mono">{viewWorkspaceTarget.slug}</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-500">Description</Label>
+                <p className="text-sm">{viewWorkspaceTarget.description || "No description provided."}</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-500">Owner ID</Label>
+                <p className="text-sm font-mono">{viewWorkspaceTarget.ownerId}</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-500">Members Count</Label>
+                <p className="text-sm">{viewWorkspaceTarget.memberCount ?? 0}</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-500">Created At</Label>
+                <p className="text-sm">
+                  {viewWorkspaceTarget.createdAt ? <DateDisplay date={viewWorkspaceTarget.createdAt} format="absolute" /> : "N/A"}
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" size="sm">Close</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminWorkspaceLayout>
   );
 }

@@ -9,29 +9,35 @@ Use to pick and implement the next frontend slice against backend MVP.
 
 ## Required context
 
-- `docs/fe-be-alignment.md` — canonical gap list
+- `docs/fe-be-alignment.md` — canonical gap list + technical debt
 - `docs/features.md` — FE coverage summary
+- `docs/fe-backlog.md` — polish tasks by owner (A–F)
 - `collabspace/docs/mvp-demo-scope.md` — demo acceptance
 - `collabspace/docs/features.md` — BE Done status
 - `.claude/docs/frontend-architecture.md`
 
-## Prioritization
+## Prioritization (2026-06-17)
 
-1. **Blocks demo** — missing API client or broken 400 flow
-2. **Demo polish** — activity feed, board, notifications (mostly Done)
-3. **Intentional BE gap** — do not build UI; keep disabled + tooltip
-4. **Nice-to-have** — presence polling, threaded comments, create-task dueDate/labels
+1. **P0 polish** — dashboard KPI (B9), workspace stats flash (A7/A8), admin overview (C9) — see `fe-backlog.md`
+2. **Quick engineering wins** — ErrorBoundary (F1), lazy routes (F2), Kanban memo (F3)
+3. **Intentional BE gap** — invite validation rules, admin permission unassign — do not fake UI
+4. **Large refactors** — TanStack Query (F6), httpOnly cookie (F8, needs BE)
+
+**MVP demo 7-step API integration is Done** — do not re-implement mark-read, comments, invitations, activity.
 
 ## Current known gaps (check doc for latest)
 
 | Gap | Notes |
 |-----|-------|
-| DELETE workspace | BE `DELETE /workspaces/:id` owner-only; FE disabled wrongly |
-| Notification archive | No BE endpoint |
-| Member role / remove | No BE end-user endpoints |
-| Threaded comments | `parentId` in API; flat UI |
-| Live presence | `GET /users/presence` not wired on load |
-| `commentCount` on cards | BE board may not return field |
+| Dashboard KPI when >50 tasks | B9 — use `total` or `getBoard` |
+| Workspace list stats flash 0 | A7 — skeleton until enrich |
+| Admin overview KPI | C9 — client aggregate |
+| Notification archive | ✅ wired — `PATCH .../archive` |
+| Invite accept/reject | ✅ `/invitations` + `GET /invitations/me` |
+| Admin permission unassign | BE missing — toast on uncheck |
+| `force-join` workspace (admin) | BE ready; no FE UI |
+| `commentCount` on Kanban | Shows when BE returns field |
+| Tests / ErrorBoundary / lazy routes | § F technical debt |
 
 ## Implementation slice template
 
@@ -39,7 +45,7 @@ Use to pick and implement the next frontend slice against backend MVP.
 2. API layer (`fe-api-integration` skill)
 3. UI page/modal
 4. Route + nav if needed
-5. Update `fe-be-alignment.md` + `docs/features.md`
+5. Update `fe-be-alignment.md` + `docs/features.md` + `fe-backlog.md` if status changes
 6. `npm run build` + manual demo step
 
 ## Do not
@@ -47,6 +53,7 @@ Use to pick and implement the next frontend slice against backend MVP.
 - Implement admin unassign permission (BE missing)
 - Add mock data files — use real API or empty states
 - Fork BE contract docs into FE — link instead
+- Treat mark-read / comments / invitations as missing (they are Done)
 
 ## Output
 

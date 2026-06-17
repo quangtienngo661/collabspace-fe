@@ -29,7 +29,8 @@ Use when changing `src/app/api/` or debugging API mismatches.
 - Paths start with `/` relative to `VITE_API_BASE_URL`
 - `auth: false` only for login/register/public routes
 - `FormData` for avatar — do not set Content-Type manually
-- Do not duplicate refresh logic — httpClient handles 401
+- After 401 refresh, **FormData requests are not auto-retried** — surface UX to retry upload
+- Do not duplicate refresh logic — httpClient handles 401 (with FormData caveat)
 
 ## Common BE constraints
 

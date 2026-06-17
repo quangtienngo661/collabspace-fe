@@ -54,7 +54,7 @@ collabspace-fe/
 - **Response unwrap:** task-service wraps `{ data }`; `httpClient` unwraps automatically.
 - **Auth:** JWT in `localStorage` via `session.ts`; `httpClient` refreshes on 401.
 - **Admin gate:** `isAdmin` = `role === 'admin'` OR `permissions` includes `auth.manage` (matches BE `PlatformAdminGuard`).
-- **MVP FE status:** Phases 2–6 ✅ per `docs/fe-be-alignment.md`. Remaining polish: see § Remaining gaps in that doc.
+- **MVP FE status:** Phases 2–6 + Admin ✅ per `docs/fe-be-alignment.md`. **Remaining:** UI polish ([fe-backlog.md](./docs/fe-backlog.md)); engineering debt (lazy routes, ErrorBoundary, tests, TanStack Query) — [fe-be-alignment § Technical debt](./docs/fe-be-alignment.md#technical-debt--engineering-2026-06-17).
 
 ## Default Working Style
 

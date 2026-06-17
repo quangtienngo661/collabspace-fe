@@ -32,10 +32,11 @@ File: `src/app/api/httpClient.ts`
 
 On 401 with `auth: true`:
 
-1. `POST /auth/refresh` with stored `refreshToken`
+1. `POST /auth/refresh` with stored `refreshToken` (deduped via shared `refreshPromise`)
 2. Update session in localStorage
 3. Retry original request once
-4. On failure → clear session, redirect `/login`
+4. **FormData bodies cannot be replayed** — throws `ApiError(401, "Session refreshed — retry the upload")`; caller must retry upload manually
+5. On refresh failure → clear session, dispatch `collabspace:session-expired`
 
 ## Session storage
 
@@ -102,11 +103,11 @@ Invalidate on login/logout and workspace create.
 | members | `GET /workspaces/:id/members` |
 | invitations | `GET /workspaces/:id/invitations` |
 | invite | `POST /workspaces/:id/invite` body `{ email }` only |
+| list my invitations | `GET /invitations/me` |
 | accept/reject | `POST /invitations/:id/accept|reject` |
 | projects CRUD | `/workspaces/:wsId/projects` |
 | activity | `GET /workspaces/:id/activity?limit&offset` |
-
-**Not wired in FE:** `DELETE /workspaces/:id` (BE owner-only — gap).
+| delete workspace | `DELETE /workspaces/:id` — owner-only; wired in `WorkspaceListPage`, `WorkspaceDetailPage` |
 
 ### taskApi
 
@@ -129,11 +130,10 @@ Task create supports `dueDate`, `labels` — UI may not expose all fields in cre
 
 | Method | Endpoint |
 |--------|----------|
-| list | `GET /notifications?skip&limit` |
+| list | `GET /notifications?skip&limit&status` |
 | mark read | `PATCH /notifications/:id/read` |
 | mark all | `PATCH /notifications/read-all` |
-
-No archive endpoint on BE — UI disabled.
+| archive | `PATCH /notifications/:id/archive` |
 
 ### adminApi
 
@@ -151,6 +151,8 @@ Broadcast requires header `Idempotency-Key` (UUID).
 | `GET /users/me/status` | Does not exist |
 | Cross-origin API in dev | Use Vite proxy |
 | Duplicate `/me` after login | `emit: false` + refresh dedupe |
+| Data fetching at scale | No TanStack Query — `useAsyncData` + context + 3s `requestCache` |
+| JWT storage | `localStorage` — XSS risk; httpOnly cookie needs BE change |
 
 ## Checking alignment
 

@@ -6,9 +6,11 @@ import { Card } from "../ui/card";
 import { workspaceApi } from "../../api/workspaceApi";
 import { useWorkspaces } from "../../context/WorkspacesContext";
 import { useAsyncData } from "../../hooks/useAsyncData";
-import { EmptyState, ErrorState } from "../shared/EmptyState";
-import { toast } from "sonner";
+import { ErrorState, EmptyState } from "../shared/EmptyState";
+import { SkeletonRow } from "../shared/SkeletonCard";
+import { formatAdminApiError } from "../../utils/errorUtils";
 import { timeAgo } from "../../utils/format";
+import { toast } from "sonner";
 
 export function InvitationsPage() {
   const navigate = useNavigate();
@@ -63,7 +65,7 @@ export function InvitationsPage() {
       {invitationsState.error ? (
         <ErrorState title="Unable to load invitations" description={invitationsState.error} />
       ) : invitationsState.loading && invitations.length === 0 ? (
-        <div className="text-sm text-slate-400">Loading invitations...</div>
+        <div className="divide-y divide-slate-100 dark:divide-slate-800">{[1, 2, 3].map((i) => <SkeletonRow key={i} />)}</div>
       ) : invitations.length === 0 ? (
         <EmptyState
           icon={Building2}

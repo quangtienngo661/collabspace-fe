@@ -53,10 +53,9 @@ Frontend **never** calls service ports directly. All traffic goes through the ga
 | `/workspaces/:id/projects/:pid` | Kanban board | Protected |
 | `/notifications` | Notification inbox | Protected |
 | `/users` | User directory (list/search/profile) | Protected |
-| `/invitations` | Accept/reject by invitation ID | Protected |
+| `/invitations` | Accept/reject invitations | Protected |
 | `/profile` | Profile, sessions, preferences | Protected |
-| `/admin` | Platform admin tabs | Admin |
-| `/admin/health` | Service health probes | Admin |
+| `/admin` | Platform admin (4 tabs) | Admin |
 | `/403` | Forbidden | Public |
 
 ## Global state
@@ -86,10 +85,12 @@ Some KPIs are **not** returned by list APIs:
 
 ## FE completion status (MVP)
 
-Aligned with `docs/fe-be-alignment.md`:
+Aligned with `docs/fe-be-alignment.md` (2026-06-17):
 
-- **Done:** Auth flows, workspace/project CRUD, Kanban board API, task detail, comments, notifications (incl. archive), invitations list/accept, member remove/leave, workspace delete (owner), admin platform UI, command palette search, `commentCount` on Kanban.
-- **Planned (BE+FE):** Workspace role **manager** — promote/demote (`PATCH .../members/:userId`); xem [roles-and-permissions.md](../../collabspace/docs/roles-and-permissions.md).
+- **Done:** Auth flows, workspace/project CRUD, Kanban board API, task detail, comments, notifications (read/archive), invitations list/accept, workspace delete (owner), admin platform UI (4 tabs), command palette search.
+- **Partial:** Dashboard KPI accuracy (B9), workspace list stats flash (A7), admin overview KPI (C9), `commentCount` on board when BE omits field.
+- **Engineering debt:** No route lazy-loading, no `ErrorBoundary`, no automated tests, no TanStack Query — see [fe-be-alignment § Technical debt](../docs/fe-be-alignment.md#technical-debt--engineering-2026-06-17).
+- **Planned (BE+FE):** Workspace role **manager** promote/demote; admin `force-join` UI.
 - **Platform vs workspace:** FE `isAdmin` = platform only; workspace `owner` / `manager` / `member` hiển thị qua `RoleBadge` trên Members tab.
 
 ## Backend reference

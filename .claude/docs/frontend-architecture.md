@@ -32,9 +32,8 @@ src/app/
 | `usersApi.ts` | Profile, avatar, preferences, search, bulk, presence |
 | `workspaceApi.ts` | Workspaces, projects, members, invitations, activity |
 | `taskApi.ts` | Tasks, board, comments, attachments, activity |
-| `notificationsApi.ts` | List, mark read |
+| `notificationsApi.ts` | List, mark read, read-all, archive |
 | `adminApi.ts` | Platform admin mutations |
-| `healthApi.ts` | Health probe helpers |
 | `adminErrors.ts` | Map BE error codes to user messages |
 | `clientStats.ts` | Client-side KPI enrichment |
 | `index.ts` | Re-exports (optional) |
@@ -89,7 +88,7 @@ pages/
 ├── project/        Project list
 ├── task/           Kanban, TaskDetailSheet, CreateTaskModal, TaskComments, TaskActivity
 ├── profile/        MyProfilePage
-├── admin/          AdminPage, HealthPage, AdminWorkspaceLayout
+├── admin/          AdminPage, AdminWorkspaceLayout
 ├── DashboardPage.tsx
 ├── NotificationsPage.tsx
 ├── InvitationsPage.tsx
