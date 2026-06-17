@@ -21,6 +21,7 @@ import { useWorkspaces } from "../../context/WorkspacesContext";
 import { useAuth } from "../../auth/AuthContext";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { workspaceApi } from "../../api/workspaceApi";
+import { useNotifications } from "../../context/NotificationsContext";
 
 const memberPrimaryNav: { label: string; icon: ElementType; to: string }[] = [
   { label: "Home", icon: LayoutDashboard, to: "/dashboard" },
@@ -55,6 +56,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { logout, isAdmin, profile } = useAuth();
   const canCreateWorkspace = !isAdmin;
   const { workspaces, activeWorkspace, setActiveWorkspace } = useWorkspaces();
+  const { unreadCount } = useNotifications();
 
   const projectsState = useAsyncData(
     () => (activeWorkspace ? workspaceApi.listProjects(activeWorkspace.id) : Promise.resolve([])),
@@ -95,12 +97,21 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   }
 
   function renderNavItem(item: { label: string; icon: ElementType; to: string }, end = true) {
+    const isNotifications = item.to === "/notifications";
+    
     if (collapsed) {
       return (
         <Tooltip key={item.label}>
           <TooltipTrigger asChild>
             <NavLink to={item.to} end={end} className={navLinkClass(true)}>
-              <item.icon className="size-5" />
+              <div className="relative">
+                <item.icon className="size-5" />
+                {isNotifications && unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex size-3.5 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-1 ring-slate-900">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </div>
             </NavLink>
           </TooltipTrigger>
           <TooltipContent side="right">{item.label}</TooltipContent>
@@ -110,7 +121,12 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     return (
       <NavLink key={item.label} to={item.to} end={end} className={navLinkClass(false)}>
         <item.icon className="w-4 h-4 shrink-0" />
-        {item.label}
+        <span className="flex-1">{item.label}</span>
+        {isNotifications && unreadCount > 0 && (
+          <span className="ml-auto text-xs bg-red-500 text-white font-medium rounded-full px-1.5 min-w-[20px] h-5 flex items-center justify-center text-center leading-none">
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        )}
       </NavLink>
     );
   }

@@ -101,43 +101,45 @@ export function UsersDirectoryPage() {
         ) : users.length === 0 ? (
           <EmptyState icon={UserIcon} title="No users found" description="Try a different search query." />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Username</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map(user => {
-                const live = { ...user, status: presenceMap[user.id] ?? user.status };
-                return (
-                  <TableRow
-                    key={user.id}
-                    className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/40"
-                    onClick={() => void openUser(user)}
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <UserAvatar user={live} size="sm" showPresence />
-                        <div>
-                          <p className="text-sm font-medium">{user.name}</p>
-                          <p className="text-xs text-slate-400">{user.email}</p>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Username</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map(user => {
+                  const live = { ...user, status: presenceMap[user.id] ?? user.status };
+                  return (
+                    <TableRow
+                      key={user.id}
+                      className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/40"
+                      onClick={() => void openUser(user)}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <UserAvatar user={live} size="sm" showPresence />
+                          <div>
+                            <p className="text-sm font-medium">{user.name}</p>
+                            <p className="text-xs text-slate-400">{user.email}</p>
+                          </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-slate-500">{user.username ? `@${user.username}` : "—"}</TableCell>
-                    <TableCell className="text-xs capitalize text-slate-500">{live.status}</TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      </TableCell>
+                      <TableCell className="text-sm text-slate-500">{user.username ? `@${user.username}` : "—"}</TableCell>
+                      <TableCell className="text-xs capitalize text-slate-500">{live.status}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </Card>
 
-      <Dialog open={Boolean(selected)} onOpenChange={open => { if (!open) setSelected(null); }}>
+      <Dialog open={!!selected} onOpenChange={open => !open && setSelected(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>User profile</DialogTitle>
