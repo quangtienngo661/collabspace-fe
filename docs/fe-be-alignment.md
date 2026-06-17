@@ -5,7 +5,7 @@ Nguồn backend: [collabspace `docs/features.md`](https://github.com/lengocanh20
 
 **Agent docs:** `CLAUDE.md`, `.claude/docs/api-integration.md`, skill `/fe-be-alignment`.
 
-**Cập nhật:** 2026-06-16  
+**Cập nhật:** 2026-06-17  
 **Trạng thái backend MVP:** Auth, User, Workspace, Task, Comment, Notification — **Done**  
 **Trạng thái Platform Admin API:** **Done** — xem [admin-backlog (BE)](https://github.com/lengocanh2005it/collabspace/blob/main/docs/team/admin-backlog.md)
 
@@ -13,19 +13,22 @@ Nguồn backend: [collabspace `docs/features.md`](https://github.com/lengocanh20
 
 **Trạng thái FE (main):** Phase 2 ✅ · Phase 3 ✅ · Phase Admin ✅ · Phase 4 ✅ · Phase 5 ✅ · Phase 6 (USER-T1 pickers) ✅ · UX/Role gating ✅
 
+**Luồng demo MVP 7 bước (FE ↔ BE):** **Done** — invite accept/reject, comments + `@mention`, mark-read/read-all, workspace + task activity, admin ban/unban.
+
 ---
 
-## Gap còn lại (tóm tắt — 2026-06)
+## Gap còn lại (tóm tắt — 2026-06-17)
 
 | Mục | FE | BE | Ghi chú |
 |-----|----|----|---------|
-| Archive notification | Disabled | Không có HTTP endpoint | Chờ BE |
 | Promote member → **manager** | UI có (owner) | `PATCH .../members/:userId` | ✅ — xem [roles-and-permissions.md](./roles-and-permissions.md) |
-| Gỡ permission khỏi role (admin) | Toast | Chỉ assign | Chờ BE |
-| `commentCount` Kanban | Không hiển thị | Board không trả field | Chờ BE hoặc N+1 |
-| List invitation của user | Manual ID + notifications | Chỉ list theo workspace | Chờ BE API |
-| Tab Workspaces admin | Chưa có UI | `GET/DELETE /workspaces/admin/*`, `force-join` | Planned |
-| Tab Broadcast admin | Chưa có UI | `POST /notifications/admin/broadcast` | Planned |
+| Gỡ permission khỏi role (admin) | Toast khi bỏ tick | Chỉ assign | Chờ BE unassign endpoint |
+| `commentCount` Kanban | Hiện khi BE trả `> 0` | Board có thể thiếu field | Optional BE hoặc N+1 |
+| Invite validation (admin/member/pending) | Pre-check + `formatInviteError` | Rule đầy đủ | **Needs BE** — xem [fe-backlog § INV](./fe-backlog.md#inv--invite-validation--thọ-fe--be) |
+| Admin overview KPI | Chưa có hàng stat tổng | Aggregate từ list APIs | **FE-only** — [fe-backlog C9](./fe-backlog.md#c9--adminpage--thiếu-overview--kpi-tổng--p0--thọ) |
+| Admin `force-join` workspace | Chưa có UI | `POST /workspaces/admin/:id/force-join` | Planned (ít dùng) |
+
+**Đã khớp (không còn gap tích hợp):** mark-read / read-all, comments CRUD, `GET /invitations/me` + accept/reject, workspace/task activity API, archive notification (`PATCH .../archive`), admin 4 tab (Roles, Users, Workspaces, Broadcast), ban/unban user.
 
 **Không còn mismatch API nghiêm trọng** cho các endpoint end-user/admin đã expose.
 
@@ -36,10 +39,14 @@ Nguồn backend: [collabspace `docs/features.md`](https://github.com/lengocanh20
 | Vùng | Ghi chú |
 |------|---------|
 | Auth cơ bản | Login, register, verify email, forgot/reset password, change password, logout, sessions |
-| Workspace / Project | CRUD, invite member, list members |
-| Task cơ bản | List, create, assign, đổi status; priority đã normalize (Phase 1) |
-| User | Avatar upload, list/bulk, preferences |
+| Workspace / Project | CRUD, invite member, list members, owner delete workspace |
+| Task cơ bản | List, board, create, assign, đổi status, comments, attachments, activity |
+| Notifications | List, mark-read, read-all, archive, deep link → task |
+| Invitations | `GET /invitations/me`, accept/reject trên `/invitations` + notification actions |
+| Activity | `GET /workspaces/:id/activity`, `GET /tasks/:id/activity` — Dashboard + WS detail + task sheet |
+| User | Avatar upload, list/bulk, preferences, presence poll |
 | HTTP client | Unwrap `{ data }` đúng pattern task-service |
+| Platform admin | `adminApi` + `AdminPage` 4 tab; ban/unban, RBAC matrix, broadcast |
 | Admin gate (FE) | `AuthContext.isAdmin` — `role === admin` hoặc `permissions` có `auth.manage` (khớp `PlatformAdminGuard`) |
 
 ---
@@ -54,54 +61,17 @@ Nguồn backend: [collabspace `docs/features.md`](https://github.com/lengocanh20
 
 ---
 
-## Phase 3 — Thiếu tích hợp API (chặn MVP demo)
+## Phase 3 — Tích hợp API MVP demo ✅ Done (2026-06)
 
-Backend **đã có**; FE **chưa có client hoặc UI**.
+Luồng demo 7 bước [`collabspace/docs/features.md`](../../collabspace/docs/features.md) đã nối API end-to-end trên FE:
 
-Ánh xạ luồng demo [`docs/features.md` § Luồng demo end-to-end](../../collabspace/docs/features.md):
-
-| # | Bước demo | File FE thiếu / disabled | API backend |
-|---|-----------|--------------------------|-------------|
-| 3.1 | User B accept/reject lời mời | `src/app/api/workspaceApi.ts`, không có route/page | `POST /api/v1/invitations/{id}/accept`, `POST /api/v1/invitations/{id}/reject` |
-| 3.2 | Comment + `@mention` trên task | Không có comment API; `TaskDetailSheet.tsx` không có UI comment | `POST/GET/PATCH/DELETE /api/v1/tasks/{taskId}/comments` — body `{ content, parentId? }` |
-| 3.3 | Mark notification read | `src/app/api/notificationsApi.ts` (chỉ list); `NotificationsPage.tsx`, `TopBar.tsx` disabled + toast | `PATCH /api/v1/notifications/{id}/read`, `PATCH /api/v1/notifications/read-all` |
-| 3.4 | Workspace activity feed | `DashboardPage.tsx` dựng activity từ task `updatedAt` | `GET /api/v1/workspaces/{id}/activity?limit=&offset=` |
-| 3.5 | Task activity trong detail | `TaskDetailSheet.tsx` | `GET /api/v1/tasks/{id}/activity?limit=&offset=` |
-
-### Chi tiết Phase 3
-
-#### 3.1 Invitation accept/reject
-
-```ts
-// workspaceApi.ts — đề xuất thêm
-acceptInvitation(id: string)  → POST /invitations/{id}/accept
-rejectInvitation(id: string)   → POST /invitations/{id}/reject
-```
-
-UI: trang `/invitations` hoặc action trên `NotificationsPage` khi `type === workspace_invited`.
-
-#### 3.2 Comments
-
-```ts
-// taskApi.ts — đề xuất thêm
-listComments(taskId)
-createComment(taskId, { content, parentId? })
-updateComment(taskId, commentId, { content })
-deleteComment(taskId, commentId)
-```
-
-Cần `username` trên profile (`PATCH /users/me`) để `@mention` hoạt động.
-
-#### 3.3 Notifications mark-read
-
-```ts
-// notificationsApi.ts — đề xuất thêm
-markRead(id: string)     → PATCH /notifications/{id}/read
-markAllRead()            → PATCH /notifications/read-all
-list({ skip, limit })    → GET /notifications?skip=0&limit=20
-```
-
-Xóa toast *"Notification write API is not exposed yet"* ở `TopBar.tsx`, `NotificationsPage.tsx`.
+| # | Bước demo | FE (hiện tại) | API backend |
+|---|-----------|---------------|-------------|
+| 3.1 | Accept/reject lời mời | `InvitationsPage`, `NotificationsPage`, `workspaceApi.listMyInvitations` | `GET /invitations/me`, `POST /invitations/{id}/accept\|reject` |
+| 3.2 | Comment + `@mention` | `TaskComments.tsx` trong `TaskDetailSheet` | `GET/POST/PATCH/DELETE /tasks/{id}/comments` |
+| 3.3 | Mark notification read | `notificationsApi`, `TopBar`, `NotificationsPage` | `PATCH /notifications/{id}/read`, `read-all` |
+| 3.4 | Workspace activity | `DashboardPage`, `WorkspaceDetailPage` | `GET /workspaces/{id}/activity` |
+| 3.5 | Task activity | `TaskActivity.tsx` | `GET /tasks/{id}/activity` |
 
 ---
 
@@ -123,17 +93,17 @@ Nguồn: [admin-backlog.md](../../collabspace/docs/team/admin-backlog.md) · [fe
 | Error codes (`PLATFORM_ADMIN_REQUIRED`, …) | [x] `formatAdminApiError()` trong `adminErrors.ts` |
 | Typed admin DTOs | [x] `AdminRole`, `AdminPermission`, … + mappers |
 
-### Tình trạng FE admin (lịch sử)
+### Tình trạng FE admin — ✅ Done (2026-06)
 
-| Thành phần | Hiện tại | Backend |
-|------------|----------|---------|
-| `AdminPage.tsx` — Roles & Permissions | Matrix + Save **mock** (`setTimeout` + toast) | `GET/POST/PUT/DELETE /auth/admin/roles`, permissions, assign |
-| `AdminPage.tsx` — User Roles | `usersApi.list({ limit: 100 })` + dropdown local | `GET /users/admin/all`, `POST /auth/admin/users/:userId/roles` |
-| Ban / unban user | Không có | `PATCH /auth/admin/users/:id/active-status` |
-| `lastLoginAt` | Không hiển thị | `GET /auth/admin/users` |
-| Workspace admin | Không có UI | `GET/DELETE /workspaces/admin/*`, `POST .../force-join` |
-| System broadcast | Không có UI | `POST /notifications/admin/broadcast` + header `Idempotency-Key` |
-| `AdminRoute` / `isAdmin` | ✅ Đúng | `PlatformAdminGuard` → `403 PLATFORM_ADMIN_REQUIRED` |
+| Thành phần | FE | Backend |
+|------------|-----|---------|
+| Roles & Permissions | Matrix + CRUD qua `adminApi` | `/auth/admin/roles`, permissions, assign |
+| Users | `listAllUsersEnriched`, role select, ban/unban, delete | `/users/admin/all`, active-status, anonymize |
+| Workspaces | List + force delete | `/workspaces/admin/all`, `DELETE` |
+| Broadcast | Form + idempotency key | `POST /notifications/admin/broadcast` |
+| `AdminRoute` / `isAdmin` | ✅ | `PlatformAdminGuard` |
+
+**Chưa có UI:** `POST /workspaces/admin/:id/force-join` (điều tra workspace — ít ưu tiên).
 
 ### Admin-0 — Tạo API layer (bắt buộc trước)
 
@@ -315,19 +285,38 @@ Không crash nhưng UI **lệch contract** hoặc **gây hiểu nhầm**.
 
 ---
 
-## Thứ tự implement đề xuất
+## Technical debt & engineering (2026-06-17)
+
+Không chặn demo MVP; ưu tiên sau polish UI trong [fe-backlog.md](./fe-backlog.md).
+
+| # | Mục | Trạng thái FE | Effort | Ghi chú |
+|---|-----|---------------|--------|---------|
+| T1 | Route code-splitting (`React.lazy`) | Chưa có — `App.tsx` import tĩnh | Thấp | `AdminPage`, `KanbanBoardPage`, `TaskDetailSheet` |
+| T2 | `React.memo` Kanban cards/columns | Chưa có | Thấp | Re-render board khi drag/drop |
+| T3 | `ErrorBoundary` | Chưa có | Thấp | Render error → white screen |
+| T4 | Unit / E2E tests | 0 test files | Cao | Chưa có Vitest/Playwright |
+| T5 | TanStack Query | Dùng `useAsyncData` + 3 context + `requestCache` 3s | Cao | Không stale-while-revalidate tự động |
+| T6 | JWT trong `localStorage` | `session.ts` | Cao (cần BE) | httpOnly cookie hoặc tối thiểu harden XSS |
+| T7 | FormData sau 401 refresh | Throw, không retry upload | Trung bình | `httpClient.ts` — avatar/attachment UX |
+| T8 | `AdminPage.tsx` monolith | ~981 dòng, 4 tab | Trung bình | Tách sub-pages khi refactor |
+| T9 | `as any` casts | `taskApi.ts`, `KanbanBoardPage` (react-dnd refs) | Thấp | — |
+
+**Ưu tiên đề xuất:** T3 ErrorBoundary → T1 lazy routes → T2 Kanban memo → T7 FormData retry → T5 Query (refactor lớn).
+
+---
+
+## Thứ tự implement (cập nhật 2026-06-17)
 
 ```text
-Phase 2 (fix 400)  →  Phase 3 (MVP demo)  →  Phase 4 (display)  →  Phase Admin  →  Phase 5 (polish)
+[Done] Phase 2–6 + Admin  →  [Now] fe-backlog polish (A/B/C/D)  →  [Next] Technical debt T1–T3  →  [Later] T5 Query, T6 cookie
 ```
 
-| Ưu tiên | Phase | Impact |
-|---------|-------|--------|
-| 1 | Phase 2 | Sửa flow đang broken (OTP, profile, task edit) |
-| 2 | Phase 3 | Hoàn thành demo 7 bước: invite → accept → comment → mark-read |
-| 3 | Phase 4 | UX đúng dữ liệu thật |
-| 4 | Phase Admin | Wire Admin UI với `/admin/*` (backend đã Done) |
-| 5 | Phase 5 | Tùy chọn sau MVP |
+| Ưu tiên | Hạng mục | Impact |
+|---------|----------|--------|
+| 1 | [fe-backlog](./fe-backlog.md) P0 — dashboard KPI (B9), workspace stats (A7/A8), admin overview (C9) | Hiển thị dữ liệu đúng |
+| 2 | Technical debt T3, T1, T2 | Ổn định + performance |
+| 3 | Invite validation **BE** + map lỗi FE | Tránh invite sai rule |
+| 4 | TanStack Query migration | Maintainability dài hạn |
 
 ---
 

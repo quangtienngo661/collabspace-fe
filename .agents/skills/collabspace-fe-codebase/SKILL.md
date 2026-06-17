@@ -41,8 +41,9 @@ Read as needed:
 
 - npm (not pnpm); Vite port 5173
 - `VITE_API_BASE_URL=/api/v1` + proxy in dev
-- httpClient unwraps `{ data }`; refreshes JWT on 401
+- httpClient unwraps `{ data }`; refreshes JWT on 401 (FormData cannot auto-retry after refresh)
 - No `GET /users/me/status` on BE
+- MVP API integration Done; remaining work = polish (`fe-backlog`) + technical debt (`fe-be-alignment` § Technical debt)
 
 ## Output style
 

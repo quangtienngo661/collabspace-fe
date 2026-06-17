@@ -10,7 +10,7 @@ Chỉ mục tài liệu cho repo **collabspace-fe**.
 | [roles-and-permissions.md](./roles-and-permissions.md) | **Platform `admin`/`user` + workspace roles** — bản FE (sync BE) |
 | [fe-be-alignment.md](./fe-be-alignment.md) | FE ↔ BE — đã khớp, gap còn lại |
 | [features.md](./features.md) | Mức độ phủ tính năng trên UI |
-| [fe-backlog.md](./fe-backlog.md) | Backlog UI theo owner (Tiến / Tín / Thọ) |
+| [fe-backlog.md](./fe-backlog.md) | Backlog UI theo owner (Tiến / Tín / Thọ) + § F technical debt |
 
 ## Backlog & phân công
 

@@ -1,7 +1,7 @@
 # FE Backlog — CollabSpace Frontend
 
-> **Cập nhật:** 2026-06-16  
-> **Đối chiếu codebase:** 2026-06-16 — audit hiển thị dữ liệu + Admin + **platform role sync**  
+> **Cập nhật:** 2026-06-17  
+> **Đối chiếu codebase:** 2026-06-17 — MVP API integration Done; audit polish + technical debt  
 > **Phân công:** đồng bộ với [`features.md`](./features.md) § Phân công team & checklist theo người  
 > **Tham chiếu:** [`roles-and-permissions.md`](./roles-and-permissions.md), [`features.md`](./features.md), BE [canonical roles](https://github.com/lengocanh2005it/collabspace/blob/main/docs/roles-and-permissions.md)  
 > **Hai lớp role cần nhớ:**  
@@ -436,6 +436,23 @@ Không cần API mới nếu aggregate client-side từ `usersState` + `workspac
 
 ---
 
+## F — Technical debt & engineering (2026-06-17)
+
+Không chặn demo MVP. Chi tiết: [fe-be-alignment.md § Technical debt](./fe-be-alignment.md#technical-debt--engineering-2026-06-17).
+
+| ID | Việc | Owner gợi ý | Ưu tiên |
+|----|------|-------------|---------|
+| F1 | `ErrorBoundary` bọc `App` / route shell | **Thọ** | P1 |
+| F2 | `React.lazy` + `Suspense` cho `AdminPage`, `KanbanBoardPage`, task sheet | **Thọ** | P1 |
+| F3 | `React.memo` + stable props `KanbanCard` / `KanbanColumn` | **Tín** | P1 |
+| F4 | Retry FormData upload sau session refresh | **Thọ** | P2 |
+| F5 | Vitest smoke (`httpClient`, mappers, `notificationNavigation`) | shared | P2 |
+| F6 | Migrate data layer sang TanStack Query | shared | P3 |
+| F7 | Tách `AdminPage.tsx` (~981 dòng) thành tab modules | **Thọ** | P3 |
+| F8 | httpOnly cookie auth (cần BE + gateway) | BE + **Thọ** | P3 |
+
+---
+
 ## E — Platform role sync (`admin` | `user`) — ✅ Done (2026-06-16)
 
 BE đã gộp platform `member`/`viewer` → **`user`**. FE cần khớp JWT và UI.
@@ -593,6 +610,24 @@ P3
 [ ] C2 · Admin users: số workspace
 [ ] D1 · Loading skeleton nhất quán
 [ ] D2 · Mobile table scroll — UsersDirectoryPage
+```
+
+### Technical debt (§ F)
+
+```
+P1
+[ ] F1 · ErrorBoundary — Thọ
+[ ] F2 · React.lazy routes — Thọ
+[ ] F3 · React.memo Kanban — Tín
+
+P2
+[ ] F4 · FormData retry after refresh — Thọ
+[ ] F5 · Vitest smoke tests — shared
+
+P3
+[ ] F6 · TanStack Query migration — shared
+[ ] F7 · Split AdminPage tabs — Thọ
+[ ] F8 · httpOnly cookie (BE+FE) — shared
 ```
 
 ### Backend (không gán FE owner — coordinate với BE team)
