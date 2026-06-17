@@ -1,5 +1,8 @@
 # FE Backlog — CollabSpace Frontend
 
+> **Status: Completed**
+> All tasks assigned to Phan Phú Thọ (C2, C8, D1) have been implemented. Backend error handling mapping is integrated, the Workspaces admin column is prepared, and table loading states have been updated to use the SkeletonRow component.
+
 > **Cập nhật:** 2026-06-17  
 > **Đối chiếu codebase:** 2026-06-17 — MVP API integration Done; audit polish + technical debt  
 > **Phân công:** đồng bộ với [`features.md`](./features.md) § Phân công team & checklist theo người  
