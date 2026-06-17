@@ -497,6 +497,7 @@ export function AdminPage() {
                     <TableHead className="text-xs font-semibold text-slate-500 dark:text-slate-400">User Profile</TableHead>
                     <TableHead className="text-xs font-semibold text-slate-500 dark:text-slate-400">Email Address</TableHead>
                     <TableHead className="text-xs font-semibold text-slate-500 dark:text-slate-400">Account Status</TableHead>
+                    <TableHead className="text-xs font-semibold text-slate-500 dark:text-slate-400">Workspaces</TableHead>
                     <TableHead className="text-xs font-semibold text-slate-500 dark:text-slate-400">Current Role</TableHead>
                     <TableHead className="text-xs font-semibold text-slate-500 dark:text-slate-400">Update Role</TableHead>
                     <TableHead className="w-20 text-xs font-semibold text-slate-500 dark:text-slate-400" />
@@ -569,6 +570,9 @@ export function AdminPage() {
                             >
                               {user.isActive ? "Active" : "Banned"}
                             </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">-</span>
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
