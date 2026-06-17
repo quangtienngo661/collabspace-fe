@@ -26,8 +26,6 @@ export function InvitationsPage() {
       await reloadWorkspaces();
       await invitationsState.reload();
       toast.success("Invitation accepted");
-      setActiveWorkspace(workspaceId);
-      navigate(`/workspaces/${workspaceId}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to accept invitation");
     } finally {

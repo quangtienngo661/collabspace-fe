@@ -14,6 +14,7 @@ import {
   Shield,
   Users,
   Settings2,
+  Mail,
 } from "lucide-react";
 import { cn } from "../ui/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
@@ -28,6 +29,7 @@ const memberPrimaryNav: { label: string; icon: ElementType; to: string }[] = [
   { label: "All workspaces", icon: Building2, to: "/workspaces" },
   { label: "Notifications", icon: Bell, to: "/notifications" },
   { label: "Users", icon: Users, to: "/users" },
+  { label: "Invitations", icon: Mail, to: "/invitations" },
 ];
 
 const adminPrimaryNav: { label: string; icon: ElementType; to: string }[] = [

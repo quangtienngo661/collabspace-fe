@@ -9,6 +9,7 @@ import {
   Shield,
   Users,
   Search,
+  Mail,
 } from "lucide-react";
 import { cn } from "../ui/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../ui/sheet";
@@ -50,6 +51,7 @@ export function MobileDrawer({ open, onClose, onOpenSearch }: MobileNavProps) {
     },
     { label: "Users", icon: Users, to: "/users" },
     { label: "Notifications", icon: Bell, to: "/notifications" },
+    { label: "Invitations", icon: Mail, to: "/invitations" },
     {
       label: "Workspace settings",
       icon: Settings2,

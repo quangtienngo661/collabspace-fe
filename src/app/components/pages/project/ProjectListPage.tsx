@@ -126,27 +126,23 @@ export function ProjectListPage() {
                   <span className={`text-xs px-2 py-0.5 rounded-full ${project.status === "active" ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" : "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400"}`}>
                     {project.status}
                   </span>
-                  <div onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <MoreHorizontal className="w-3.5 h-3.5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {canManageProjects ? (
-                          <>
-                            <DropdownMenuItem onClick={e => { e.stopPropagation(); openEdit(project); }}>Settings</DropdownMenuItem>
-                            <DropdownMenuItem onClick={e => { e.stopPropagation(); setDeleteId(project.id); }} className="text-red-600 dark:text-red-400">
-                              <Trash2 className="w-4 h-4 mr-2" /> Delete
-                            </DropdownMenuItem>
-                          </>
-                        ) : (
-                          <DropdownMenuItem disabled className="text-slate-400 text-xs">Only owner or manager can edit</DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+                  {canManageProjects && (
+                    <div onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <MoreHorizontal className="w-3.5 h-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={e => { e.stopPropagation(); openEdit(project); }}>Settings</DropdownMenuItem>
+                          <DropdownMenuItem onClick={e => { e.stopPropagation(); setDeleteId(project.id); }} className="text-red-600 dark:text-red-400">
+                            <Trash2 className="w-4 h-4 mr-2" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  )}
                 </div>
               </div>
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">{project.name}</h3>
