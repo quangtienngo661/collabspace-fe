@@ -4,6 +4,7 @@ import { Archive, Bell, Building2, Check, ClipboardList, MessageSquare, AlertTri
 import { Button } from "../ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { EmptyState, ErrorState } from "../shared/EmptyState";
+import { SkeletonRow } from "../shared/SkeletonCard";
 import { notificationsApi } from "../../api/notificationsApi";
 import { getNotificationInvitationId } from "../../api/mappers";
 import { workspaceApi } from "../../api/workspaceApi";
@@ -284,7 +285,7 @@ export function NotificationsPage() {
           <TabsContent value="inbox" className="mt-4">
             <div className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
               {notificationsState.loading ? (
-                <EmptyState icon={Bell} title="Loading notifications..." />
+                <div className="divide-y divide-slate-100 dark:divide-slate-800">{[1, 2, 3, 4].map((i) => <SkeletonRow key={i} />)}</div>
               ) : filtered(unread).length === 0 ? (
                 <EmptyState icon={Bell} title="All caught up" description="You have no unread notifications." />
               ) : filtered(unread).map(n => <NotifItem key={n.id} n={n} onRefresh={notificationsState.reload} />)}

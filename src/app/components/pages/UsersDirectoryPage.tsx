@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { usersApi } from "../../api/usersApi";
 import { useAuth } from "../../auth/AuthContext";
 import { UserAvatar } from "../shared/UserAvatar";
+import { SkeletonRow } from "../shared/SkeletonCard";
 import { EmptyState, ErrorState } from "../shared/EmptyState";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { usePresenceMap } from "../../hooks/usePresenceMap";
@@ -97,7 +98,7 @@ export function UsersDirectoryPage() {
             description="Type a name or email above. Browsing all users requires a platform admin account."
           />
         ) : listState.loading && users.length === 0 ? (
-          <div className="p-8 text-sm text-slate-500">Loading users...</div>
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">{[1, 2, 3, 4, 5].map((i) => <SkeletonRow key={i} />)}</div>
         ) : users.length === 0 ? (
           <EmptyState icon={UserIcon} title="No users found" description="Try a different search query." />
         ) : (
