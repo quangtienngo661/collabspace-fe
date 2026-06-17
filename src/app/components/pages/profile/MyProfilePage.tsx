@@ -14,6 +14,7 @@ import { PresenceDot, RoleBadge } from "../../shared/StatusBadge";
 import { ConfirmDialog } from "../../shared/ConfirmDialog";
 import { ErrorState } from "../../shared/EmptyState";
 import { toast } from "sonner";
+import { friendlyError } from "../../../utils/errorUtils";
 import { useAuth } from "../../../auth/AuthContext";
 import { authApi } from "../../../api/authApi";
 import { usersApi } from "../../../api/usersApi";
@@ -101,7 +102,7 @@ export function MyProfilePage() {
       await refresh(true);
       toast.success("Profile updated successfully");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to update profile");
+      toast.error(friendlyError(error));
     }
   }
 
@@ -120,7 +121,7 @@ export function MyProfilePage() {
       setProfile(updated);
       toast.success("Avatar updated successfully");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to upload avatar");
+      toast.error(friendlyError(error));
     } finally {
       setIsUploading(false);
       // Reset input
@@ -134,7 +135,7 @@ export function MyProfilePage() {
       setPreferences(saved);
       toast.success("Preferences saved");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to save preferences");
+      toast.error(friendlyError(error));
     }
   }
 
@@ -158,7 +159,7 @@ export function MyProfilePage() {
       await logout();
       navigate("/login", { replace: true });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to change password");
+      toast.error(friendlyError(error));
     }
   }
 
@@ -170,7 +171,7 @@ export function MyProfilePage() {
       await sessionsState.reload();
       toast.success("Session revoked");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to revoke session");
+      toast.error(friendlyError(error));
     }
   }
 
@@ -185,7 +186,7 @@ export function MyProfilePage() {
       await sessionsState.reload();
       toast.success("Other sessions logged out");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to logout other sessions");
+      toast.error(friendlyError(error));
     }
   }
 
@@ -197,7 +198,7 @@ export function MyProfilePage() {
       await logout();
       navigate("/login", { replace: true });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to logout all devices");
+      toast.error(friendlyError(error));
     }
   }
 

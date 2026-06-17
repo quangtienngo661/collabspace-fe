@@ -16,6 +16,7 @@ import { ConfirmDialog } from "../../shared/ConfirmDialog";
 import { TaskComments } from "./TaskComments";
 import { TaskActivity } from "./TaskActivity";
 import { toast } from "sonner";
+import { friendlyError } from "../../../utils/errorUtils";
 import { taskApi } from "../../../api/taskApi";
 import { useWorkspaceMemberUsers } from "../../../hooks/useWorkspaceMemberUsers";
 import { initials } from "../../../api/mappers";
@@ -85,7 +86,7 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted, can
       onUpdated({ ...task, status: nextStatus });
       toast.success(`Status changed to ${val}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to update status");
+      toast.error(friendlyError(error));
     }
   }
 
@@ -96,7 +97,7 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted, can
       await refreshTask();
       toast.success("Assignee updated");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to update assignee");
+      toast.error(friendlyError(error));
     }
   }
 
@@ -114,7 +115,7 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted, can
       setEditingTitle(false);
       toast.success("Title updated");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to update title");
+      toast.error(friendlyError(error));
     }
   }
 
@@ -135,7 +136,7 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted, can
       await refreshTask();
       toast.success("Task details saved");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to save details");
+      toast.error(friendlyError(error));
     } finally {
       setSavingDetails(false);
     }
@@ -148,7 +149,7 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted, can
       await refreshTask();
       toast.success("Attachment uploaded");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to upload attachment");
+      toast.error(friendlyError(error));
     } finally {
       setUploading(false);
     }
@@ -160,7 +161,7 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted, can
       await refreshTask();
       toast.success("Attachment removed");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to remove attachment");
+      toast.error(friendlyError(error));
     }
   }
 
@@ -173,7 +174,7 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted, can
       onDeleted?.(task.id);
       onClose();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to delete task");
+      toast.error(friendlyError(error));
     } finally {
       setDeleting(false);
     }
