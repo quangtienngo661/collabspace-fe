@@ -6,6 +6,8 @@ const INVITE_ERROR_MESSAGES: Record<string, string> = {
   INVITE_ALREADY_MEMBER: "This person is already a member of this workspace.",
   INVITE_PLATFORM_ADMIN: "Platform admin accounts cannot be invited to a workspace.",
   INVITE_EMAIL_REQUIRED: "Email is required.",
+  PLATFORM_ADMIN_CANNOT_JOIN_WORKSPACE:
+    "Platform admin accounts cannot join workspaces via invitations.",
 };
 
 function extractApiErrorDetails(payload: unknown): { code?: string; message?: string } {
