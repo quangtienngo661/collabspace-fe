@@ -356,6 +356,12 @@ export function mapAdminUserAggregate(raw: AnyRecord): AdminUserAggregate {
     username: raw.username ?? null,
     avatarUrl: raw.avatarUrl ?? null,
     bio: raw.bio ?? null,
+    workspaceCount:
+      typeof raw.workspaceCount === "number"
+        ? raw.workspaceCount
+        : typeof raw.workspace_count === "number"
+          ? raw.workspace_count
+          : undefined,
   };
 }
 

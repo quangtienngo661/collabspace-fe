@@ -15,7 +15,12 @@ import { ProjectListPage } from "./components/pages/project/ProjectListPage";
 import { KanbanBoardPage } from "./components/pages/task/KanbanBoardPage";
 import { NotificationsPage } from "./components/pages/NotificationsPage";
 import { MyProfilePage } from "./components/pages/profile/MyProfilePage";
-import { AdminPage } from "./components/pages/admin/AdminPage";
+import { AdminLayout } from "./components/pages/admin/AdminLayout";
+import { AdminOverviewPage } from "./components/pages/admin/AdminOverviewPage";
+import { AdminRolesPage } from "./components/pages/admin/AdminRolesPage";
+import { AdminUsersPage } from "./components/pages/admin/AdminUsersPage";
+import { AdminWorkspacesPage } from "./components/pages/admin/AdminWorkspacesPage";
+import { AdminBroadcastPage } from "./components/pages/admin/AdminBroadcastPage";
 import { InvitationsPage } from "./components/pages/InvitationsPage";
 import { UsersDirectoryPage } from "./components/pages/UsersDirectoryPage";
 import { ForbiddenPage, NotFoundPage } from "./components/pages/ErrorPages";
@@ -29,7 +34,7 @@ function HomeRedirect() {
 function UsersDirectoryRoute() {
   const { isAdmin } = useAuth();
   if (isAdmin) {
-    return <Navigate to="/admin?tab=users" replace />;
+    return <Navigate to="/admin/users" replace />;
   }
   return <UsersDirectoryPage />;
 }
@@ -74,7 +79,13 @@ export default function App() {
           <Route path="/users" element={<UsersDirectoryRoute />} />
           <Route path="/invitations" element={<CollaborationRoute><InvitationsPage /></CollaborationRoute>} />
           <Route path="/profile" element={<MyProfilePage />} />
-          <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
+          <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+            <Route index element={<AdminOverviewPage />} />
+            <Route path="roles" element={<AdminRolesPage />} />
+            <Route path="users" element={<AdminUsersPage />} />
+            <Route path="workspaces" element={<AdminWorkspacesPage />} />
+            <Route path="broadcast" element={<AdminBroadcastPage />} />
+          </Route>
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

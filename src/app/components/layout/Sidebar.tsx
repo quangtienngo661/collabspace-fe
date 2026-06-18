@@ -11,7 +11,6 @@ import {
   ChevronDown,
   Plus,
   LogOut,
-  Shield,
   Users,
   Settings2,
   Mail,
@@ -23,6 +22,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { workspaceApi } from "../../api/workspaceApi";
 import { useNotifications } from "../../context/NotificationsContext";
+import { ADMIN_NAV_ITEMS } from "../pages/admin/adminNav";
 
 const memberPrimaryNav: { label: string; icon: ElementType; to: string }[] = [
   { label: "Home", icon: LayoutDashboard, to: "/dashboard" },
@@ -32,10 +32,7 @@ const memberPrimaryNav: { label: string; icon: ElementType; to: string }[] = [
   { label: "Invitations", icon: Mail, to: "/invitations" },
 ];
 
-const adminPrimaryNav: { label: string; icon: ElementType; to: string }[] = [
-  { label: "Platform Admin", icon: Shield, to: "/admin" },
-  { label: "Notifications", icon: Bell, to: "/notifications" },
-];
+const adminNotificationsNav = { label: "Notifications", icon: Bell, to: "/notifications" };
 
 function projectsPath(workspaceId: string) {
   return `/workspaces/${workspaceId}/projects`;
@@ -68,7 +65,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const projects = projectsState.data ?? [];
 
   const onProjectsRoute = location.pathname.includes("/projects");
-  const primaryNav = isAdmin ? adminPrimaryNav : memberPrimaryNav;
 
   async function handleLogout() {
     await logout();
@@ -258,7 +254,18 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         )}
 
         <nav className={cn("flex-1 overflow-y-auto", collapsed ? "px-2.5 py-4 space-y-2" : "px-2 py-3 space-y-0.5")}>
-          {primaryNav.map(item => renderNavItem(item))}
+          {isAdmin ? (
+            <div className={cn(collapsed ? "space-y-2" : "space-y-0.5")}>
+              {!collapsed && (
+                <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                  Administration
+                </p>
+              )}
+              {ADMIN_NAV_ITEMS.map(item => renderNavItem(item, item.end ?? false))}
+            </div>
+          ) : (
+            memberPrimaryNav.map(item => renderNavItem(item))
+          )}
 
           {!isAdmin && activeWorkspace && (
             <div className={cn(collapsed ? "pt-2" : "pt-3 mt-2 border-t border-slate-700/50")}>
@@ -325,6 +332,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               icon: Settings2,
               to: workspaceSettingsPath(activeWorkspace.id),
             })}
+            {isAdmin && renderNavItem(adminNotificationsNav)}
             {renderNavItem({ label: "Profile", icon: User, to: "/profile" })}
           </div>
         </nav>

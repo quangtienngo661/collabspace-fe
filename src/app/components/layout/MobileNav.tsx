@@ -15,6 +15,7 @@ import { cn } from "../ui/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../ui/sheet";
 import { useWorkspaces } from "../../context/WorkspacesContext";
 import { useAuth } from "../../auth/AuthContext";
+import { ADMIN_NAV_ITEMS } from "../pages/admin/adminNav";
 
 const memberBottomItems = [
   { label: "Home", icon: LayoutDashboard, to: "/dashboard" },
@@ -62,7 +63,10 @@ export function MobileDrawer({ open, onClose, onOpenSearch }: MobileNavProps) {
   ];
 
   const adminNavItems = [
-    { label: "Platform Admin", icon: Shield, to: "/admin" },
+    ...ADMIN_NAV_ITEMS.map(item => ({ label: item.label, icon: item.icon, to: item.to, end: item.end })),
+  ];
+
+  const adminFooterNavItems = [
     { label: "Notifications", icon: Bell, to: "/notifications" },
     { label: "Profile", icon: User, to: "/profile" },
   ];
@@ -148,7 +152,7 @@ export function MobileDrawer({ open, onClose, onOpenSearch }: MobileNavProps) {
                   if (disabled) e.preventDefault();
                   else onClose();
                 }}
-                end={item.label !== "Projects"}
+                end={"end" in item ? item.end !== false : item.label !== "Projects"}
                 className={({ isActive }) =>
                   cn(
                     "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
@@ -164,6 +168,29 @@ export function MobileDrawer({ open, onClose, onOpenSearch }: MobileNavProps) {
               </NavLink>
             );
           })}
+
+          {isAdmin && (
+            <div className="space-y-0.5 border-t border-slate-700/50 pt-3 mt-3">
+              {adminFooterNavItems.map(item => (
+                <NavLink
+                  key={item.label}
+                  to={item.to}
+                  onClick={onClose}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
+                      isActive
+                        ? "bg-blue-600 text-white"
+                        : "text-slate-400 hover:bg-slate-700/60 hover:text-slate-100",
+                    )
+                  }
+                >
+                  <item.icon className="w-4 h-4 shrink-0" />
+                  {item.label}
+                </NavLink>
+              ))}
+            </div>
+          )}
         </nav>
       </SheetContent>
     </Sheet>

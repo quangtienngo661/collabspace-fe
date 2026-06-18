@@ -97,45 +97,64 @@ export const adminApi = {
     return rows.map(mapAdminUserAggregate);
   },
 
+  async listMembershipCountsByUser(): Promise<Record<string, number>> {
+    return apiRequest<Record<string, number>>("/workspaces/admin/membership-counts");
+  },
+
   /** Merges auth-only fields (e.g. lastLoginAt) when missing from the aggregate DTO. */
   async listAllUsersEnriched(): Promise<AdminUserAggregate[]> {
-    const [aggregateResult, authResult] = await Promise.allSettled([
+    const [aggregateResult, authResult, countsResult] = await Promise.allSettled([
       adminApi.listAllUsers(),
       adminApi.listAuthUsers(),
+      adminApi.listMembershipCountsByUser(),
     ]);
 
+    const membershipCounts = countsResult.status === "fulfilled" ? countsResult.value : null;
     const authUsers = authResult.status === "fulfilled" ? authResult.value : [];
     const authById = new Map(authUsers.map(user => [user.id, user]));
 
+    const attachWorkspaceCounts = (users: AdminUserAggregate[]) =>
+      users.map(user => ({
+        ...user,
+        workspaceCount:
+          membershipCounts !== null
+            ? membershipCounts[user.id] ?? 0
+            : user.workspaceCount,
+      }));
+
     if (aggregateResult.status === "fulfilled") {
-      return aggregateResult.value.map(user => {
-        const auth = authById.get(user.id);
-        if (!auth) return user;
-        return {
-          ...user,
-          emailVerified: user.emailVerified ?? auth.emailVerified,
-          isActive: user.isActive ?? auth.isActive,
-          lastLoginAt: user.lastLoginAt ?? auth.lastLoginAt,
-          roles: user.roles.length > 0 ? user.roles : auth.roles,
-          createdAt: user.createdAt || auth.createdAt,
-        };
-      });
+      return attachWorkspaceCounts(
+        aggregateResult.value.map(user => {
+          const auth = authById.get(user.id);
+          if (!auth) return user;
+          return {
+            ...user,
+            emailVerified: user.emailVerified ?? auth.emailVerified,
+            isActive: user.isActive ?? auth.isActive,
+            lastLoginAt: user.lastLoginAt ?? auth.lastLoginAt,
+            roles: user.roles.length > 0 ? user.roles : auth.roles,
+            createdAt: user.createdAt || auth.createdAt,
+          };
+        }),
+      );
     }
 
     if (authUsers.length > 0) {
       const profiles = await usersApi.bulk(authUsers.map(user => user.id)).catch(() => []);
       const profileById = new Map(profiles.map(profile => [profile.id, profile]));
-      return authUsers.map(auth => {
-        const profile = profileById.get(auth.id);
-        return {
-          ...auth,
-          fullName: profile?.name ?? null,
-          displayName: profile?.displayName ?? null,
-          username: profile?.username ?? null,
-          avatarUrl: profile?.avatarUrl ?? null,
-          bio: profile?.bio ?? null,
-        };
-      });
+      return attachWorkspaceCounts(
+        authUsers.map(auth => {
+          const profile = profileById.get(auth.id);
+          return {
+            ...auth,
+            fullName: profile?.name ?? null,
+            displayName: profile?.displayName ?? null,
+            username: profile?.username ?? null,
+            avatarUrl: profile?.avatarUrl ?? null,
+            bio: profile?.bio ?? null,
+          };
+        }),
+      );
     }
 
     throw aggregateResult.status === "rejected"

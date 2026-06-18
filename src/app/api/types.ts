@@ -218,6 +218,8 @@ export interface AdminUserAggregate extends AdminAuthUser {
   username?: string | null;
   avatarUrl?: string | null;
   bio?: string | null;
+  /** Distinct workspaces where the user is a member (includes owner). */
+  workspaceCount?: number;
 }
 
 export interface AdminWorkspace {
