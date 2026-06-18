@@ -341,6 +341,7 @@ export function WorkspaceDetailPage() {
                 </Button>
               )}
             </div>
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="border-slate-200 dark:border-slate-700 hover:bg-transparent">
@@ -446,6 +447,7 @@ export function WorkspaceDetailPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </Card>
         </TabsContent>
 
