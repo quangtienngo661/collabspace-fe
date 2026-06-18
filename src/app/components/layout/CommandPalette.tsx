@@ -9,6 +9,7 @@ import {
   User,
   Shield,
   Users,
+  Send,
 } from "lucide-react";
 import {
   CommandDialog,
@@ -135,12 +136,24 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             {isAdmin ? (
               <>
                 <CommandItem onSelect={() => go("/admin")}>
-                  <Shield className="mr-2 h-4 w-4" />
-                  Platform Admin
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  Platform overview
                 </CommandItem>
-                <CommandItem onSelect={() => go("/admin?tab=users")}>
+                <CommandItem onSelect={() => go("/admin/roles")}>
+                  <Shield className="mr-2 h-4 w-4" />
+                  Roles & permissions
+                </CommandItem>
+                <CommandItem onSelect={() => go("/admin/users")}>
                   <Users className="mr-2 h-4 w-4" />
                   User accounts
+                </CommandItem>
+                <CommandItem onSelect={() => go("/admin/workspaces")}>
+                  <FolderOpen className="mr-2 h-4 w-4" />
+                  Workspaces
+                </CommandItem>
+                <CommandItem onSelect={() => go("/admin/broadcast")}>
+                  <Send className="mr-2 h-4 w-4" />
+                  System broadcast
                 </CommandItem>
               </>
             ) : (

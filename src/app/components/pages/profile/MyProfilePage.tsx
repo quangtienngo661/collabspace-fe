@@ -13,6 +13,7 @@ import { UserAvatar } from "../../shared/UserAvatar";
 import { PresenceDot, RoleBadge } from "../../shared/StatusBadge";
 import { ConfirmDialog } from "../../shared/ConfirmDialog";
 import { ErrorState } from "../../shared/EmptyState";
+import { DateDisplay } from "../../shared/DateDisplay";
 import { toast } from "sonner";
 import { friendlyError } from "../../../utils/errorUtils";
 import { useAuth } from "../../../auth/AuthContext";
@@ -47,17 +48,11 @@ function fallbackUser(email?: string): DomainUser {
   };
 }
 
-function formatDate(value: string) {
-  if (!value) return "N/A";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "N/A" : date.toLocaleString();
-}
-
 export function MyProfilePage() {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get("tab") || "profile";
   const navigate = useNavigate();
-  const { authUser, profile, preferences, session, refresh, logout, setPreferences, setProfile } = useAuth();
+  const { authUser, profile, preferences, session, refresh, logout, setPreferences, setProfile, isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState(defaultTab);
   const sessionsState = useAsyncData(() => authApi.sessions(), [], { enabled: activeTab === "sessions" });
   const currentUser = profile ?? fallbackUser(authUser?.email);
@@ -238,7 +233,9 @@ export function MyProfilePage() {
                 <div className="space-y-1.5">
                   <Label>Email</Label>
                   <Input value={authUser?.email ?? currentUser.email ?? "N/A"} disabled className="opacity-60" />
-                  <p className="text-xs text-slate-400">Contact admin to change email</p>
+                  {!isAdmin && (
+                    <p className="text-xs text-slate-400">Contact a platform admin to change your email</p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label>Presence Status</Label>
@@ -365,8 +362,10 @@ export function MyProfilePage() {
           <Card className="border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-700">
               <div>
-                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{activeSessions.length} Active Sessions</p>
-                <p className="text-xs text-slate-400">Refresh token sessions returned by auth-service</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  {activeSessions.length} Active Session{activeSessions.length === 1 ? "" : "s"}
+                </p>
+                <p className="text-xs text-slate-400">Devices and browsers where you are signed in</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -393,9 +392,9 @@ export function MyProfilePage() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-700">
-                    <TableHead className="text-xs text-slate-500">Device</TableHead>
-                    <TableHead className="hidden text-xs text-slate-500 md:table-cell">Location</TableHead>
-                    <TableHead className="hidden text-xs text-slate-500 md:table-cell">Last Active</TableHead>
+                    <TableHead className="text-xs text-slate-500">Session</TableHead>
+                    <TableHead className="hidden text-xs text-slate-500 md:table-cell">Last active</TableHead>
+                    <TableHead className="hidden text-xs text-slate-500 lg:table-cell">Expires</TableHead>
                     <TableHead className="w-24" />
                   </TableRow>
                 </TableHeader>
@@ -417,11 +416,15 @@ export function MyProfilePage() {
                             <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{activeSession.device}</p>
                             {activeSession.current && <span className="rounded bg-green-100 px-1.5 py-0.5 text-[10px] text-green-700 dark:bg-green-900/40 dark:text-green-300">Current</span>}
                           </div>
-                          <p className="pl-6 text-xs text-slate-400">{activeSession.browser} - {activeSession.ip}</p>
+                          <p className="pl-6 text-xs text-slate-400">{activeSession.browser}</p>
                         </div>
                       </TableCell>
-                      <TableCell className="hidden text-sm text-slate-500 md:table-cell">{activeSession.location}</TableCell>
-                      <TableCell className="hidden text-sm text-slate-500 md:table-cell">{formatDate(activeSession.lastActive)}</TableCell>
+                      <TableCell className="hidden text-sm text-slate-500 md:table-cell">
+                        <DateDisplay date={activeSession.lastActive} format="relative" />
+                      </TableCell>
+                      <TableCell className="hidden text-sm text-slate-500 lg:table-cell">
+                        <DateDisplay date={activeSession.expiresAt} format="absolute" />
+                      </TableCell>
                       <TableCell>
                         {!activeSession.current && (
                           <Button

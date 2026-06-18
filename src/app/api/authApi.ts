@@ -67,7 +67,18 @@ export const authApi = {
   async sessions(): Promise<Session[]> {
     const session = getStoredSession();
     const rows = await apiRequest<any[]>("/auth/sessions");
-    return rows.map(row => mapSession(row, session?.refreshToken));
+    const mapped = rows.map(row => mapSession(row, session?.familyId));
+    const active = mapped.filter(item => item.isActive);
+
+    if (!session?.familyId && active.length === 1) {
+      return mapped.map(item =>
+        item.id === active[0].id
+          ? { ...item, current: true, device: "This device" }
+          : item,
+      );
+    }
+
+    return mapped;
   },
 
   async revokeSession(familyId: string) {

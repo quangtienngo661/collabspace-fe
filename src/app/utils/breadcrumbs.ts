@@ -8,6 +8,8 @@ const ROUTE_LABELS: Record<string, string> = {
   users: "Users",
   invitations: "Invitations",
   admin: "Admin",
+  roles: "Roles & Permissions",
+  broadcast: "Broadcast",
 };
 
 function isUuid(value: string): boolean {
