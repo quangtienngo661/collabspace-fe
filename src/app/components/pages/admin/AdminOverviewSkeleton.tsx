@@ -3,7 +3,7 @@ import { Skeleton } from "../../ui/skeleton";
 
 function StatCardSkeleton({ dual = false, withSubtitle = false }: { dual?: boolean; withSubtitle?: boolean }) {
   return (
-    <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+    <Card className="flex min-h-[7.5rem] flex-col border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
       <Skeleton className="mb-2 h-3 w-24" />
       {dual ? (
         <div className="flex gap-5">
@@ -19,7 +19,7 @@ function StatCardSkeleton({ dual = false, withSubtitle = false }: { dual?: boole
       ) : (
         <>
           <Skeleton className="h-8 w-12" />
-          {withSubtitle && <Skeleton className="mt-2 h-2.5 w-28" />}
+          {withSubtitle && <Skeleton className="mt-auto h-8 w-28" />}
         </>
       )}
     </Card>
@@ -70,12 +70,12 @@ function ChartCardSkeleton({ variant }: { variant: "donut" | "bar" | "line" }) {
 export function AdminOverviewSkeleton() {
   return (
     <div className="space-y-6" aria-busy="true" aria-label="Loading platform overview">
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
         <StatCardSkeleton withSubtitle />
         <StatCardSkeleton dual />
         <StatCardSkeleton withSubtitle />
-        <StatCardSkeleton />
-        <StatCardSkeleton />
+        <StatCardSkeleton withSubtitle />
+        <StatCardSkeleton withSubtitle />
         <StatCardSkeleton withSubtitle />
       </div>
 

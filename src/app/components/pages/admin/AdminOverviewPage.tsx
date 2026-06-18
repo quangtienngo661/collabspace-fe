@@ -41,15 +41,17 @@ export function AdminOverviewPage() {
 
   return (
     <>
-      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-        <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3">
+        <Card className="flex min-h-[7.5rem] flex-col border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <p className="mb-1 text-xs font-semibold text-slate-500">Platform Users</p>
           <p className="text-2xl font-bold">{memberUsers.length}</p>
-          <p className="mt-1 text-[10px] text-slate-400">
-            {withoutWorkspace} without workspace · {activeLast30Days} active (30d)
+          <p className="mt-auto pt-2 text-[10px] leading-relaxed text-slate-400">
+            {withoutWorkspace} without workspace
+            <br />
+            {activeLast30Days} active (30d)
           </p>
         </Card>
-        <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <Card className="flex min-h-[7.5rem] flex-col border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <p className="mb-2 text-xs font-semibold text-slate-500">Account status</p>
           <div className="flex gap-5">
             <div>
@@ -62,24 +64,28 @@ export function AdminOverviewPage() {
             </div>
           </div>
         </Card>
-        <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <Card className="flex min-h-[7.5rem] flex-col border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <p className="mb-1 text-xs font-semibold text-slate-500">Total Workspaces</p>
           <p className="text-2xl font-bold">{workspaces.length}</p>
-          <p className="mt-1 text-[10px] text-slate-400">Avg {avgMembers} members each</p>
+          <p className="mt-auto pt-2 text-[10px] text-slate-400">Avg {avgMembers} members each</p>
         </Card>
-        <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <Card className="flex min-h-[7.5rem] flex-col border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <p className="mb-1 text-xs font-semibold text-slate-500">Workspace Members</p>
           <p className="text-2xl font-bold">{sumWorkspaceMetric(workspaces, "memberCount")}</p>
+          <p className="mt-auto pt-2 text-[10px] text-slate-400">Across all workspaces</p>
         </Card>
-        <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <Card className="flex min-h-[7.5rem] flex-col border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <p className="mb-1 text-xs font-semibold text-slate-500">Total Projects</p>
           <p className="text-2xl font-bold">{totalProjects}</p>
+          <p className="mt-auto pt-2 text-[10px] text-slate-400">Non-deleted projects</p>
         </Card>
-        <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <Card className="flex min-h-[7.5rem] flex-col border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <p className="mb-1 text-xs font-semibold text-slate-500">Total Tasks</p>
           <p className="text-2xl font-bold">{totalTasks}</p>
-          <p className="mt-1 text-[10px] text-slate-400">
-            {taskStats.byStatus.TODO} todo · {taskStats.byStatus.DOING} doing · {taskStats.byStatus.DONE} done
+          <p className="mt-auto pt-2 text-[10px] leading-relaxed text-slate-400">
+            {taskStats.byStatus.TODO} todo · {taskStats.byStatus.DOING} doing
+            <br />
+            {taskStats.byStatus.DONE} done
           </p>
         </Card>
       </div>
