@@ -225,10 +225,11 @@ export interface AdminUserAggregate extends AdminAuthUser {
 export interface AdminWorkspace {
   id: string;
   name: string;
-  slug?: string;
   description: string;
   ownerId: string;
   memberCount: number;
+  projectCount?: number;
+  taskCount?: number;
   createdAt: string;
   updatedAt?: string;
 }

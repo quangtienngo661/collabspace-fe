@@ -369,10 +369,21 @@ export function mapAdminWorkspace(raw: AnyRecord): AdminWorkspace {
   return {
     id: raw.id,
     name: raw.name ?? "Untitled",
-    slug: raw.slug,
     description: raw.description ?? "",
     ownerId: raw.ownerId ?? raw.owner_id ?? "",
-    memberCount: raw.memberCount ?? 0,
+    memberCount: raw.memberCount ?? raw.member_count ?? 0,
+    projectCount:
+      typeof raw.projectCount === "number"
+        ? raw.projectCount
+        : typeof raw.project_count === "number"
+          ? raw.project_count
+          : undefined,
+    taskCount:
+      typeof raw.taskCount === "number"
+        ? raw.taskCount
+        : typeof raw.task_count === "number"
+          ? raw.task_count
+          : undefined,
     createdAt: raw.createdAt ?? raw.created_at ?? "",
     updatedAt: raw.updatedAt ?? raw.updated_at,
   };

@@ -169,8 +169,17 @@ export const adminApi = {
   },
 
   async listAllWorkspaces(): Promise<AdminWorkspace[]> {
-    const rows = await apiRequest<any[]>("/workspaces/admin/all");
-    return rows.map(mapAdminWorkspace);
+    const [rows, taskCounts] = await Promise.all([
+      apiRequest<any[]>("/workspaces/admin/all"),
+      apiRequest<Record<string, number>>("/tasks/admin/workspace-counts").catch(() => ({})),
+    ]);
+    return rows.map((row) => {
+      const workspace = mapAdminWorkspace(row);
+      return {
+        ...workspace,
+        taskCount: taskCounts[workspace.id] ?? workspace.taskCount ?? 0,
+      };
+    });
   },
 
   async deleteWorkspace(id: string): Promise<void> {

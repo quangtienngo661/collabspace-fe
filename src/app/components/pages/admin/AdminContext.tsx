@@ -369,8 +369,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     const search = workspaceSearch.toLowerCase();
     return (
       w.name.toLowerCase().includes(search) ||
-      (w.slug || "").toLowerCase().includes(search) ||
-      (w.description || "").toLowerCase().includes(search)
+      (w.description || "").toLowerCase().includes(search) ||
+      w.ownerId.toLowerCase().includes(search)
     );
   });
 

@@ -3,8 +3,10 @@ import { ConfirmDialog } from "../../shared/ConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "../../ui/dialog";
 import { Label } from "../../ui/label";
 import { Input } from "../../ui/input";
+import { Card } from "../../ui/card";
 import { DateDisplay } from "../../shared/DateDisplay";
 import { useAdminWorkspace } from "./AdminContext";
+import { adminWorkspaceOwnerLabel } from "./adminWorkspaceDisplay";
 
 export function AdminDialogs() {
   const {
@@ -46,6 +48,7 @@ export function AdminDialogs() {
     handleDeleteWorkspace,
     viewWorkspaceTarget,
     setViewWorkspaceTarget,
+    usersState,
     promoteAdminTarget,
     setPromoteAdminTarget,
     confirmPromoteAdmin,
@@ -216,40 +219,66 @@ export function AdminDialogs() {
       />
 
       <Dialog open={!!viewWorkspaceTarget} onOpenChange={(open) => { if (!open) setViewWorkspaceTarget(null); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Workspace Information</DialogTitle>
           </DialogHeader>
-          {viewWorkspaceTarget && (
-            <div className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-500">Workspace Name</Label>
-                <p className="text-sm font-medium">{viewWorkspaceTarget.name}</p>
+          {viewWorkspaceTarget && (() => {
+            const owner = adminWorkspaceOwnerLabel(viewWorkspaceTarget.ownerId, usersState.data);
+            return (
+              <div className="space-y-4 py-2">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-500">Workspace Name</Label>
+                  <p className="text-sm font-medium">{viewWorkspaceTarget.name}</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-500">Description</Label>
+                  <p className="text-sm">{viewWorkspaceTarget.description || "No description provided."}</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-500">Owner</Label>
+                  <p className="text-sm font-medium">{owner.name}</p>
+                  <p className="text-[11px] font-mono text-slate-400 break-all">{owner.id}</p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <Card className="p-3 border-slate-200 dark:border-slate-700">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Members</p>
+                    <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{viewWorkspaceTarget.memberCount ?? 0}</p>
+                  </Card>
+                  <Card className="p-3 border-slate-200 dark:border-slate-700">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Projects</p>
+                    <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{viewWorkspaceTarget.projectCount ?? 0}</p>
+                  </Card>
+                  <Card className="p-3 border-slate-200 dark:border-slate-700">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Tasks</p>
+                    <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{viewWorkspaceTarget.taskCount ?? 0}</p>
+                  </Card>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-500">Workspace ID</Label>
+                    <p className="text-[11px] font-mono text-slate-500 break-all">{viewWorkspaceTarget.id}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-500">Created At</Label>
+                    <p className="text-sm">
+                      {viewWorkspaceTarget.createdAt ? <DateDisplay date={viewWorkspaceTarget.createdAt} format="absolute" /> : "N/A"}
+                    </p>
+                  </div>
+                  {viewWorkspaceTarget.updatedAt && (
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label className="text-xs font-semibold text-slate-500">Last Updated</Label>
+                      <p className="text-sm">
+                        <DateDisplay date={viewWorkspaceTarget.updatedAt} format="absolute" />
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-500">Slug</Label>
-                <p className="text-sm font-mono">{viewWorkspaceTarget.slug}</p>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-500">Description</Label>
-                <p className="text-sm">{viewWorkspaceTarget.description || "No description provided."}</p>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-500">Owner ID</Label>
-                <p className="text-sm font-mono">{viewWorkspaceTarget.ownerId}</p>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-500">Members Count</Label>
-                <p className="text-sm">{viewWorkspaceTarget.memberCount ?? 0}</p>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-500">Created At</Label>
-                <p className="text-sm">
-                  {viewWorkspaceTarget.createdAt ? <DateDisplay date={viewWorkspaceTarget.createdAt} format="absolute" /> : "N/A"}
-                </p>
-              </div>
-            </div>
-          )}
+            );
+          })()}
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline" size="sm">Close</Button>
