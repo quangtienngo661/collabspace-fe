@@ -389,17 +389,26 @@ export function mapAdminWorkspace(raw: AnyRecord): AdminWorkspace {
   };
 }
 
-export function mapSession(raw: AnyRecord, currentRefreshToken?: string): Session {
-  const active = raw.isActive ?? !raw.revokedAt;
+export function mapSession(raw: AnyRecord, currentFamilyId?: string): Session {
+  const familyId = String(raw.familyId ?? raw.family_id ?? "");
+  const isActive = raw.isActive ?? (raw.revokedAt == null && raw.revoked_at == null);
+  const createdAt = raw.createdAt ?? raw.created_at ?? "";
+  const lastUsedAt = raw.lastUsedAt ?? raw.last_used_at ?? null;
+  const expiresAt = raw.expiresAt ?? raw.expires_at ?? "";
+  const isCurrent = Boolean(currentFamilyId && familyId && currentFamilyId === familyId);
+  const signedInLabel = createdAt
+    ? `Signed in ${new Date(createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+    : "Active session";
+
   return {
-    id: raw.tokenId ?? raw.id ?? raw.familyId,
-    familyId: raw.familyId ?? raw.id,
-    device: "Refresh token session",
-    browser: raw.workspaceId ? `Workspace ${raw.workspaceId}` : "Browser",
-    ip: "N/A",
-    location: "N/A",
-    lastActive: raw.lastUsedAt ?? raw.expiresAt ?? "",
-    current: Boolean(currentRefreshToken && raw.tokenId && currentRefreshToken.includes(raw.tokenId)),
-    isActive: Boolean(active),
+    id: String(raw.tokenId ?? raw.id ?? familyId),
+    familyId,
+    device: isCurrent ? "This device" : "Web browser",
+    browser: signedInLabel,
+    lastActive: lastUsedAt ?? createdAt ?? expiresAt,
+    createdAt: createdAt || undefined,
+    expiresAt: expiresAt || undefined,
+    current: isCurrent,
+    isActive: Boolean(isActive),
   };
 }

@@ -99,8 +99,14 @@ async function refreshSession(): Promise<AuthSession> {
           throw new ApiError(response.status, errorMessage(payload, "Unable to refresh session"), payload);
         }
         const nextSession = unwrapResponse<AuthSession>(payload);
-        setStoredSession(nextSession);
-        return nextSession;
+        setStoredSession({
+          ...nextSession,
+          familyId: nextSession.familyId ?? session.familyId,
+        });
+        return {
+          ...nextSession,
+          familyId: nextSession.familyId ?? session.familyId,
+        };
       })
       .catch(error => {
         // Network/CORS errors must not wipe session — only explicit auth rejection.

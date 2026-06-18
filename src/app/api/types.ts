@@ -22,6 +22,7 @@ export interface AuthSession {
   email: string;
   expiresIn: string;
   refreshToken: string;
+  familyId?: string;
   role?: string;
   roles: string[];
   userId: string;
@@ -182,9 +183,9 @@ export interface Session {
   familyId: string;
   device: string;
   browser: string;
-  ip: string;
-  location: string;
   lastActive: string;
+  createdAt?: string;
+  expiresAt?: string;
   current: boolean;
   isActive: boolean;
 }
