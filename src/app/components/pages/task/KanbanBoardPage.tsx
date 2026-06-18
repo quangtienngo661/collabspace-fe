@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { memo, useState, useCallback, useMemo } from "react";
 import { useParams } from "react-router";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -34,7 +34,7 @@ const COLUMNS: { status: TaskStatus; label: string; color: string }[] = [
 
 const ITEM_TYPE = "TASK_CARD";
 
-function KanbanCard({ task, onClick, presenceStatus }: { task: Task; onClick: () => void; presenceStatus?: UserStatus }) {
+const KanbanCard = memo(function KanbanCard({ task, onClick, presenceStatus }: { task: Task; onClick: (task: Task) => void; presenceStatus?: UserStatus }) {
   const assignee = task.assignedTo;
   const [{ isDragging }, drag] = useDrag(() => ({
     type: ITEM_TYPE,
@@ -45,7 +45,7 @@ function KanbanCard({ task, onClick, presenceStatus }: { task: Task; onClick: ()
   return (
     <div
       ref={drag as any}
-      onClick={onClick}
+      onClick={() => onClick(task)}
       className={cn(
         "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 cursor-pointer hover:shadow-md transition-all space-y-2 group",
         isDragging && "opacity-40 scale-95"
@@ -110,9 +110,9 @@ function KanbanCard({ task, onClick, presenceStatus }: { task: Task; onClick: ()
       </div>
     </div>
   );
-}
+});
 
-function KanbanColumn({ status, label, color, tasks, presenceMap, onDrop, onCardClick, onAdd }: {
+const KanbanColumn = memo(function KanbanColumn({ status, label, color, tasks, presenceMap, onDrop, onCardClick, onAdd }: {
   status: TaskStatus; label: string; color: string; tasks: Task[];
   presenceMap: Record<string, UserStatus>;
   onDrop: (taskId: string, newStatus: TaskStatus, fromStatus: TaskStatus) => void; onCardClick: (t: Task) => void; onAdd: (status: TaskStatus) => void;
@@ -122,6 +122,7 @@ function KanbanColumn({ status, label, color, tasks, presenceMap, onDrop, onCard
     drop: (item: { id: string; status: TaskStatus }) => onDrop(item.id, status, item.status),
     collect: m => ({ isOver: m.isOver() }),
   }));
+  const handleAdd = useCallback(() => onAdd(status), [onAdd, status]);
 
   return (
     <div ref={drop as any} className={cn("flex flex-col min-w-[280px] md:min-w-0 md:flex-1 rounded-lg border-t-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700", color, isOver && "ring-2 ring-blue-400/50 bg-blue-50/30 dark:bg-blue-900/10")}>
@@ -130,7 +131,7 @@ function KanbanColumn({ status, label, color, tasks, presenceMap, onDrop, onCard
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{label}</span>
           <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 text-xs flex items-center justify-center">{tasks.length}</span>
         </div>
-        <Button variant="ghost" size="icon" className="w-6 h-6" onClick={() => onAdd(status)}>
+        <Button variant="ghost" size="icon" className="w-6 h-6" onClick={handleAdd}>
           <Plus className="w-3.5 h-3.5" />
         </Button>
       </div>
@@ -142,13 +143,13 @@ function KanbanColumn({ status, label, color, tasks, presenceMap, onDrop, onCard
             key={t.id}
             task={t}
             presenceStatus={t.assigneeId ? presenceMap[t.assigneeId] : undefined}
-            onClick={() => onCardClick(t)}
+            onClick={onCardClick}
           />
         ))}
       </div>
     </div>
   );
-}
+});
 
 export function KanbanBoardPage() {
   const { id: wsId, pid } = useParams<{ id: string; pid: string }>();
@@ -172,13 +173,17 @@ export function KanbanBoardPage() {
     () => wsId ? taskApi.getBoard({ workspaceId: wsId, projectId: pid }) : Promise.resolve([]),
     [wsId, pid],
   );
+  const { data: taskData, setData: setTaskData } = taskState;
 
   const currentUserRole = useCurrentWorkspaceRole(wsId, profile?.id);
   const canDeleteAnyTask = currentUserRole === "owner" || currentUserRole === "manager";
 
   const usersState = useWorkspaceMemberUsers(wsId, Boolean(wsId));
-  const users = (usersState.data ?? []).map(u => ({ userId: u.id, name: u.name }));
-  const taskList = taskState.data ?? [];
+  const users = useMemo(
+    () => (usersState.data ?? []).map(u => ({ userId: u.id, name: u.name })),
+    [usersState.data],
+  );
+  const taskList = taskData ?? [];
 
   const assigneeIds = useMemo(
     () => [...new Set(taskList.map(t => t.assigneeId).filter(Boolean) as string[])],
@@ -186,41 +191,55 @@ export function KanbanBoardPage() {
   );
   const presenceMap = usePresenceMap(assigneeIds, Boolean(wsId));
 
-  const filteredTasks = taskList.filter(t => {
-    const matchSearch = !search || t.title.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = filterStatus === "all" || t.status === filterStatus;
-    const matchAssignee = filterAssignee === "all" || t.assigneeId === filterAssignee;
-    const matchPriority = filterPriority === "all" || t.priority === filterPriority;
-    return matchSearch && matchStatus && matchAssignee && matchPriority;
-  });
+  const filteredTasks = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    return taskList.filter(t => {
+      const matchSearch = !normalizedSearch || t.title.toLowerCase().includes(normalizedSearch);
+      const matchStatus = filterStatus === "all" || t.status === filterStatus;
+      const matchAssignee = filterAssignee === "all" || t.assigneeId === filterAssignee;
+      const matchPriority = filterPriority === "all" || t.priority === filterPriority;
+      return matchSearch && matchStatus && matchAssignee && matchPriority;
+    });
+  }, [taskList, search, filterStatus, filterAssignee, filterPriority]);
+
+  const tasksByStatus = useMemo(() => ({
+    TODO: filteredTasks.filter(t => t.status === "TODO"),
+    DOING: filteredTasks.filter(t => t.status === "DOING"),
+    DONE: filteredTasks.filter(t => t.status === "DONE"),
+  }), [filteredTasks]);
 
   const handleDrop = useCallback(async (taskId: string, newStatus: TaskStatus, fromStatus: TaskStatus) => {
     if (fromStatus === newStatus) return;
 
-    const previous = taskState.data ?? [];
-    taskState.setData(prev => (prev ?? []).map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+    const previous = taskData ?? [];
+    setTaskData(prev => (prev ?? []).map(t => t.id === taskId ? { ...t, status: newStatus } : t));
     try {
       await taskApi.updateStatus(taskId, newStatus);
       toast.success(`Task moved to ${newStatus === "TODO" ? "To Do" : newStatus === "DOING" ? "In Progress" : "Done"}`);
     } catch (error) {
-      taskState.setData(previous);
+      setTaskData(previous);
       toast.error(error instanceof Error ? error.message : "Unable to change task status");
     }
-  }, [taskState]);
+  }, [taskData, setTaskData]);
 
-  const handleTaskUpdated = (updated: Task) => {
-    taskState.setData(prev => (prev ?? []).map(t => t.id === updated.id ? updated : t));
+  const handleTaskUpdated = useCallback((updated: Task) => {
+    setTaskData(prev => (prev ?? []).map(t => t.id === updated.id ? updated : t));
     setSelectedTask(updated);
-  };
+  }, [setTaskData]);
 
-  const handleTaskCreated = (task: Task) => {
-    taskState.setData(prev => [...(prev ?? []), task]);
-  };
+  const handleTaskCreated = useCallback((task: Task) => {
+    setTaskData(prev => [...(prev ?? []), task]);
+  }, [setTaskData]);
 
-  const handleTaskDeleted = (taskId: string) => {
-    taskState.setData(prev => (prev ?? []).filter(task => task.id !== taskId));
+  const handleTaskDeleted = useCallback((taskId: string) => {
+    setTaskData(prev => (prev ?? []).filter(task => task.id !== taskId));
     setSelectedTask(null);
-  };
+  }, [setTaskData]);
+
+  const handleAddTask = useCallback((status: TaskStatus) => {
+    setCreateStatus(status);
+    setCreateOpen(true);
+  }, []);
 
   useTaskDeepLink({
     workspaceId: wsId,
@@ -299,11 +318,11 @@ export function KanbanBoardPage() {
                 <KanbanColumn
                   key={col.status}
                   {...col}
-                  tasks={filteredTasks.filter(t => t.status === col.status)}
+                  tasks={tasksByStatus[col.status]}
                   presenceMap={presenceMap}
                   onDrop={handleDrop}
                   onCardClick={setSelectedTask}
-                  onAdd={(s) => { setCreateStatus(s); setCreateOpen(true); }}
+                  onAdd={handleAddTask}
                 />
               ))}
             </div>

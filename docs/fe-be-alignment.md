@@ -285,14 +285,14 @@ Không crash nhưng UI **lệch contract** hoặc **gây hiểu nhầm**.
 
 ---
 
-## Technical debt & engineering (2026-06-17)
+## Technical debt & engineering (2026-06-18)
 
 Không chặn demo MVP; ưu tiên sau polish UI trong [fe-backlog.md](./fe-backlog.md).
 
 | # | Mục | Trạng thái FE | Effort | Ghi chú |
 |---|-----|---------------|--------|---------|
 | T1 | Route code-splitting (`React.lazy`) | Chưa có — `App.tsx` import tĩnh | Thấp | `AdminPage`, `KanbanBoardPage`, `TaskDetailSheet` |
-| T2 | `React.memo` Kanban cards/columns | Chưa có | Thấp | Re-render board khi drag/drop |
+| T2 | `React.memo` Kanban cards/columns | Done | Thấp | `KanbanCard` / `KanbanColumn` memoized; filtered columns grouped with `useMemo` |
 | T3 | `ErrorBoundary` | Chưa có | Thấp | Render error → white screen |
 | T4 | Unit / E2E tests | 0 test files | Cao | Chưa có Vitest/Playwright |
 | T5 | TanStack Query | Dùng `useAsyncData` + 3 context + `requestCache` 3s | Cao | Không stale-while-revalidate tự động |
@@ -301,20 +301,20 @@ Không chặn demo MVP; ưu tiên sau polish UI trong [fe-backlog.md](./fe-backl
 | T8 | `AdminPage.tsx` monolith | ~981 dòng, 4 tab | Trung bình | Tách sub-pages khi refactor |
 | T9 | `as any` casts | `taskApi.ts`, `KanbanBoardPage` (react-dnd refs) | Thấp | — |
 
-**Ưu tiên đề xuất:** T3 ErrorBoundary → T1 lazy routes → T2 Kanban memo → T7 FormData retry → T5 Query (refactor lớn).
+**Ưu tiên đề xuất:** T3 ErrorBoundary → T1 lazy routes → T7 FormData retry → T5 Query (refactor lớn).
 
 ---
 
-## Thứ tự implement (cập nhật 2026-06-17)
+## Thứ tự implement (cập nhật 2026-06-18)
 
 ```text
-[Done] Phase 2–6 + Admin  →  [Now] fe-backlog polish (A/B/C/D)  →  [Next] Technical debt T1–T3  →  [Later] T5 Query, T6 cookie
+[Done] Phase 2–6 + Admin + Tín FE polish  →  [Now] remaining admin/cross-cutting polish  →  [Next] Technical debt T1/T3  →  [Later] T5 Query, T6 cookie
 ```
 
 | Ưu tiên | Hạng mục | Impact |
 |---------|----------|--------|
-| 1 | [fe-backlog](./fe-backlog.md) P0 — dashboard KPI (B9), workspace stats (A7/A8), admin overview (C9) | Hiển thị dữ liệu đúng |
-| 2 | Technical debt T3, T1, T2 | Ổn định + performance |
+| 1 | [fe-backlog](./fe-backlog.md) P0 — admin overview (C9) + friendly errors (C8) | Hiển thị dữ liệu đúng |
+| 2 | Technical debt T3, T1 | Ổn định + bundle/runtime quality |
 | 3 | Invite validation **BE** + map lỗi FE | Tránh invite sai rule |
 | 4 | TanStack Query migration | Maintainability dài hạn |
 

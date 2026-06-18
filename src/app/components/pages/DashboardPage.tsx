@@ -64,8 +64,8 @@ export function DashboardPage() {
     { enabled: hasWorkspace },
   );
 
-  const tasksState = useAsyncData(
-    () => taskApi.list({ workspaceId: activeWorkspace!.id }).then(result => result.tasks),
+  const boardTasksState = useAsyncData(
+    () => taskApi.getBoard({ workspaceId: activeWorkspace!.id }),
     [activeWorkspace?.id],
     { enabled: hasWorkspace },
   );
@@ -76,7 +76,7 @@ export function DashboardPage() {
     { enabled: hasWorkspace },
   );
 
-  const tasks = tasksState.data ?? [];
+  const tasks = boardTasksState.data ?? [];
   const projects = projectsState.data ?? [];
   const notifications = notifData?.notifications ?? [];
   const currentUserRole = (membersState.data ?? []).find((m) => m.userId === profile?.id)?.role ?? null;
@@ -122,42 +122,42 @@ export function DashboardPage() {
   const unreadCountDisplay = notificationsError ? "N/A" : unreadCount;
 
   const kpis = [
-    { label: "Total Tasks", value: tasks.length, icon: CheckSquare, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20" },
-    { label: "Completed", value: totalDone, icon: TrendingUp, color: "text-green-500", bg: "bg-green-50 dark:bg-green-900/20" },
-    { label: "In Progress", value: totalDoing, icon: Clock, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20" },
-    { label: "Team Members", value: memberCount, icon: Users, color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-900/20" },
-    { label: "Unread Notifs", value: unreadCountDisplay, icon: Bell, color: "text-red-500", bg: "bg-red-50 dark:bg-red-900/20" },
-    { label: "Projects", value: projects.length, icon: FolderOpen, color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-900/20" },
+    { label: "Total Tasks", value: tasks.length, context: workspaceLabel, icon: CheckSquare, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20" },
+    { label: "Completed", value: totalDone, context: workspaceLabel, icon: TrendingUp, color: "text-green-500", bg: "bg-green-50 dark:bg-green-900/20" },
+    { label: "In Progress", value: totalDoing, context: workspaceLabel, icon: Clock, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20" },
+    { label: "Team Members", value: memberCount, context: workspaceLabel, icon: Users, color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-900/20" },
+    { label: "Unread Notifs", value: unreadCountDisplay, context: "across your account", icon: Bell, color: "text-red-500", bg: "bg-red-50 dark:bg-red-900/20" },
+    { label: "Projects", value: projects.length, context: workspaceLabel, icon: FolderOpen, color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-900/20" },
   ];
 
   function reloadAll() {
     void reloadWorkspaces();
     void reloadNotifications();
     void projectsState.reload();
-    void tasksState.reload();
+    void boardTasksState.reload();
     void activityState.reload();
     void membersState.reload();
   }
 
   function addCreatedTask(task: Task) {
-    tasksState.setData(prev => [...(prev ?? []), task]);
+    boardTasksState.setData(prev => [...(prev ?? []), task]);
   }
 
   function handleTaskUpdated(updated: Task) {
-    tasksState.setData(prev => (prev ?? []).map(task => task.id === updated.id ? updated : task));
+    boardTasksState.setData(prev => (prev ?? []).map(task => task.id === updated.id ? updated : task));
     setSelectedTask(updated);
   }
 
   function handleTaskDeleted(taskId: string) {
-    tasksState.setData(prev => (prev ?? []).filter(task => task.id !== taskId));
+    boardTasksState.setData(prev => (prev ?? []).filter(task => task.id !== taskId));
     setSelectedTask(null);
   }
 
-  const topError = workspacesError || tasksState.error;
+  const topError = workspacesError || boardTasksState.error;
 
   const awaitingWorkspaceList = workspacesLoading;
   const awaitingWorkspaceData = hasWorkspace && (
-    (tasksState.loading && tasksState.data === null) ||
+    (boardTasksState.loading && boardTasksState.data === null) ||
     (projectsState.loading && projectsState.data === null) ||
     (membersState.loading && membersState.data === null)
   );
@@ -202,9 +202,17 @@ export function DashboardPage() {
           <EmptyState
             icon={FolderOpen}
             title="No workspaces yet"
-            description="Create a workspace or accept an invitation to unlock your team home."
+            description="Create a workspace, browse your workspace list, or accept a pending invitation to unlock your team home."
             action={{ label: "Create workspace", onClick: () => navigate("/workspaces?create=1") }}
           />
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <Button size="sm" variant="outline" onClick={() => navigate("/workspaces")}>
+              Browse Workspaces
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => navigate("/invitations")}>
+              Check Invitations
+            </Button>
+          </div>
           {inviteNotifications.length > 0 && (
             <Card className="p-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
               <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
@@ -249,6 +257,7 @@ export function DashboardPage() {
                 </div>
                 <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{kpi.value}</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{kpi.label}</p>
+                <p className="mt-1 truncate text-[10px] text-slate-400 dark:text-slate-500" title={kpi.context}>{kpi.context}</p>
               </Card>
             ))}
           </div>

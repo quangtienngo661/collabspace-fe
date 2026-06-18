@@ -85,10 +85,10 @@ Some KPIs are **not** returned by list APIs:
 
 ## FE completion status (MVP)
 
-Aligned with `docs/fe-be-alignment.md` (2026-06-17):
+Aligned with `docs/fe-be-alignment.md` (2026-06-18):
 
-- **Done:** Auth flows, workspace/project CRUD, Kanban board API, task detail, comments, notifications (read/archive), invitations list/accept, workspace delete (owner), admin platform UI (4 tabs), command palette search.
-- **Partial:** Dashboard KPI accuracy (B9), workspace list stats flash (A7), admin overview KPI (C9), `commentCount` on board when BE omits field.
+- **Done:** Auth flows, workspace/project CRUD, Kanban board API, task detail, dashboard KPI accuracy, comments, notifications (read/archive/labels/unread styling), invitations list/accept, workspace delete (owner), admin platform UI (4 tabs), command palette search.
+- **Partial:** Admin overview KPI (C9), `commentCount` on board when BE omits field.
 - **Engineering debt:** No route lazy-loading, no `ErrorBoundary`, no automated tests, no TanStack Query — see [fe-be-alignment § Technical debt](../docs/fe-be-alignment.md#technical-debt--engineering-2026-06-17).
 - **Planned (BE+FE):** Workspace role **manager** promote/demote; admin `force-join` UI.
 - **Platform vs workspace:** FE `isAdmin` = platform only; workspace `owner` / `manager` / `member` hiển thị qua `RoleBadge` trên Members tab.

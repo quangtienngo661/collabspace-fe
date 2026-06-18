@@ -12,6 +12,7 @@ import { navigateFromNotification } from "../../utils/notificationNavigation";
 import { useNotificationOpenTaskRedirect } from "../../hooks/useTaskDeepLink";
 import { toast } from "sonner";
 import type { Notification } from "../../api/types";
+import { useNotifications } from "../../context/NotificationsContext";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { timeAgo } from "../../utils/format";
 import { cn } from "../ui/utils";
@@ -24,21 +25,37 @@ const notificationIconMap: Record<string, LucideIcon> = {
   commentadded: MessageSquare,
   comment_mentioned: MessageSquare,
   commentmentioned: MessageSquare,
+  comment_created: MessageSquare,
+  commentcreated: MessageSquare,
   workspace_invited: Building2,
   workspaceinvited: Building2,
+  workspace_deleted: Building2,
+  workspacedeleted: Building2,
+  user_registered: Bell,
+  userregistered: Bell,
+  user_profile_updated: Bell,
+  userprofileupdated: Bell,
   system_alert: AlertTriangle,
   systemalert: AlertTriangle,
 };
 
 const notifTypeLabel: Record<string, string> = {
-  task_assigned: "Task Assignment",
-  taskassigned: "Task Assignment",
-  comment_added: "Comment",
-  commentadded: "Comment",
-  comment_mentioned: "Mention",
-  commentmentioned: "Mention",
+  task_assigned: "Task Assigned",
+  taskassigned: "Task Assigned",
+  comment_added: "New Comment",
+  commentadded: "New Comment",
+  comment_created: "New Comment",
+  commentcreated: "New Comment",
+  comment_mentioned: "You were mentioned",
+  commentmentioned: "You were mentioned",
   workspace_invited: "Workspace Invite",
   workspaceinvited: "Workspace Invite",
+  workspace_deleted: "Workspace Deleted",
+  workspacedeleted: "Workspace Deleted",
+  user_registered: "New Member",
+  userregistered: "New Member",
+  user_profile_updated: "Profile Updated",
+  userprofileupdated: "Profile Updated",
   system_alert: "System Alert",
   systemalert: "System Alert",
 };
@@ -46,6 +63,17 @@ const notifTypeLabel: Record<string, string> = {
 function normalizedType(type: string) {
   return type.toLowerCase().replace(/[^a-z0-9]+/g, "_");
 }
+
+const typeFilterAliases: Record<string, string[]> = {
+  task_assigned: ["task_assigned", "taskassigned"],
+  comment_created: ["comment_created", "commentcreated", "comment_added", "commentadded"],
+  comment_mentioned: ["comment_mentioned", "commentmentioned"],
+  workspace_invited: ["workspace_invited", "workspaceinvited"],
+  workspace_deleted: ["workspace_deleted", "workspacedeleted"],
+  user_registered: ["user_registered", "userregistered"],
+  user_profile_updated: ["user_profile_updated", "userprofileupdated"],
+  system_alert: ["system_alert", "systemalert"],
+};
 
 function NotifItem({ n, onRefresh }: { n: Notification; onRefresh: () => void }) {
   const [loading, setLoading] = useState(false);
@@ -121,8 +149,10 @@ function NotifItem({ n, onRefresh }: { n: Notification; onRefresh: () => void })
     <div 
       onClick={() => void navigateFromNotification(navigate, n)}
       className={cn(
-        "flex gap-3 border-b border-slate-100 px-4 py-3.5 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/30 cursor-pointer",
-        !n.read && "bg-blue-50/50 dark:bg-blue-900/10",
+        "flex gap-3 border-b border-l-2 border-b-slate-100 px-4 py-3.5 transition-colors hover:bg-slate-50 dark:border-b-slate-700 dark:hover:bg-slate-700/30 cursor-pointer",
+        n.read
+          ? "border-l-transparent bg-white dark:bg-slate-800"
+          : "border-l-blue-500 bg-blue-50/40 dark:bg-blue-900/10",
       )}
     >
       <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300">
@@ -186,6 +216,7 @@ export function NotificationsPage() {
   const [tab, setTab] = useState<"inbox" | "all" | "archived">("inbox");
   const [markAllLoading, setMarkAllLoading] = useState(false);
   const [page, setPage] = useState(0);
+  const globalNotifications = useNotifications();
   useNotificationOpenTaskRedirect();
 
   const listStatus = tab === "archived" ? "archived" : "active";
@@ -202,8 +233,14 @@ export function NotificationsPage() {
   const pageEnd = Math.min((page + 1) * PAGE_SIZE, total);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+  function refreshNotifications() {
+    void notificationsState.reload();
+    void globalNotifications.reload();
+  }
+
   function filtered(list: Notification[]) {
-    return list.filter(n => typeFilter === "all" || normalizedType(n.type) === typeFilter);
+    const aliases = typeFilterAliases[typeFilter] ?? [typeFilter];
+    return list.filter(n => typeFilter === "all" || aliases.includes(normalizedType(n.type)));
   }
 
   function handleTabChange(value: string) {
@@ -220,7 +257,7 @@ export function NotificationsPage() {
     try {
       setMarkAllLoading(true);
       await notificationsApi.markAllRead();
-      notificationsState.reload();
+      refreshNotifications();
     } catch (e: any) {
       toast.error(e.message || "Failed to mark all as read");
     } finally {
@@ -247,9 +284,12 @@ export function NotificationsPage() {
           >
             <option value="all">All types</option>
             <option value="task_assigned">Task assigned</option>
-            <option value="comment_added">Comments</option>
+            <option value="comment_created">Comments</option>
             <option value="comment_mentioned">Mentions</option>
             <option value="workspace_invited">Workspace invites</option>
+            <option value="workspace_deleted">Workspace deleted</option>
+            <option value="user_registered">New members</option>
+            <option value="user_profile_updated">Profile updates</option>
             <option value="system_alert">System alerts</option>
           </select>
           <Button
@@ -288,23 +328,38 @@ export function NotificationsPage() {
                 <div className="divide-y divide-slate-100 dark:divide-slate-800">{[1, 2, 3, 4].map((i) => <SkeletonRow key={i} />)}</div>
               ) : filtered(unread).length === 0 ? (
                 <EmptyState icon={Bell} title="All caught up" description="You have no unread notifications." />
-              ) : filtered(unread).map(n => <NotifItem key={n.id} n={n} onRefresh={notificationsState.reload} />)}
+              ) : (
+                <>
+                  <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2 dark:border-slate-700">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{filtered(unread).length} unread notification{filtered(unread).length === 1 ? "" : "s"}</p>
+                    <Button size="sm" variant="ghost" disabled={markAllLoading} onClick={handleMarkAllRead} className="h-7 gap-1 text-xs">
+                      <Check className="size-3.5" />
+                      Mark all as read
+                    </Button>
+                  </div>
+                  {filtered(unread).map(n => <NotifItem key={n.id} n={n} onRefresh={refreshNotifications} />)}
+                </>
+              )}
             </div>
           </TabsContent>
 
           <TabsContent value="all" className="mt-4">
             <div className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
-              {filtered(notifs).length === 0 ? (
+              {notificationsState.loading ? (
+                <div className="divide-y divide-slate-100 dark:divide-slate-800">{[1, 2, 3, 4].map((i) => <SkeletonRow key={i} />)}</div>
+              ) : filtered(notifs).length === 0 ? (
                 <EmptyState icon={Bell} title="No notifications" description="You have no active notifications." />
-              ) : filtered(notifs).map(n => <NotifItem key={n.id} n={n} onRefresh={notificationsState.reload} />)}
+              ) : filtered(notifs).map(n => <NotifItem key={n.id} n={n} onRefresh={refreshNotifications} />)}
             </div>
           </TabsContent>
 
           <TabsContent value="archived" className="mt-4">
             <div className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
-              {filtered(notifs).length === 0 ? (
+              {notificationsState.loading ? (
+                <div className="divide-y divide-slate-100 dark:divide-slate-800">{[1, 2, 3, 4].map((i) => <SkeletonRow key={i} />)}</div>
+              ) : filtered(notifs).length === 0 ? (
                 <EmptyState icon={Archive} title="No archived notifications" />
-              ) : filtered(notifs).map(n => <NotifItem key={n.id} n={n} onRefresh={notificationsState.reload} />)}
+              ) : filtered(notifs).map(n => <NotifItem key={n.id} n={n} onRefresh={refreshNotifications} />)}
             </div>
           </TabsContent>
 
