@@ -1,23 +1,56 @@
 import { Card } from "../../ui/card";
 import { AdminOverviewCharts } from "./AdminOverviewCharts";
+import { AdminOverviewSkeleton } from "./AdminOverviewSkeleton";
 import { useAdminWorkspace } from "./AdminContext";
 import { platformMemberUsers } from "./adminUserStats";
+import {
+  averageMembersPerWorkspace,
+  sumWorkspaceMetric,
+  usersActiveWithinDays,
+  usersWithoutWorkspace,
+} from "./adminOverviewStats";
+import { useAsyncData } from "../../../hooks/useAsyncData";
+import { adminApi } from "../../../api/adminApi";
+import type { AdminPlatformTaskStats } from "../../../api/types";
+
+const EMPTY_TASK_STATS: AdminPlatformTaskStats = {
+  total: 0,
+  byStatus: { TODO: 0, DOING: 0, DONE: 0 },
+};
 
 export function AdminOverviewPage() {
   const { usersState, workspacesState } = useAdminWorkspace();
+  const taskStatsState = useAsyncData(() => adminApi.getPlatformTaskStats(), []);
+  const loading = usersState.loading || workspacesState.loading;
+  const awaitingData = usersState.data === null || workspacesState.data === null;
+
+  if (loading && awaitingData) {
+    return <AdminOverviewSkeleton />;
+  }
+
   const memberUsers = platformMemberUsers(usersState.data);
-  const activeCount = memberUsers.filter(u => u.isActive).length;
+  const activeCount = memberUsers.filter(user => user.isActive).length;
   const bannedCount = memberUsers.length - activeCount;
+  const workspaces = workspacesState.data ?? [];
+  const totalProjects = sumWorkspaceMetric(workspaces, "projectCount");
+  const totalTasks = taskStatsState.data?.total ?? sumWorkspaceMetric(workspaces, "taskCount");
+  const taskStats = taskStatsState.data ?? EMPTY_TASK_STATS;
+  const withoutWorkspace = usersWithoutWorkspace(memberUsers);
+  const activeLast30Days = usersActiveWithinDays(memberUsers, 30);
+  const avgMembers = averageMembersPerWorkspace(workspaces);
 
   return (
     <>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <Card className="p-4 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm">
-          <p className="text-xs font-semibold text-slate-500 mb-1">Platform Users</p>
+      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+        <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          <p className="mb-1 text-xs font-semibold text-slate-500">Platform Users</p>
           <p className="text-2xl font-bold">{memberUsers.length}</p>
+          <p className="mt-1 text-[10px] text-slate-400">
+            {withoutWorkspace} without workspace · {activeLast30Days} active (30d)
+          </p>
         </Card>
-        <Card className="p-4 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm">
-          <p className="text-xs font-semibold text-slate-500 mb-2">Account status</p>
+        <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          <p className="mb-2 text-xs font-semibold text-slate-500">Account status</p>
           <div className="flex gap-5">
             <div>
               <p className="text-2xl font-bold text-green-600 dark:text-green-400">{activeCount}</p>
@@ -29,14 +62,24 @@ export function AdminOverviewPage() {
             </div>
           </div>
         </Card>
-        <Card className="p-4 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm">
-          <p className="text-xs font-semibold text-slate-500 mb-1">Total Workspaces</p>
-          <p className="text-2xl font-bold">{workspacesState.data?.length ?? 0}</p>
+        <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          <p className="mb-1 text-xs font-semibold text-slate-500">Total Workspaces</p>
+          <p className="text-2xl font-bold">{workspaces.length}</p>
+          <p className="mt-1 text-[10px] text-slate-400">Avg {avgMembers} members each</p>
         </Card>
-        <Card className="p-4 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm">
-          <p className="text-xs font-semibold text-slate-500 mb-1">Workspace Members</p>
-          <p className="text-2xl font-bold">
-            {workspacesState.data?.reduce((sum, w) => sum + (w.memberCount ?? 0), 0) ?? 0}
+        <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          <p className="mb-1 text-xs font-semibold text-slate-500">Workspace Members</p>
+          <p className="text-2xl font-bold">{sumWorkspaceMetric(workspaces, "memberCount")}</p>
+        </Card>
+        <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          <p className="mb-1 text-xs font-semibold text-slate-500">Total Projects</p>
+          <p className="text-2xl font-bold">{totalProjects}</p>
+        </Card>
+        <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          <p className="mb-1 text-xs font-semibold text-slate-500">Total Tasks</p>
+          <p className="text-2xl font-bold">{totalTasks}</p>
+          <p className="mt-1 text-[10px] text-slate-400">
+            {taskStats.byStatus.TODO} todo · {taskStats.byStatus.DOING} doing · {taskStats.byStatus.DONE} done
           </p>
         </Card>
       </div>
@@ -44,7 +87,8 @@ export function AdminOverviewPage() {
       <AdminOverviewCharts
         users={usersState.data}
         workspaces={workspacesState.data}
-        loading={usersState.loading || workspacesState.loading}
+        taskStats={taskStatsState.data}
+        loading={loading || taskStatsState.loading}
       />
     </>
   );

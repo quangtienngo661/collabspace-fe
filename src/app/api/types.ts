@@ -239,3 +239,12 @@ export interface AdminBroadcastResult {
   id: string;
   status: string;
 }
+
+export interface AdminPlatformTaskStats {
+  total: number;
+  byStatus: {
+    TODO: number;
+    DOING: number;
+    DONE: number;
+  };
+}

@@ -15,7 +15,7 @@ import {
   YAxis,
 } from "recharts";
 import { Card } from "../../ui/card";
-import type { AdminUserAggregate, AdminWorkspace } from "../../../api/types";
+import type { AdminPlatformTaskStats, AdminUserAggregate, AdminWorkspace } from "../../../api/types";
 import { platformMemberUsers } from "./adminUserStats";
 
 const STATUS_COLORS = {
@@ -28,13 +28,20 @@ const ENGAGEMENT_COLORS = {
   neverSignedIn: "#94a3b8",
 };
 
-const MEMBER_BAR_COLOR = "#8b5cf6";
+const TASK_BAR_COLOR = "#f59e0b";
+
+const TASK_STATUS_COLORS = {
+  TODO: "#94a3b8",
+  DOING: "#3b82f6",
+  DONE: "#22c55e",
+};
 
 const tooltipStyle = { fontSize: 12, borderRadius: 6 };
 
 interface AdminOverviewChartsProps {
   users: AdminUserAggregate[] | null;
   workspaces: AdminWorkspace[] | null;
+  taskStats: AdminPlatformTaskStats | null;
   loading?: boolean;
 }
 
@@ -64,7 +71,7 @@ function ChartPlaceholder({ message }: { message: string }) {
   );
 }
 
-export function AdminOverviewCharts({ users, workspaces, loading }: AdminOverviewChartsProps) {
+export function AdminOverviewCharts({ users, workspaces, taskStats, loading }: AdminOverviewChartsProps) {
   const memberUsers = useMemo(() => platformMemberUsers(users), [users]);
 
   const userStatusData = useMemo(() => {
@@ -85,15 +92,25 @@ export function AdminOverviewCharts({ users, workspaces, loading }: AdminOvervie
     ].filter(item => item.value > 0);
   }, [memberUsers]);
 
-  const topWorkspacesData = useMemo(() => {
+  const topWorkspacesByTasksData = useMemo(() => {
     return [...(workspaces ?? [])]
-      .sort((a, b) => (b.memberCount ?? 0) - (a.memberCount ?? 0))
+      .sort((a, b) => (b.taskCount ?? 0) - (a.taskCount ?? 0))
       .slice(0, 6)
       .map(workspace => ({
         name: truncateLabel(workspace.name),
-        members: workspace.memberCount ?? 0,
-      }));
+        tasks: workspace.taskCount ?? 0,
+      }))
+      .filter(item => item.tasks > 0);
   }, [workspaces]);
+
+  const taskStatusData = useMemo(() => {
+    if (!taskStats) return [];
+    return [
+      { name: "To do", value: taskStats.byStatus.TODO, color: TASK_STATUS_COLORS.TODO },
+      { name: "Doing", value: taskStats.byStatus.DOING, color: TASK_STATUS_COLORS.DOING },
+      { name: "Done", value: taskStats.byStatus.DONE, color: TASK_STATUS_COLORS.DONE },
+    ].filter(item => item.value > 0);
+  }, [taskStats]);
 
   const growthData = useMemo(() => {
     const keys = new Set<string>();
@@ -118,6 +135,7 @@ export function AdminOverviewCharts({ users, workspaces, loading }: AdminOvervie
 
   const hasUsers = memberUsers.length > 0;
   const hasWorkspaces = (workspaces?.length ?? 0) > 0;
+  const hasTaskStats = (taskStats?.total ?? 0) > 0;
 
   return (
     <div className="mb-6 space-y-3">
@@ -198,15 +216,50 @@ export function AdminOverviewCharts({ users, workspaces, loading }: AdminOvervie
         </Card>
 
         <Card className="min-w-0 border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Top workspaces by members</h3>
-          {loading && !hasWorkspaces ? (
-            <ChartPlaceholder message="Loading workspace metrics…" />
-          ) : topWorkspacesData.length === 0 ? (
-            <ChartPlaceholder message="No workspaces created yet." />
+          <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Task status (platform)</h3>
+          {loading && !hasTaskStats ? (
+            <ChartPlaceholder message="Loading task metrics…" />
+          ) : !hasTaskStats ? (
+            <ChartPlaceholder message="No tasks created yet." />
+          ) : taskStatusData.length === 0 ? (
+            <ChartPlaceholder message="No task status data available." />
           ) : (
             <div className="h-[200px] w-full">
               <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={topWorkspacesData} layout="vertical" barSize={14}>
+                <PieChart>
+                  <Pie
+                    data={taskStatusData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={48}
+                    outerRadius={72}
+                    paddingAngle={2}
+                    isAnimationActive={false}
+                  >
+                    {taskStatusData.map(entry => (
+                      <Cell key={entry.name} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </Card>
+
+        <Card className="min-w-0 border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Top workspaces by tasks</h3>
+          {loading && !hasWorkspaces ? (
+            <ChartPlaceholder message="Loading workspace metrics…" />
+          ) : topWorkspacesByTasksData.length === 0 ? (
+            <ChartPlaceholder message="No workspaces with tasks yet." />
+          ) : (
+            <div className="h-[200px] w-full">
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={topWorkspacesByTasksData} layout="vertical" barSize={14}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200 dark:stroke-slate-700" />
                   <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} className="text-slate-500" />
                   <YAxis
@@ -217,7 +270,7 @@ export function AdminOverviewCharts({ users, workspaces, loading }: AdminOvervie
                     className="text-slate-500"
                   />
                   <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="members" fill={MEMBER_BAR_COLOR} radius={4} isAnimationActive={false} />
+                  <Bar dataKey="tasks" fill={TASK_BAR_COLOR} radius={4} isAnimationActive={false} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

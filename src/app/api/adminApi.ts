@@ -10,6 +10,7 @@ import {
 import type {
   AdminAuthUser,
   AdminBroadcastResult,
+  AdminPlatformTaskStats,
   AdminPermission,
   AdminRole,
   AdminUserAggregate,
@@ -184,6 +185,13 @@ export const adminApi = {
 
   async deleteWorkspace(id: string): Promise<void> {
     await apiRequest(`/workspaces/admin/${id}`, { method: "DELETE" });
+  },
+
+  async getPlatformTaskStats(): Promise<AdminPlatformTaskStats> {
+    return apiRequest<AdminPlatformTaskStats>("/tasks/admin/platform-stats").catch(() => ({
+      total: 0,
+      byStatus: { TODO: 0, DOING: 0, DONE: 0 },
+    }));
   },
 
   async broadcast(title: string, message: string): Promise<AdminBroadcastResult> {
