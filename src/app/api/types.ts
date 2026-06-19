@@ -22,6 +22,7 @@ export interface AuthSession {
   email: string;
   expiresIn: string;
   refreshToken: string;
+  familyId?: string;
   role?: string;
   roles: string[];
   userId: string;
@@ -182,9 +183,9 @@ export interface Session {
   familyId: string;
   device: string;
   browser: string;
-  ip: string;
-  location: string;
   lastActive: string;
+  createdAt?: string;
+  expiresAt?: string;
   current: boolean;
   isActive: boolean;
 }
@@ -218,15 +219,18 @@ export interface AdminUserAggregate extends AdminAuthUser {
   username?: string | null;
   avatarUrl?: string | null;
   bio?: string | null;
+  /** Distinct workspaces where the user is a member (includes owner). */
+  workspaceCount?: number;
 }
 
 export interface AdminWorkspace {
   id: string;
   name: string;
-  slug?: string;
   description: string;
   ownerId: string;
   memberCount: number;
+  projectCount?: number;
+  taskCount?: number;
   createdAt: string;
   updatedAt?: string;
 }
@@ -234,4 +238,13 @@ export interface AdminWorkspace {
 export interface AdminBroadcastResult {
   id: string;
   status: string;
+}
+
+export interface AdminPlatformTaskStats {
+  total: number;
+  byStatus: {
+    TODO: number;
+    DOING: number;
+    DONE: number;
+  };
 }

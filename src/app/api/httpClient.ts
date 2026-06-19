@@ -32,7 +32,7 @@ if (import.meta.env.DEV && /^https?:\/\//i.test(API_BASE_URL)) {
 
 let refreshPromise: Promise<AuthSession> | null = null;
 
-function buildUrl(path: string): string {
+export function buildApiUrl(path: string): string {
   const normalizedBase = API_BASE_URL.replace(/\/$/, "");
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   return `${normalizedBase}${normalizedPath}`;
@@ -79,7 +79,7 @@ function logoutAfterRefreshFailure(): void {
   window.dispatchEvent(new Event("collabspace:session-expired"));
 }
 
-async function refreshSession(): Promise<AuthSession> {
+export async function refreshSession(): Promise<AuthSession> {
   if (!refreshPromise) {
     const session = getStoredSession();
 
@@ -88,7 +88,7 @@ async function refreshSession(): Promise<AuthSession> {
       throw new ApiError(401, "Session expired");
     }
 
-    refreshPromise = fetch(buildUrl("/auth/refresh"), {
+    refreshPromise = fetch(buildApiUrl("/auth/refresh"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refreshToken: session.refreshToken }),
@@ -99,8 +99,14 @@ async function refreshSession(): Promise<AuthSession> {
           throw new ApiError(response.status, errorMessage(payload, "Unable to refresh session"), payload);
         }
         const nextSession = unwrapResponse<AuthSession>(payload);
-        setStoredSession(nextSession);
-        return nextSession;
+        setStoredSession({
+          ...nextSession,
+          familyId: nextSession.familyId ?? session.familyId,
+        });
+        return {
+          ...nextSession,
+          familyId: nextSession.familyId ?? session.familyId,
+        };
       })
       .catch(error => {
         // Network/CORS errors must not wipe session — only explicit auth rejection.
@@ -138,7 +144,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   let response: Response;
   try {
-    response = await fetch(buildUrl(path), {
+    response = await fetch(buildApiUrl(path), {
       ...init,
       headers: requestHeaders,
       body: requestBody,

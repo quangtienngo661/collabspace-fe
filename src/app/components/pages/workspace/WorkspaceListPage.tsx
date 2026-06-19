@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { Plus, Building2, Users, FolderOpen, MoreHorizontal, Trash2, Settings, RefreshCw } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
@@ -111,20 +111,29 @@ export function WorkspaceListPage() {
       {error ? (
         <ErrorState title="Unable to load workspaces" description={error} />
       ) : wsList.length === 0 && !loadingList ? (
-        <EmptyState
-          icon={Building2}
-          title="No workspaces yet"
-          description={
-            canCreateWorkspace
-              ? "Create your first workspace to start collaborating."
-              : "You don't have access to any workspaces yet. Ask an admin or workspace owner to invite you."
-          }
-          action={
-            canCreateWorkspace
-              ? { label: "New Workspace", onClick: () => setCreateOpen(true) }
-              : undefined
-          }
-        />
+        <div className="space-y-2">
+          <EmptyState
+            icon={Building2}
+            title="No workspaces yet"
+            description={
+              canCreateWorkspace
+                ? "Create your first workspace to start collaborating."
+                : "You don't have access to any workspaces yet. Ask an admin or workspace owner to invite you."
+            }
+            action={
+              canCreateWorkspace
+                ? { label: "New Workspace", onClick: () => setCreateOpen(true) }
+                : undefined
+            }
+          />
+          <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+            Waiting for an invite?{" "}
+            <Link to="/invitations" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+              Check your invitations
+            </Link>
+            .
+          </p>
+        </div>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {wsList.map(ws => (

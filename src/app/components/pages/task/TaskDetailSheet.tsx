@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { X, Edit2, Check, Trash2, Paperclip, Upload, ExternalLink } from "lucide-react";
+import { X, Edit2, Check, Trash2, Paperclip, Upload, ExternalLink, Link2 } from "lucide-react";
 import { cn } from "../../ui/utils";
 import { useAuth } from "../../../auth/AuthContext";
 import { labelColorClass } from "../../../utils/format";
@@ -20,7 +20,7 @@ import { friendlyError } from "../../../utils/errorUtils";
 import { taskApi } from "../../../api/taskApi";
 import { useWorkspaceMemberUsers } from "../../../hooks/useWorkspaceMemberUsers";
 import { initials } from "../../../api/mappers";
-import type { Priority, Task, TaskStatus } from "../../../api/types";
+import type { Priority, Task, TaskStatus, User } from "../../../api/types";
 
 interface TaskDetailSheetProps {
   task: Task;
@@ -48,6 +48,22 @@ function fromDatetimeLocalValue(value: string): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+function taskUserToProfileUser(user: Task["assignedTo"] | Task["createdBy"]): User | null {
+  if (!user) return null;
+  const name = user.displayName || user.fullName;
+  return {
+    id: user.userId,
+    userId: user.userId,
+    name,
+    email: user.email,
+    avatar: initials(name),
+    avatarUrl: user.avatarUrl,
+    role: "user",
+    status: "offline",
+    joinedAt: "",
+  };
+}
+
 export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted, canDeleteAnyTask }: TaskDetailSheetProps) {
   const { profile } = useAuth();
   const canDeleteTask = canDeleteAnyTask || Boolean(profile?.id && profile.id === task.creatorId);
@@ -64,7 +80,10 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted, can
   const [deleting, setDeleting] = useState(false);
 
   const usersState = useWorkspaceMemberUsers(task.workspaceId, open);
-  const users = usersState.data?.map(u => ({ userId: u.id, name: u.name })) ?? [];
+  const memberUsers = usersState.data ?? [];
+  const users = memberUsers.map(u => ({ userId: u.id, name: u.name }));
+  const assigneeProfile = memberUsers.find(user => user.id === task.assigneeId) ?? taskUserToProfileUser(task.assignedTo);
+  const creatorProfile = memberUsers.find(user => user.id === task.creatorId) ?? taskUserToProfileUser(task.createdBy);
 
   useEffect(() => {
     setTitleVal(task.title);
@@ -180,8 +199,18 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted, can
     }
   }
 
-  const assignee = task.assignedTo;
-  const creator = task.createdBy;
+  async function handleCopyTaskLink() {
+    const path = task.projectId
+      ? `/workspaces/${task.workspaceId}/projects/${task.projectId}?task=${task.id}`
+      : `/workspaces/${task.workspaceId}/projects?task=${task.id}`;
+    const url = `${window.location.origin}${path}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Task link copied");
+    } catch {
+      toast.error("Unable to copy task link");
+    }
+  }
 
   return (
     <>
@@ -206,6 +235,14 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted, can
               )}
             </div>
             <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => void handleCopyTaskLink()}
+                className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                title="Copy task link"
+              >
+                <Link2 className="w-4 h-4" />
+              </button>
               {canDeleteTask && (
                 <button
                   type="button"
@@ -271,6 +308,14 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted, can
                         ))}
                       </SelectContent>
                     </Select>
+                    {assigneeProfile ? (
+                      <div className="flex items-center gap-1.5 pt-1">
+                        <UserAvatar user={assigneeProfile} size="xs" />
+                        <span className="truncate text-xs text-slate-600 dark:text-slate-400">{assigneeProfile.name}</span>
+                      </div>
+                    ) : (
+                      <p className="pt-1 text-xs text-slate-400">Unassigned</p>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-slate-400 uppercase tracking-wider">Due date</p>
@@ -301,23 +346,13 @@ export function TaskDetailSheet({ task, open, onClose, onUpdated, onDeleted, can
                   </div>
                   <div className="space-y-1 col-span-2">
                     <p className="text-xs text-slate-400 uppercase tracking-wider">Created by</p>
-                    {creator && (
+                    {creatorProfile && (
                       <div className="flex items-center gap-1.5 mt-1">
                         <UserAvatar
-                          user={{
-                            id: creator.userId,
-                            userId: creator.userId,
-                            name: creator.displayName || creator.fullName,
-                            email: creator.email,
-                            avatar: initials(creator.displayName || creator.fullName),
-                            avatarUrl: creator.avatarUrl,
-                            role: "member",
-                            status: "offline",
-                            joinedAt: "",
-                          }}
+                          user={creatorProfile}
                           size="xs"
                         />
-                        <span className="text-xs text-slate-600 dark:text-slate-400">{creator.displayName || creator.fullName}</span>
+                        <span className="text-xs text-slate-600 dark:text-slate-400">{creatorProfile.name}</span>
                       </div>
                     )}
                   </div>

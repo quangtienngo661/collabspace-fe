@@ -9,6 +9,7 @@ import { useAsyncData } from "../../hooks/useAsyncData";
 import { ErrorState, EmptyState } from "../shared/EmptyState";
 import { SkeletonRow } from "../shared/SkeletonCard";
 import { formatAdminApiError } from "../../utils/errorUtils";
+import { formatInviteError } from "../../utils/workspaceInviteErrors";
 import { timeAgo } from "../../utils/format";
 import { toast } from "sonner";
 
@@ -27,7 +28,7 @@ export function InvitationsPage() {
       await invitationsState.reload();
       toast.success("Invitation accepted");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to accept invitation");
+      toast.error(formatInviteError(error, "Unable to accept invitation"));
     } finally {
       setActingId(null);
     }
@@ -40,7 +41,7 @@ export function InvitationsPage() {
       await invitationsState.reload();
       toast.success("Invitation declined");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to reject invitation");
+      toast.error(formatInviteError(error, "Unable to reject invitation"));
     } finally {
       setActingId(null);
     }

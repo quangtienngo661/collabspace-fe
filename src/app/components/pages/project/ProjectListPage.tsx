@@ -15,6 +15,7 @@ import { workspaceApi } from "../../../api/workspaceApi";
 import { enrichProjectsTaskCounts } from "../../../api/clientStats";
 import { useOpenTaskRedirect } from "../../../hooks/useTaskDeepLink";
 import { useAsyncData } from "../../../hooks/useAsyncData";
+import { useWorkspaceRoleFlags } from "../../../hooks/useWorkspaceRoleFlags";
 import type { Project } from "../../../api/types";
 import { toast } from "sonner";
 
@@ -23,10 +24,7 @@ export function ProjectListPage() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const workspaceState = useAsyncData(() => wsId ? workspaceApi.get(wsId) : Promise.reject(new Error("Workspace id is missing")), [wsId]);
-  const membersState = useAsyncData(() => wsId ? workspaceApi.members(wsId) : Promise.resolve([]), [wsId]);
-  const isOwner = Boolean(profile?.id && workspaceState.data?.ownerId === profile.id);
-  const isManager = !isOwner && Boolean(profile?.id && (membersState.data ?? []).some(m => m.userId === profile!.id && m.role === "manager"));
-  const canManageProjects = isOwner || isManager;
+  const { canManageProjects } = useWorkspaceRoleFlags(wsId, profile?.id, workspaceState.data?.ownerId);
   const projectState = useAsyncData(
     () => wsId ? workspaceApi.listProjects(wsId).then(enrichProjectsTaskCounts) : Promise.resolve([]),
     [wsId],

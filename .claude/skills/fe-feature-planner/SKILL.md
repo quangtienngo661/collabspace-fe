@@ -16,10 +16,10 @@ Use to pick and implement the next frontend slice against backend MVP.
 - `collabspace/docs/features.md` — BE Done status
 - `.claude/docs/frontend-architecture.md`
 
-## Prioritization (2026-06-17)
+## Prioritization (2026-06-18)
 
-1. **P0 polish** — dashboard KPI (B9), workspace stats flash (A7/A8), admin overview (C9) — see `fe-backlog.md`
-2. **Quick engineering wins** — ErrorBoundary (F1), lazy routes (F2), Kanban memo (F3)
+1. **P0 polish** — admin overview (C9) and friendly errors beyond invite/admin (C8) — see `fe-backlog.md`
+2. **Quick engineering wins** — ErrorBoundary (F1), lazy routes (F2)
 3. **Intentional BE gap** — invite validation rules, admin permission unassign — do not fake UI
 4. **Large refactors** — TanStack Query (F6), httpOnly cookie (F8, needs BE)
 
@@ -29,14 +29,15 @@ Use to pick and implement the next frontend slice against backend MVP.
 
 | Gap | Notes |
 |-----|-------|
-| Dashboard KPI when >50 tasks | B9 — use `total` or `getBoard` |
-| Workspace list stats flash 0 | A7 — skeleton until enrich |
+| Dashboard KPI when >50 tasks | ✅ B9 Done — dashboard uses `getBoard` |
+| Workspace list stats flash 0 | ✅ A7 Done — skeleton until enrich |
 | Admin overview KPI | C9 — client aggregate |
 | Notification archive | ✅ wired — `PATCH .../archive` |
 | Invite accept/reject | ✅ `/invitations` + `GET /invitations/me` |
 | Admin permission unassign | BE missing — toast on uncheck |
 | `force-join` workspace (admin) | BE ready; no FE UI |
 | `commentCount` on Kanban | Shows when BE returns field |
+| Kanban memo | ✅ F3 Done — cards/columns memoized |
 | Tests / ErrorBoundary / lazy routes | § F technical debt |
 
 ## Implementation slice template
