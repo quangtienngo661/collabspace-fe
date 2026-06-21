@@ -248,3 +248,45 @@ export interface AdminPlatformTaskStats {
     DONE: number;
   };
 }
+
+export interface AnalyticsOverview {
+  users: {
+    total: number;
+    active: number;
+    banned: number;
+    withoutWorkspace: number;
+    activeLast30d: number;
+  };
+  workspaces: {
+    total: number;
+    totalMembers: number;
+    avgMembersPerWorkspace: number;
+  };
+  projects: {
+    total: number;
+  };
+  tasks: {
+    total: number;
+    byStatus: { TODO: number; DOING: number; DONE: number };
+  };
+  updatedAt: string;
+}
+
+export type AnalyticsMetric =
+  | "users_registered"
+  | "workspaces_created"
+  | "tasks_created"
+  | "tasks_completed";
+
+export interface AnalyticsActivityPoint {
+  date: string;
+  value: number;
+}
+
+export interface AnalyticsActivityResponse {
+  metric: AnalyticsMetric;
+  interval: "day";
+  from: string;
+  to: string;
+  data: AnalyticsActivityPoint[];
+}

@@ -15,17 +15,13 @@ import {
   YAxis,
 } from "recharts";
 import { Card } from "../../ui/card";
-import type { AdminPlatformTaskStats, AdminUserAggregate, AdminWorkspace } from "../../../api/types";
-import { platformMemberUsers } from "./adminUserStats";
+import type { AdminWorkspace, AnalyticsOverview } from "../../../api/types";
+import { useAsyncData } from "../../../hooks/useAsyncData";
+import { analyticsApi } from "../../../api/analyticsApi";
 
 const STATUS_COLORS = {
   active: "#22c55e",
   banned: "#ef4444",
-};
-
-const ENGAGEMENT_COLORS = {
-  signedIn: "#3b82f6",
-  neverSignedIn: "#94a3b8",
 };
 
 const TASK_BAR_COLOR = "#f59e0b";
@@ -36,31 +32,26 @@ const TASK_STATUS_COLORS = {
   DONE: "#22c55e",
 };
 
+const ACTIVITY_COLORS = {
+  users_registered: "#3b82f6",
+  workspaces_created: "#06b6d4",
+  tasks_created: "#f59e0b",
+  tasks_completed: "#22c55e",
+};
+
+const ACTIVITY_LABELS = {
+  users_registered: "Users registered",
+  workspaces_created: "Workspaces created",
+  tasks_created: "Tasks created",
+  tasks_completed: "Tasks completed",
+};
+
 const tooltipStyle = { fontSize: 12, borderRadius: 6 };
 
 interface AdminOverviewChartsProps {
-  users: AdminUserAggregate[] | null;
+  overview: AnalyticsOverview | null;
   workspaces: AdminWorkspace[] | null;
-  taskStats: AdminPlatformTaskStats | null;
   loading?: boolean;
-}
-
-function monthKey(dateStr: string): string {
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return "";
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  return `${year}-${month}`;
-}
-
-function formatMonthLabel(key: string): string {
-  const [year, month] = key.split("-");
-  const labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${labels[Number(month) - 1]} '${year.slice(2)}`;
-}
-
-function truncateLabel(value: string, max = 14): string {
-  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
 }
 
 function ChartPlaceholder({ message }: { message: string }) {
@@ -71,26 +62,40 @@ function ChartPlaceholder({ message }: { message: string }) {
   );
 }
 
-export function AdminOverviewCharts({ users, workspaces, taskStats, loading }: AdminOverviewChartsProps) {
-  const memberUsers = useMemo(() => platformMemberUsers(users), [users]);
+function truncateLabel(value: string, max = 14): string {
+  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
+}
+
+function formatDateLabel(dateStr: string): string {
+  const [, month, day] = dateStr.split("-");
+  return `${month}/${day}`;
+}
+
+export function AdminOverviewCharts({ overview, workspaces, loading }: AdminOverviewChartsProps) {
+  const activityState = useAsyncData(
+    () => analyticsApi.getActivity({ metric: "tasks_created" }),
+    [],
+  );
+
+  const users = overview?.users;
+  const tasks = overview?.tasks;
 
   const userStatusData = useMemo(() => {
-    const active = memberUsers.filter(user => user.isActive).length;
-    const banned = memberUsers.length - active;
+    if (!users) return [];
     return [
-      { name: "Active", value: active, color: STATUS_COLORS.active },
-      { name: "Banned", value: banned, color: STATUS_COLORS.banned },
+      { name: "Active", value: users.active, color: STATUS_COLORS.active },
+      { name: "Banned", value: users.banned, color: STATUS_COLORS.banned },
     ].filter(item => item.value > 0);
-  }, [memberUsers]);
+  }, [users]);
 
-  const engagementData = useMemo(() => {
-    const signedIn = memberUsers.filter(user => user.lastLoginAt).length;
-    const neverSignedIn = memberUsers.length - signedIn;
+  const taskStatusData = useMemo(() => {
+    if (!tasks) return [];
     return [
-      { name: "Signed in", value: signedIn, color: ENGAGEMENT_COLORS.signedIn },
-      { name: "Never signed in", value: neverSignedIn, color: ENGAGEMENT_COLORS.neverSignedIn },
+      { name: "To do", value: tasks.byStatus.TODO, color: TASK_STATUS_COLORS.TODO },
+      { name: "Doing", value: tasks.byStatus.DOING, color: TASK_STATUS_COLORS.DOING },
+      { name: "Done", value: tasks.byStatus.DONE, color: TASK_STATUS_COLORS.DONE },
     ].filter(item => item.value > 0);
-  }, [memberUsers]);
+  }, [tasks]);
 
   const topWorkspacesByTasksData = useMemo(() => {
     return [...(workspaces ?? [])]
@@ -103,39 +108,18 @@ export function AdminOverviewCharts({ users, workspaces, taskStats, loading }: A
       .filter(item => item.tasks > 0);
   }, [workspaces]);
 
-  const taskStatusData = useMemo(() => {
-    if (!taskStats) return [];
-    return [
-      { name: "To do", value: taskStats.byStatus.TODO, color: TASK_STATUS_COLORS.TODO },
-      { name: "Doing", value: taskStats.byStatus.DOING, color: TASK_STATUS_COLORS.DOING },
-      { name: "Done", value: taskStats.byStatus.DONE, color: TASK_STATUS_COLORS.DONE },
-    ].filter(item => item.value > 0);
-  }, [taskStats]);
+  const activityChartData = useMemo(() => {
+    return (activityState.data?.data ?? []).map(point => ({
+      date: formatDateLabel(point.date),
+      value: point.value,
+    }));
+  }, [activityState.data]);
 
-  const growthData = useMemo(() => {
-    const keys = new Set<string>();
-    for (const user of memberUsers) {
-      const key = monthKey(user.createdAt);
-      if (key) keys.add(key);
-    }
-    for (const workspace of workspaces ?? []) {
-      const key = monthKey(workspace.createdAt);
-      if (key) keys.add(key);
-    }
-
-    return Array.from(keys)
-      .sort()
-      .slice(-6)
-      .map(key => ({
-        month: formatMonthLabel(key),
-        users: memberUsers.filter(user => monthKey(user.createdAt) === key).length,
-        workspaces: (workspaces ?? []).filter(workspace => monthKey(workspace.createdAt) === key).length,
-      }));
-  }, [memberUsers, workspaces]);
-
-  const hasUsers = memberUsers.length > 0;
+  const activityMetric = activityState.data?.metric ?? "tasks_created";
+  const hasUsers = (users?.total ?? 0) > 0;
+  const hasTasks = (tasks?.total ?? 0) > 0;
   const hasWorkspaces = (workspaces?.length ?? 0) > 0;
-  const hasTaskStats = (taskStats?.total ?? 0) > 0;
+  const hasActivity = activityChartData.length > 0;
 
   return (
     <div className="mb-6 space-y-3">
@@ -181,45 +165,10 @@ export function AdminOverviewCharts({ users, workspaces, taskStats, loading }: A
         </Card>
 
         <Card className="min-w-0 border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Sign-in activity</h3>
-          {loading && !hasUsers ? (
-            <ChartPlaceholder message="Loading engagement metrics…" />
-          ) : !hasUsers ? (
-            <ChartPlaceholder message="No user accounts yet." />
-          ) : engagementData.length === 0 ? (
-            <ChartPlaceholder message="No sign-in data available." />
-          ) : (
-            <div className="h-[200px] w-full">
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={engagementData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={48}
-                    outerRadius={72}
-                    paddingAngle={2}
-                    isAnimationActive={false}
-                  >
-                    {engagementData.map(entry => (
-                      <Cell key={entry.name} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </Card>
-
-        <Card className="min-w-0 border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Task status (platform)</h3>
-          {loading && !hasTaskStats ? (
+          {loading && !hasTasks ? (
             <ChartPlaceholder message="Loading task metrics…" />
-          ) : !hasTaskStats ? (
+          ) : !hasTasks ? (
             <ChartPlaceholder message="No tasks created yet." />
           ) : taskStatusData.length === 0 ? (
             <ChartPlaceholder message="No task status data available." />
@@ -278,36 +227,33 @@ export function AdminOverviewCharts({ users, workspaces, taskStats, loading }: A
         </Card>
 
         <Card className="min-w-0 border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Platform growth (last 6 months)</h3>
-          {loading && growthData.length === 0 ? (
-            <ChartPlaceholder message="Loading growth trends…" />
-          ) : growthData.length === 0 ? (
-            <ChartPlaceholder message="Not enough signup data yet." />
+          <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">
+            {ACTIVITY_LABELS[activityMetric]} (last 30 days)
+          </h3>
+          {activityState.loading && !hasActivity ? (
+            <ChartPlaceholder message="Loading activity data…" />
+          ) : !hasActivity ? (
+            <ChartPlaceholder message="No activity data yet." />
           ) : (
             <div className="h-[200px] w-full">
               <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={growthData}>
+                <LineChart data={activityChartData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200 dark:stroke-slate-700" />
-                  <XAxis dataKey="month" tick={{ fontSize: 10 }} className="text-slate-500" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 10 }}
+                    interval="preserveStartEnd"
+                    className="text-slate-500"
+                  />
                   <YAxis tick={{ fontSize: 11 }} allowDecimals={false} className="text-slate-500" />
                   <Tooltip contentStyle={tooltipStyle} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
                   <Line
                     type="monotone"
-                    dataKey="users"
-                    name="New users"
-                    stroke="#3b82f6"
+                    dataKey="value"
+                    name={ACTIVITY_LABELS[activityMetric]}
+                    stroke={ACTIVITY_COLORS[activityMetric]}
                     strokeWidth={2}
-                    dot={{ r: 3 }}
-                    isAnimationActive={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="workspaces"
-                    name="New workspaces"
-                    stroke="#06b6d4"
-                    strokeWidth={2}
-                    dot={{ r: 3 }}
+                    dot={false}
                     isAnimationActive={false}
                   />
                 </LineChart>
