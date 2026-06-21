@@ -37,11 +37,30 @@ async function listRaw(params?: DlqListParams): Promise<DlqListResponse> {
   return payload as DlqListResponse;
 }
 
+export interface ReplayBatchResult {
+  total: number;
+  produced: number;
+  skipped: number;
+  results: { id: string; produced: boolean; skipped: boolean; reason?: string }[];
+}
+
 export const dlqApi = {
   list: listRaw,
 
   async replay(id: string): Promise<DlqMessage> {
     return apiRequest<DlqMessage>(`/dlq/messages/${id}/replay`, { method: "POST" });
+  },
+
+  async replayBatch(params?: {
+    status?: DlqStatus[];
+    sourceTopic?: string;
+    errorCategory?: DlqErrorCategory;
+    limit?: number;
+  }): Promise<ReplayBatchResult> {
+    return apiRequest<ReplayBatchResult>(`/dlq/replay-batch`, {
+      method: "POST",
+      body: JSON.stringify(params ?? { status: ["pending", "requires_manual_review"], limit: 50 }),
+    });
   },
 
   async resolve(id: string, resolutionNote?: string): Promise<DlqMessage> {

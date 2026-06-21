@@ -6,6 +6,7 @@ import {
   Trash2,
   ChevronDown,
   ChevronUp,
+  PlayCircle,
 } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
@@ -261,6 +262,8 @@ export function AdminDlqPage() {
   const [statusFilter, setStatusFilter] = useState<DlqStatus | "all">("all");
   const [categoryFilter, setCategoryFilter] = useState<DlqErrorCategory | "all">("all");
   const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [replayingAll, setReplayingAll] = useState(false);
+  const [replayResult, setReplayResult] = useState<string | null>(null);
 
   const { data, loading, error, reload } = useAsyncData(
     () =>
@@ -272,6 +275,23 @@ export function AdminDlqPage() {
       }),
     [statusFilter, categoryFilter, cursor],
   );
+
+  async function replayAll() {
+    setReplayingAll(true);
+    setReplayResult(null);
+    try {
+      const result = await dlqApi.replayBatch({
+        status: ["pending", "requires_manual_review"],
+        limit: 50,
+      });
+      setReplayResult(`Replayed ${result.produced}/${result.total} events. Skipped: ${result.skipped}.`);
+      await reload();
+    } catch {
+      setReplayResult("Replay batch failed. Check permissions or DLQ service.");
+    } finally {
+      setReplayingAll(false);
+    }
+  }
 
   function applyFilter(newStatus: DlqStatus | "all", newCat: DlqErrorCategory | "all") {
     setStatusFilter(newStatus);
@@ -327,8 +347,24 @@ export function AdminDlqPage() {
             <RefreshCw className="size-3.5" />
             Refresh
           </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs gap-1 text-blue-700 border-blue-300 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/20"
+            disabled={replayingAll}
+            onClick={replayAll}
+          >
+            <PlayCircle className="size-3.5" />
+            {replayingAll ? "Replaying…" : "Replay All Pending"}
+          </Button>
         </div>
       </div>
+
+      {replayResult && (
+        <div className="text-xs px-3 py-2 rounded border border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
+          {replayResult}
+        </div>
+      )}
 
       <Card className="border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 shadow-sm rounded-lg overflow-hidden">
         {error ? (
