@@ -288,7 +288,7 @@ export function AdminDlqPage() {
           </p>
           <p className="text-xs text-slate-400">
             Failed Kafka events awaiting replay or manual resolution.
-            {data ? ` ${data.total} total.` : ""}
+            {data ? ` ${data.total ?? 0} total.` : ""}
           </p>
         </div>
         <div className="flex items-center gap-2">
