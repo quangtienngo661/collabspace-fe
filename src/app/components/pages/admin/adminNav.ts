@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   FolderOpen,
   LayoutDashboard,
   Send,
@@ -20,6 +21,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { label: "User Accounts", icon: Users, to: "/admin/users" },
   { label: "Workspaces", icon: FolderOpen, to: "/admin/workspaces" },
   { label: "Broadcast", icon: Send, to: "/admin/broadcast" },
+  { label: "Dead Letter Queue", icon: AlertTriangle, to: "/admin/dlq" },
 ];
 
 export const ADMIN_TAB_REDIRECTS: Record<string, string> = {
@@ -27,6 +29,7 @@ export const ADMIN_TAB_REDIRECTS: Record<string, string> = {
   users: "/admin/users",
   workspaces: "/admin/workspaces",
   broadcast: "/admin/broadcast",
+  dlq: "/admin/dlq",
 };
 
 export const ADMIN_PAGE_META: Record<string, { title: string; description: string }> = {
@@ -49,6 +52,10 @@ export const ADMIN_PAGE_META: Record<string, { title: string; description: strin
   "/admin/broadcast": {
     title: "System Broadcast",
     description: "Dispatch real-time notifications to every account on this server.",
+  },
+  "/admin/dlq": {
+    title: "Dead Letter Queue",
+    description: "Inspect and replay failed Kafka events. Requires dlq.read permission.",
   },
 };
 

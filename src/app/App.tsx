@@ -21,6 +21,7 @@ import { AdminRolesPage } from "./components/pages/admin/AdminRolesPage";
 import { AdminUsersPage } from "./components/pages/admin/AdminUsersPage";
 import { AdminWorkspacesPage } from "./components/pages/admin/AdminWorkspacesPage";
 import { AdminBroadcastPage } from "./components/pages/admin/AdminBroadcastPage";
+import { AdminDlqPage } from "./components/pages/admin/AdminDlqPage";
 import { InvitationsPage } from "./components/pages/InvitationsPage";
 import { UsersDirectoryPage } from "./components/pages/UsersDirectoryPage";
 import { ForbiddenPage, NotFoundPage } from "./components/pages/ErrorPages";
@@ -85,6 +86,7 @@ export default function App() {
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="workspaces" element={<AdminWorkspacesPage />} />
             <Route path="broadcast" element={<AdminBroadcastPage />} />
+            <Route path="dlq" element={<AdminDlqPage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />
         </Route>

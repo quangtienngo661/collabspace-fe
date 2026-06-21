@@ -290,3 +290,50 @@ export interface AnalyticsActivityResponse {
   to: string;
   data: AnalyticsActivityPoint[];
 }
+
+export type DlqStatus =
+  | "pending"
+  | "replaying"
+  | "requires_manual_review"
+  | "resolved"
+  | "discarded";
+export type DlqErrorCategory = "transient" | "logic" | "schema" | "unknown";
+
+export interface DlqRetryHistoryEntry {
+  at: string;
+  by: string;
+  action: "auto_retry" | "manual_replay" | "resolve" | "discard";
+  result: "success" | "failure";
+  errorMessage?: string;
+}
+
+export interface DlqMessage {
+  id: string;
+  sourceTopic: string;
+  sourcePartition: number;
+  sourceOffset: string;
+  sourceKey: string | null;
+  consumerGroup: string | null;
+  payload: Record<string, unknown>;
+  errorMessage: string;
+  errorCategory: DlqErrorCategory;
+  failedAt: string;
+  status: DlqStatus;
+  retryCount: number;
+  maxRetries: number;
+  nextRetryAt: string | null;
+  lastRetriedAt: string | null;
+  replayedBy: string | null;
+  resolvedBy: string | null;
+  discardedBy: string | null;
+  resolutionNote: string | null;
+  retryHistory: DlqRetryHistoryEntry[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DlqListResponse {
+  data: DlqMessage[];
+  nextCursor: string | null;
+  total: number;
+}
