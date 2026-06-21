@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import {
   RefreshCw,
   RotateCcw,
@@ -262,7 +262,7 @@ export function AdminDlqPage() {
   const [categoryFilter, setCategoryFilter] = useState<DlqErrorCategory | "all">("all");
   const [cursor, setCursor] = useState<string | undefined>(undefined);
 
-  const fetchFn = useCallback(
+  const { data, loading, error, reload } = useAsyncData(
     () =>
       dlqApi.list({
         status: statusFilter !== "all" ? [statusFilter] : undefined,
@@ -272,8 +272,6 @@ export function AdminDlqPage() {
       }),
     [statusFilter, categoryFilter, cursor],
   );
-
-  const { data, loading, error, reload } = useAsyncData(fetchFn);
 
   function applyFilter(newStatus: DlqStatus | "all", newCat: DlqErrorCategory | "all") {
     setStatusFilter(newStatus);
