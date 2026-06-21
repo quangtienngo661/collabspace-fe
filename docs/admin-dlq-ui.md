@@ -59,13 +59,13 @@ export const dlqApi = {
   getMessage(id: string): Promise<DlqMessage>,
   replayMessage(id: string): Promise<DlqMessage>,
   replayBatch(body: ReplayBatchBody): Promise<ReplayBatchResult>,
-  discardMessage(id: string, resolutionNote: string): Promise<DlqMessage>,
-  resolveMessage(id: string, resolutionNote: string): Promise<DlqMessage>,
+  discardMessage(id: string, resolutionNote?: string): Promise<DlqMessage>,
+  resolveMessage(id: string, resolutionNote?: string): Promise<DlqMessage>,
 }
 ```
 
 Base path: `/api/v1/dlq` (qua gateway như các service khác).
-`resolutionNote` cho `discardMessage` và `resolveMessage` là bắt buộc, phải là string từ 5 đến 1000 ký tự.
+`resolutionNote` cho `discardMessage` và `resolveMessage` là optional, nếu nhập thì tối đa 1000 ký tự.
 
 ---
 
@@ -308,7 +308,7 @@ Thao tác này sẽ được ghi audit."
 **Discard:**
 ```
 Dialog confirm + textarea:
-"Lý do discard (bắt buộc):"
+"Lý do discard (optional):"
 [textarea: resolutionNote]
 [Cancel] [Discard]
 ```
@@ -316,7 +316,7 @@ Dialog confirm + textarea:
 **Mark Resolved:**
 ```
 Dialog confirm + textarea:
-"Ghi chú xử lý (bắt buộc):"
+"Ghi chú xử lý (optional):"
 [textarea: resolutionNote]
 [Cancel] [Mark Resolved]
 ```

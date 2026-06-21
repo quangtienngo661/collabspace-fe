@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   RefreshCw,
   RotateCcw,
@@ -34,7 +34,6 @@ import { dlqApi } from "../../../api/dlqApi";
 import { formatApiError } from "../../../api/adminErrors";
 import type { DlqMessage, DlqStatus, DlqErrorCategory } from "../../../api/types";
 
-const RESOLUTION_NOTE_MIN_LENGTH = 5;
 const RESOLUTION_NOTE_MAX_LENGTH = 1000;
 
 const STATUS_LABELS: Record<DlqStatus, string> = {
@@ -78,41 +77,55 @@ function CategoryBadge({ category }: { category: DlqErrorCategory }) {
 
 function validateResolutionNote(value: string): string | null {
   const trimmed = value.trim();
-  if (trimmed.length < RESOLUTION_NOTE_MIN_LENGTH) {
-    return `Resolution note must be at least ${RESOLUTION_NOTE_MIN_LENGTH} characters.`;
-  }
   if (trimmed.length > RESOLUTION_NOTE_MAX_LENGTH) {
     return `Resolution note must be at most ${RESOLUTION_NOTE_MAX_LENGTH} characters.`;
   }
   return null;
 }
 
-function PayloadRow({ msg }: { msg: DlqMessage }) {
+function PayloadRow({
+  msg,
+  onUpdated,
+}: {
+  msg: DlqMessage;
+  onUpdated: (msg: DlqMessage) => void;
+}) {
   const [open, setOpen] = useState(false);
+  const [currentMsg, setCurrentMsg] = useState(msg);
+
+  useEffect(() => {
+    setCurrentMsg(msg);
+  }, [msg]);
+
+  function handleUpdated(updated: DlqMessage) {
+    setCurrentMsg(updated);
+    onUpdated(updated);
+  }
+
   return (
     <>
       <TableRow
-        key={msg.id}
+        key={currentMsg.id}
         className="border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40 cursor-pointer"
         onClick={() => setOpen((v) => !v)}
       >
         <TableCell className="text-xs text-slate-500 dark:text-slate-400 font-mono max-w-[120px] truncate">
-          {msg.sourceTopic}
+          {currentMsg.sourceTopic}
         </TableCell>
         <TableCell>
-          <StatusBadge status={msg.status} />
+          <StatusBadge status={currentMsg.status} />
         </TableCell>
         <TableCell>
-          <CategoryBadge category={msg.errorCategory} />
+          <CategoryBadge category={currentMsg.errorCategory} />
         </TableCell>
         <TableCell className="text-xs text-slate-600 dark:text-slate-300 max-w-[200px] truncate">
-          {msg.errorMessage}
+          {currentMsg.errorMessage}
         </TableCell>
         <TableCell className="text-xs text-slate-500 dark:text-slate-400">
-          {msg.retryCount}/{msg.maxRetries}
+          {currentMsg.retryCount}/{currentMsg.maxRetries}
         </TableCell>
         <TableCell className="text-xs text-slate-500 dark:text-slate-400">
-          <DateDisplay date={msg.failedAt} />
+          <DateDisplay date={currentMsg.failedAt} />
         </TableCell>
         <TableCell className="text-right">
           {open ? (
@@ -125,7 +138,7 @@ function PayloadRow({ msg }: { msg: DlqMessage }) {
       {open && (
         <TableRow className="bg-slate-50 dark:bg-slate-800/60">
           <TableCell colSpan={7} className="p-0">
-            <DlqMessageDetail msg={msg} />
+            <DlqMessageDetail msg={currentMsg} onUpdated={handleUpdated} />
           </TableCell>
         </TableRow>
       )}
@@ -133,12 +146,22 @@ function PayloadRow({ msg }: { msg: DlqMessage }) {
   );
 }
 
-function DlqMessageDetail({ msg }: { msg: DlqMessage }) {
+function DlqMessageDetail({
+  msg,
+  onUpdated,
+}: {
+  msg: DlqMessage;
+  onUpdated: (msg: DlqMessage) => void;
+}) {
   const [busy, setBusy] = useState<string | null>(null);
   const [localStatus, setLocalStatus] = useState<DlqMessage["status"]>(msg.status);
   const [note, setNote] = useState("");
   const [noteError, setNoteError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLocalStatus(msg.status);
+  }, [msg.status]);
 
   const canReplay = localStatus === "pending" || localStatus === "requires_manual_review";
   const canResolve = localStatus !== "resolved" && localStatus !== "discarded";
@@ -156,6 +179,7 @@ function DlqMessageDetail({ msg }: { msg: DlqMessage }) {
     try {
       const updated = await fn();
       setLocalStatus(updated.status);
+      onUpdated(updated);
       toast.success(successMessage);
     } catch (error) {
       const message = formatApiError(error, `Unable to ${action} DLQ message`);
@@ -168,7 +192,7 @@ function DlqMessageDetail({ msg }: { msg: DlqMessage }) {
 
   function actWithNote(
     action: "resolve" | "discard",
-    fn: (resolutionNote: string) => Promise<DlqMessage>,
+    fn: (resolutionNote?: string) => Promise<DlqMessage>,
   ) {
     const validationError = validateResolutionNote(note);
     if (validationError) {
@@ -249,7 +273,7 @@ function DlqMessageDetail({ msg }: { msg: DlqMessage }) {
           {hasResolutionNoteAction && (
             <div className="flex-1 min-w-0">
               <Textarea
-                placeholder="Resolution note (required, 5-1000 chars)"
+                placeholder="Resolution note (optional, max 1000 chars)"
                 value={note}
                 maxLength={RESOLUTION_NOTE_MAX_LENGTH}
                 aria-invalid={Boolean(noteError)}
@@ -326,6 +350,7 @@ export function AdminDlqPage() {
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [replayingAll, setReplayingAll] = useState(false);
   const [replayResult, setReplayResult] = useState<string | null>(null);
+  const [messages, setMessages] = useState<DlqMessage[]>([]);
 
   const { data, loading, error, reload } = useAsyncData(
     () =>
@@ -337,13 +362,22 @@ export function AdminDlqPage() {
       }),
     [statusFilter, categoryFilter, cursor],
   );
+  useEffect(() => {
+    setMessages(data?.data ?? []);
+  }, [data?.data]);
+
+  const hasPendingRows = messages.some((msg) => msg.status === "pending");
+
+  function updateMessage(updated: DlqMessage) {
+    setMessages((current) => current.map((msg) => (msg.id === updated.id ? updated : msg)));
+  }
 
   async function replayAll() {
     setReplayingAll(true);
     setReplayResult(null);
     try {
       const result = await dlqApi.replayBatch({
-        status: ["pending", "requires_manual_review"],
+        status: ["pending"],
         limit: 50,
       });
       setReplayResult(`Replayed ${result.produced}/${result.total} events. Skipped: ${result.skipped}.`);
@@ -409,16 +443,18 @@ export function AdminDlqPage() {
             <RefreshCw className="size-3.5" />
             Refresh
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-8 text-xs gap-1 text-blue-700 border-blue-300 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/20"
-            disabled={replayingAll}
-            onClick={replayAll}
-          >
-            <PlayCircle className="size-3.5" />
-            {replayingAll ? "Replaying…" : "Replay All Pending"}
-          </Button>
+          {hasPendingRows && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs gap-1 text-blue-700 border-blue-300 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/20"
+              disabled={replayingAll}
+              onClick={replayAll}
+            >
+              <PlayCircle className="size-3.5" />
+              {replayingAll ? "Replaying…" : "Replay All Pending"}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -455,14 +491,14 @@ export function AdminDlqPage() {
                     ))}
                   </TableRow>
                 ))
-              ) : (data?.data?.length ?? 0) === 0 ? (
+              ) : messages.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-12 text-sm text-slate-400">
                     No DLQ messages match the current filters.
                   </TableCell>
                 </TableRow>
               ) : (
-                data?.data.map((msg) => <PayloadRow key={msg.id} msg={msg} />)
+                messages.map((msg) => <PayloadRow key={msg.id} msg={msg} onUpdated={updateMessage} />)
               )}
             </TableBody>
           </Table>

@@ -233,7 +233,7 @@ Admin-0 (adminApi) → Admin-1/2 (AdminPage RBAC + users) → Admin-3 (workspace
 | M8 | Due date hiển thị raw ISO string | `formatDueDate()` + `dueDateStatus()` in `format.ts` |
 | M9 | Kanban `+` button không pre-fill status | `createStatus` state + `onAdd(status: TaskStatus)` callback |
 | M10 | Invite dialog gửi role field không tồn tại | Bỏ `inviteRole` state và Select; chỉ gửi `email` |
-| M11 | Admin DLQ resolve/discard gửi thiếu `resolutionNote` | Note required 5-1000 ký tự; FE validate trước khi gọi `/resolve` / `/discard` |
+| M11 | Admin DLQ resolve/discard note lệch contract | `resolutionNote` optional, max 1000 ký tự; FE bỏ field khi note trống |
 
 ---
 

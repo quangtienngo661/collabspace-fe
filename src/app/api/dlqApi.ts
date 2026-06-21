@@ -44,6 +44,11 @@ export interface ReplayBatchResult {
   results: { id: string; produced: boolean; skipped: boolean; reason?: string }[];
 }
 
+function resolutionNoteBody(resolutionNote?: string): { resolutionNote?: string } {
+  const trimmed = resolutionNote?.trim();
+  return trimmed ? { resolutionNote: trimmed } : {};
+}
+
 export const dlqApi = {
   list: listRaw,
 
@@ -63,17 +68,17 @@ export const dlqApi = {
     });
   },
 
-  async resolve(id: string, resolutionNote: string): Promise<DlqMessage> {
+  async resolve(id: string, resolutionNote?: string): Promise<DlqMessage> {
     return apiRequest<DlqMessage>(`/dlq/messages/${id}/resolve`, {
       method: "POST",
-      body: { resolutionNote: resolutionNote.trim() },
+      body: resolutionNoteBody(resolutionNote),
     });
   },
 
-  async discard(id: string, resolutionNote: string): Promise<DlqMessage> {
+  async discard(id: string, resolutionNote?: string): Promise<DlqMessage> {
     return apiRequest<DlqMessage>(`/dlq/messages/${id}/discard`, {
       method: "POST",
-      body: { resolutionNote: resolutionNote.trim() },
+      body: resolutionNoteBody(resolutionNote),
     });
   },
 };
