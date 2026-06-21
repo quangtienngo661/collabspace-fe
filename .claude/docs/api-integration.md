@@ -141,6 +141,18 @@ Platform admin under `/auth/admin/*`, `/users/admin/*`, `/workspaces/admin/*`, `
 
 Broadcast requires header `Idempotency-Key` (UUID).
 
+### dlqApi
+
+Platform admin DLQ endpoints under `/dlq/*`.
+
+| Method | Endpoint | Notes |
+|--------|----------|-------|
+| list | `GET /dlq/messages` | Raw fetch keeps `{ data, nextCursor, total }` intact |
+| replay | `POST /dlq/messages/:id/replay` | No request body required |
+| replayBatch | `POST /dlq/replay-batch` | Max 50 records |
+| resolve | `POST /dlq/messages/:id/resolve` | Body `{ resolutionNote }`; required string, 5-1000 chars |
+| discard | `POST /dlq/messages/:id/discard` | Body `{ resolutionNote }`; required string, 5-1000 chars |
+
 ## Common pitfalls (historical)
 
 | Issue | Fix |

@@ -65,6 +65,7 @@ export const dlqApi = {
 ```
 
 Base path: `/api/v1/dlq` (qua gateway như các service khác).
+`resolutionNote` cho `discardMessage` và `resolveMessage` là bắt buộc, phải là string từ 5 đến 1000 ký tự.
 
 ---
 

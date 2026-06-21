@@ -8,8 +8,10 @@ import {
   ChevronUp,
   PlayCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
+import { Textarea } from "../../ui/textarea";
 import {
   Table,
   TableBody,
@@ -29,7 +31,11 @@ import { ErrorState } from "../../shared/EmptyState";
 import { DateDisplay } from "../../shared/DateDisplay";
 import { useAsyncData } from "../../../hooks/useAsyncData";
 import { dlqApi } from "../../../api/dlqApi";
+import { formatApiError } from "../../../api/adminErrors";
 import type { DlqMessage, DlqStatus, DlqErrorCategory } from "../../../api/types";
+
+const RESOLUTION_NOTE_MIN_LENGTH = 5;
+const RESOLUTION_NOTE_MAX_LENGTH = 1000;
 
 const STATUS_LABELS: Record<DlqStatus, string> = {
   pending: "Pending",
@@ -68,6 +74,17 @@ function CategoryBadge({ category }: { category: DlqErrorCategory }) {
       {category}
     </span>
   );
+}
+
+function validateResolutionNote(value: string): string | null {
+  const trimmed = value.trim();
+  if (trimmed.length < RESOLUTION_NOTE_MIN_LENGTH) {
+    return `Resolution note must be at least ${RESOLUTION_NOTE_MIN_LENGTH} characters.`;
+  }
+  if (trimmed.length > RESOLUTION_NOTE_MAX_LENGTH) {
+    return `Resolution note must be at most ${RESOLUTION_NOTE_MAX_LENGTH} characters.`;
+  }
+  return null;
 }
 
 function PayloadRow({ msg }: { msg: DlqMessage }) {
@@ -120,24 +137,51 @@ function DlqMessageDetail({ msg }: { msg: DlqMessage }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [localStatus, setLocalStatus] = useState<DlqMessage["status"]>(msg.status);
   const [note, setNote] = useState("");
+  const [noteError, setNoteError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const canReplay = localStatus === "pending" || localStatus === "requires_manual_review";
   const canResolve = localStatus !== "resolved" && localStatus !== "discarded";
-  const canDiscard = localStatus !== "discarded";
+  const canDiscard = localStatus !== "resolved" && localStatus !== "discarded";
+  const hasResolutionNoteAction = canResolve || canDiscard;
+  const hasActions = canReplay || hasResolutionNoteAction;
 
   async function act(
     action: "replay" | "resolve" | "discard",
     fn: () => Promise<DlqMessage>,
+    successMessage: string,
   ) {
     setBusy(action);
+    setActionError(null);
     try {
       const updated = await fn();
       setLocalStatus(updated.status);
-    } catch {
-      // swallow — user can retry
+      toast.success(successMessage);
+    } catch (error) {
+      const message = formatApiError(error, `Unable to ${action} DLQ message`);
+      setActionError(message);
+      toast.error(message);
     } finally {
       setBusy(null);
     }
+  }
+
+  function actWithNote(
+    action: "resolve" | "discard",
+    fn: (resolutionNote: string) => Promise<DlqMessage>,
+  ) {
+    const validationError = validateResolutionNote(note);
+    if (validationError) {
+      setNoteError(validationError);
+      return;
+    }
+    const resolutionNote = note.trim();
+    setNoteError(null);
+    void act(
+      action,
+      () => fn(resolutionNote),
+      action === "resolve" ? "DLQ message resolved" : "DLQ message discarded",
+    );
   }
 
   return (
@@ -200,60 +244,78 @@ function DlqMessageDetail({ msg }: { msg: DlqMessage }) {
         </div>
       )}
 
-      <div className="flex items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-        <input
-          type="text"
-          placeholder="Resolution note (optional)"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          className="flex-1 h-7 px-2 text-xs rounded border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-        />
-        {canReplay && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs gap-1"
-            disabled={!!busy}
-            onClick={(e) => {
-              e.stopPropagation();
-              act("replay", () => dlqApi.replay(msg.id));
-            }}
-          >
-            <RotateCcw className="size-3" />
-            {busy === "replay" ? "Replaying…" : "Replay"}
-          </Button>
-        )}
-        {canResolve && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs gap-1 text-green-700 border-green-300 hover:bg-green-50 dark:text-green-400 dark:border-green-700 dark:hover:bg-green-900/20"
-            disabled={!!busy}
-            onClick={(e) => {
-              e.stopPropagation();
-              act("resolve", () => dlqApi.resolve(msg.id, note || undefined));
-            }}
-          >
-            <CheckCircle className="size-3" />
-            {busy === "resolve" ? "Resolving…" : "Resolve"}
-          </Button>
-        )}
-        {canDiscard && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs gap-1 text-red-700 border-red-300 hover:bg-red-50 dark:text-red-400 dark:border-red-700 dark:hover:bg-red-900/20"
-            disabled={!!busy}
-            onClick={(e) => {
-              e.stopPropagation();
-              act("discard", () => dlqApi.discard(msg.id, note || undefined));
-            }}
-          >
-            <Trash2 className="size-3" />
-            {busy === "discard" ? "Discarding…" : "Discard"}
-          </Button>
-        )}
-      </div>
+      {hasActions && (
+        <div className="flex items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+          {hasResolutionNoteAction && (
+            <div className="flex-1 min-w-0">
+              <Textarea
+                placeholder="Resolution note (required, 5-1000 chars)"
+                value={note}
+                maxLength={RESOLUTION_NOTE_MAX_LENGTH}
+                aria-invalid={Boolean(noteError)}
+                onChange={(e) => {
+                  setNote(e.target.value);
+                  if (noteError && !validateResolutionNote(e.target.value)) {
+                    setNoteError(null);
+                  }
+                }}
+                className="min-h-8 py-1.5 text-xs leading-snug"
+              />
+              <div className="mt-1 flex items-center justify-between gap-2">
+                <p className="text-[11px] text-red-500 dark:text-red-400">{noteError ?? actionError ?? ""}</p>
+                <span className="shrink-0 text-[11px] text-slate-400">
+                  {note.trim().length}/{RESOLUTION_NOTE_MAX_LENGTH}
+                </span>
+              </div>
+            </div>
+          )}
+          {canReplay && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs gap-1"
+              disabled={!!busy}
+              onClick={(e) => {
+                e.stopPropagation();
+                void act("replay", () => dlqApi.replay(msg.id), "DLQ message replay started");
+              }}
+            >
+              <RotateCcw className="size-3" />
+              {busy === "replay" ? "Replaying…" : "Replay"}
+            </Button>
+          )}
+          {canResolve && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs gap-1 text-green-700 border-green-300 hover:bg-green-50 dark:text-green-400 dark:border-green-700 dark:hover:bg-green-900/20"
+              disabled={!!busy}
+              onClick={(e) => {
+                e.stopPropagation();
+                actWithNote("resolve", (resolutionNote) => dlqApi.resolve(msg.id, resolutionNote));
+              }}
+            >
+              <CheckCircle className="size-3" />
+              {busy === "resolve" ? "Resolving…" : "Resolve"}
+            </Button>
+          )}
+          {canDiscard && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs gap-1 text-red-700 border-red-300 hover:bg-red-50 dark:text-red-400 dark:border-red-700 dark:hover:bg-red-900/20"
+              disabled={!!busy}
+              onClick={(e) => {
+                e.stopPropagation();
+                actWithNote("discard", (resolutionNote) => dlqApi.discard(msg.id, resolutionNote));
+              }}
+            >
+              <Trash2 className="size-3" />
+              {busy === "discard" ? "Discarding…" : "Discard"}
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
