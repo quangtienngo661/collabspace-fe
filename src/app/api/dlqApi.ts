@@ -59,21 +59,21 @@ export const dlqApi = {
   }): Promise<ReplayBatchResult> {
     return apiRequest<ReplayBatchResult>(`/dlq/replay-batch`, {
       method: "POST",
-      body: JSON.stringify(params ?? { status: ["pending", "requires_manual_review"], limit: 50 }),
+      body: params ?? { status: ["pending", "requires_manual_review"], limit: 50 },
     });
   },
 
-  async resolve(id: string, resolutionNote?: string): Promise<DlqMessage> {
+  async resolve(id: string, resolutionNote: string): Promise<DlqMessage> {
     return apiRequest<DlqMessage>(`/dlq/messages/${id}/resolve`, {
       method: "POST",
-      body: JSON.stringify({ resolutionNote }),
+      body: { resolutionNote: resolutionNote.trim() },
     });
   },
 
-  async discard(id: string, resolutionNote?: string): Promise<DlqMessage> {
+  async discard(id: string, resolutionNote: string): Promise<DlqMessage> {
     return apiRequest<DlqMessage>(`/dlq/messages/${id}/discard`, {
       method: "POST",
-      body: JSON.stringify({ resolutionNote }),
+      body: { resolutionNote: resolutionNote.trim() },
     });
   },
 };
