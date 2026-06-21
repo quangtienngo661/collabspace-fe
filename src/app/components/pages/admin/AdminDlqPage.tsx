@@ -357,7 +357,7 @@ export function AdminDlqPage() {
                     ))}
                   </TableRow>
                 ))
-              ) : data?.data.length === 0 ? (
+              ) : (data?.data?.length ?? 0) === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-12 text-sm text-slate-400">
                     No DLQ messages match the current filters.
