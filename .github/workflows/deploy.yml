@@ -1,0 +1,111 @@
+name: Deploy Frontend to DOKS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force deploy even if no dist changes'
+        required: false
+        default: 'false'
+
+concurrency:
+  group: deploy-frontend
+  cancel-in-progress: false   # never cancel an in-flight deploy; queue it instead
+
+jobs:
+  deploy:
+    name: Build & Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Build ────────────────────────────────────────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set production API URL
+        run: echo "VITE_API_BASE_URL=/api/v1" > .env.production
+
+      - name: Build
+        run: npm run build
+
+      # ── Package ──────────────────────────────────────────────────────────────
+      - name: Create deployment tarball
+        working-directory: dist
+        run: tar -czf ../frontend.tar.gz .
+
+      - name: Write nginx configuration
+        run: |
+          cat > default.conf << 'EOF'
+          server {
+              listen 80;
+              server_name _;
+              root /usr/share/nginx/html;
+              index index.html;
+              location / {
+                  try_files $uri $uri/ /index.html;
+              }
+          }
+          EOF
+
+      # ── Deploy ───────────────────────────────────────────────────────────────
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.DOKS_KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Verify cluster connectivity
+        run: kubectl get nodes -o wide
+
+      - name: Replace ConfigMaps
+        run: |
+          kubectl delete configmap frontend-payload nginx-conf -n collabspace --ignore-not-found
+          kubectl create configmap frontend-payload \
+            --from-file=frontend.tar.gz=frontend.tar.gz \
+            -n collabspace
+          kubectl create configmap nginx-conf \
+            --from-file=default.conf=default.conf \
+            -n collabspace
+
+      - name: Rollout frontend deployment
+        run: |
+          kubectl rollout restart deployment/collabspace-frontend -n collabspace
+          kubectl rollout status deployment/collabspace-frontend -n collabspace --timeout=120s
+
+      - name: Verify frontend is live
+        run: |
+          echo "Waiting 10s for nginx to serve new build..."
+          sleep 10
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 10 \
+            https://collabspace.ngocanh2005it.site/ || echo "000")
+          echo "HTTP status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "::warning::Frontend health check returned $STATUS — check pod logs"
+          else
+            echo "Frontend is live and healthy!"
+          fi
+
+      # ── Cleanup ──────────────────────────────────────────────────────────────
+      - name: Cleanup artifacts
+        if: always()
+        run: |
+          rm -f frontend.tar.gz default.conf
+          rm -f $HOME/.kube/config
