@@ -1,4 +1,4 @@
-import { Trash2 } from "lucide-react";
+import { Search, Trash2 } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../ui/table";
@@ -21,27 +21,29 @@ export function AdminWorkspacesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 shadow-xs">
+      <div className="flex flex-col justify-between gap-3 rounded-2xl border border-white/70 bg-white/85 p-4 shadow-sm shadow-slate-200/70 dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-black/10 sm:flex-row sm:items-center">
         <div>
-          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Active Workspace Directory</p>
+          <p className="text-sm font-semibold text-slate-950 dark:text-white">Active Workspace Directory</p>
           <p className="text-xs text-slate-400">View platform workspace statistics and perform force-deletions when required.</p>
         </div>
         <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
           <Input
             placeholder="Search workspaces..."
             value={workspaceSearch}
             onChange={e => setWorkspaceSearch(e.target.value)}
-            className="h-8 text-xs bg-slate-50 dark:bg-slate-900"
+            className="h-9 rounded-xl bg-white pl-9 text-xs dark:bg-slate-950/70"
           />
         </div>
       </div>
 
-      <Card className="border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 shadow-sm rounded-lg overflow-hidden">
+      <Card className="gap-0 overflow-hidden rounded-2xl border-white/70 bg-white/85 shadow-sm shadow-slate-200/70 dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-black/10">
         {workspacesState.error ? (
           <ErrorState title="Unable to load workspaces" description={workspacesState.error} />
         ) : (
-          <Table>
-            <TableHeader className="bg-slate-50/75 dark:bg-slate-900/40">
+          <div className="overflow-x-auto">
+          <Table className="min-w-[900px]">
+            <TableHeader className="bg-slate-50/90 dark:bg-slate-950/50">
               <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-700">
                 <TableHead className="text-xs font-semibold text-slate-500 dark:text-slate-400">Workspace Name</TableHead>
                 <TableHead className="text-xs font-semibold text-slate-500 dark:text-slate-400">Owner</TableHead>
@@ -69,7 +71,7 @@ export function AdminWorkspacesPage() {
                 filteredWorkspaces.map(ws => {
                   const owner = adminWorkspaceOwnerLabel(ws.ownerId, usersState.data);
                   return (
-                    <TableRow key={ws.id} className="border-slate-100 hover:bg-slate-50/20 dark:border-slate-700 dark:hover:bg-slate-900/10 cursor-pointer" onClick={() => setViewWorkspaceTarget(ws)}>
+                    <TableRow key={ws.id} className="cursor-pointer border-slate-100 transition-colors hover:bg-blue-50/40 dark:border-slate-800 dark:hover:bg-slate-800/70" onClick={() => setViewWorkspaceTarget(ws)}>
                       <TableCell>
                         <div>
                           <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{ws.name}</p>
@@ -102,6 +104,7 @@ export function AdminWorkspacesPage() {
                             e.stopPropagation();
                             setDeleteWorkspaceTarget({ id: ws.id, name: ws.name });
                           }}
+                          aria-label={`Delete workspace ${ws.name}`}
                         >
                           <Trash2 className="size-3.5" />
                         </Button>
@@ -112,6 +115,7 @@ export function AdminWorkspacesPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         )}
       </Card>
     </div>

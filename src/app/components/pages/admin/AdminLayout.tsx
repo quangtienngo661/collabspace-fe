@@ -22,7 +22,7 @@ function AdminLayoutInner() {
       title={meta.title}
       description={meta.description}
       action={
-        <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs" onClick={reloadAll}>
+        <Button size="sm" variant="outline" className="h-9 gap-1.5 rounded-xl text-xs" onClick={reloadAll}>
           <RefreshCw className="size-3.5" /> Sync Data
         </Button>
       }

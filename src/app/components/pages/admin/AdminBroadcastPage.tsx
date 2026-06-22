@@ -17,8 +17,8 @@ export function AdminBroadcastPage() {
   } = useAdminWorkspace();
 
   return (
-    <Card className="max-w-xl border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800 shadow-sm rounded-lg">
-      <div className="flex items-start gap-3 bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-100 dark:border-blue-900/40 mb-6">
+    <Card className="max-w-2xl gap-5 rounded-3xl border-white/70 bg-white/85 p-6 shadow-sm shadow-slate-200/70 dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-black/10">
+      <div className="flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-4 dark:border-blue-900/40 dark:bg-blue-950/30">
         <ShieldAlert className="size-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
         <div>
           <p className="text-xs font-semibold text-blue-900 dark:text-blue-200">Important Audit Notice</p>
@@ -38,6 +38,7 @@ export function AdminBroadcastPage() {
             value={broadcastTitle}
             onChange={e => setBroadcastTitle(e.target.value)}
             required
+            className="h-10 rounded-xl bg-white dark:bg-slate-950/70"
           />
         </div>
 
@@ -50,13 +51,14 @@ export function AdminBroadcastPage() {
             onChange={e => setBroadcastMessage(e.target.value)}
             rows={4}
             required
+            className="rounded-xl bg-white dark:bg-slate-950/70"
           />
         </div>
 
         <Button
           type="submit"
           disabled={broadcastSending}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white gap-2 font-medium text-xs py-2"
+          className="h-10 w-full gap-2 rounded-xl bg-blue-600 text-xs font-medium text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700"
         >
           <Send className="size-3.5" />
           {broadcastSending ? "Sending Broadcast..." : "Dispatch Broadcast"}

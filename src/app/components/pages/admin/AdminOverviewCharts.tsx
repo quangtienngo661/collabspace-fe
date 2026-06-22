@@ -124,12 +124,12 @@ export function AdminOverviewCharts({ overview, workspaces, loading }: AdminOver
   return (
     <div className="mb-6 space-y-3">
       <div>
-        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Platform overview</h2>
+        <h2 className="text-sm font-semibold text-slate-950 dark:text-white">Platform overview</h2>
         <p className="text-xs text-slate-500 dark:text-slate-400">End-user metrics — platform admin accounts are excluded.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="min-w-0 border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <Card className="min-w-0 border-white/70 bg-white/85 p-5 shadow-sm shadow-slate-200/70 dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-black/10">
           <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Account status</h3>
           {loading && !hasUsers ? (
             <ChartPlaceholder message="Loading user metrics…" />
@@ -164,7 +164,7 @@ export function AdminOverviewCharts({ overview, workspaces, loading }: AdminOver
           )}
         </Card>
 
-        <Card className="min-w-0 border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <Card className="min-w-0 border-white/70 bg-white/85 p-5 shadow-sm shadow-slate-200/70 dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-black/10">
           <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Task status (platform)</h3>
           {loading && !hasTasks ? (
             <ChartPlaceholder message="Loading task metrics…" />
@@ -199,7 +199,7 @@ export function AdminOverviewCharts({ overview, workspaces, loading }: AdminOver
           )}
         </Card>
 
-        <Card className="min-w-0 border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <Card className="min-w-0 border-white/70 bg-white/85 p-5 shadow-sm shadow-slate-200/70 dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-black/10">
           <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Top workspaces by tasks</h3>
           {loading && !hasWorkspaces ? (
             <ChartPlaceholder message="Loading workspace metrics…" />
@@ -226,7 +226,7 @@ export function AdminOverviewCharts({ overview, workspaces, loading }: AdminOver
           )}
         </Card>
 
-        <Card className="min-w-0 border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <Card className="min-w-0 border-white/70 bg-white/85 p-5 shadow-sm shadow-slate-200/70 dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-black/10">
           <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">
             {ACTIVITY_LABELS[activityMetric]} (last 30 days)
           </h3>

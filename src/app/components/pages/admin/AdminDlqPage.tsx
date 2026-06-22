@@ -61,7 +61,7 @@ const CATEGORY_COLORS: Record<DlqErrorCategory, string> = {
 
 function StatusBadge({ status }: { status: DlqStatus }) {
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[status]}`}>
+    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLORS[status]}`}>
       {STATUS_LABELS[status]}
     </span>
   );
@@ -69,7 +69,7 @@ function StatusBadge({ status }: { status: DlqStatus }) {
 
 function CategoryBadge({ category }: { category: DlqErrorCategory }) {
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${CATEGORY_COLORS[category]}`}>
+    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${CATEGORY_COLORS[category]}`}>
       {category}
     </span>
   );
@@ -106,7 +106,7 @@ function PayloadRow({
     <>
       <TableRow
         key={currentMsg.id}
-        className="border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40 cursor-pointer"
+        className="cursor-pointer border-slate-100 transition-colors hover:bg-blue-50/40 dark:border-slate-800 dark:hover:bg-slate-800/70"
         onClick={() => setOpen((v) => !v)}
       >
         <TableCell className="text-xs text-slate-500 dark:text-slate-400 font-mono max-w-[120px] truncate">
@@ -136,7 +136,7 @@ function PayloadRow({
         </TableCell>
       </TableRow>
       {open && (
-        <TableRow className="bg-slate-50 dark:bg-slate-800/60">
+        <TableRow className="bg-slate-50/80 dark:bg-slate-950/40">
           <TableCell colSpan={7} className="p-0">
             <DlqMessageDetail msg={currentMsg} onUpdated={handleUpdated} />
           </TableCell>
@@ -209,18 +209,18 @@ function DlqMessageDetail({
   }
 
   return (
-    <div className="p-4 space-y-4 text-xs">
-      <div className="grid grid-cols-2 gap-4">
+    <div className="space-y-4 p-4 text-xs">
+      <div className="grid gap-4 lg:grid-cols-2">
         <div>
           <p className="font-semibold text-slate-500 dark:text-slate-400 mb-1">Payload</p>
-          <pre className="bg-slate-900 dark:bg-slate-950 text-green-400 rounded p-3 overflow-auto max-h-48 text-[11px] leading-relaxed">
+          <pre className="max-h-56 overflow-auto rounded-2xl bg-slate-950 p-3 text-[11px] leading-relaxed text-green-400 shadow-inner">
             {JSON.stringify(msg.payload, null, 2)}
           </pre>
         </div>
         <div className="space-y-3">
           <div>
             <p className="font-semibold text-slate-500 dark:text-slate-400 mb-1">Error</p>
-            <p className="text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded p-2">
+            <p className="rounded-2xl bg-red-50 p-3 text-red-600 dark:bg-red-900/20 dark:text-red-400">
               {msg.errorMessage}
             </p>
           </div>
@@ -269,7 +269,7 @@ function DlqMessageDetail({
       )}
 
       {hasActions && (
-        <div className="flex items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+        <div className="flex flex-col gap-2 border-t border-slate-200 pt-3 dark:border-slate-800 lg:flex-row lg:items-start">
           {hasResolutionNoteAction && (
             <div className="flex-1 min-w-0">
               <Textarea
@@ -283,7 +283,7 @@ function DlqMessageDetail({
                     setNoteError(null);
                   }
                 }}
-                className="min-h-8 py-1.5 text-xs leading-snug"
+                className="min-h-10 rounded-xl py-2 text-xs leading-snug"
               />
               <div className="mt-1 flex items-center justify-between gap-2">
                 <p className="text-[11px] text-red-500 dark:text-red-400">{noteError ?? actionError ?? ""}</p>
@@ -297,7 +297,7 @@ function DlqMessageDetail({
             <Button
               size="sm"
               variant="outline"
-              className="h-7 text-xs gap-1"
+              className="h-8 gap-1 rounded-xl text-xs"
               disabled={!!busy}
               onClick={(e) => {
                 e.stopPropagation();
@@ -312,7 +312,7 @@ function DlqMessageDetail({
             <Button
               size="sm"
               variant="outline"
-              className="h-7 text-xs gap-1 text-green-700 border-green-300 hover:bg-green-50 dark:text-green-400 dark:border-green-700 dark:hover:bg-green-900/20"
+              className="h-8 gap-1 rounded-xl border-green-300 text-xs text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-900/20"
               disabled={!!busy}
               onClick={(e) => {
                 e.stopPropagation();
@@ -327,7 +327,7 @@ function DlqMessageDetail({
             <Button
               size="sm"
               variant="outline"
-              className="h-7 text-xs gap-1 text-red-700 border-red-300 hover:bg-red-50 dark:text-red-400 dark:border-red-700 dark:hover:bg-red-900/20"
+              className="h-8 gap-1 rounded-xl border-red-300 text-xs text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
               disabled={!!busy}
               onClick={(e) => {
                 e.stopPropagation();
@@ -397,9 +397,9 @@ export function AdminDlqPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 shadow-xs">
+      <div className="flex flex-col justify-between gap-3 rounded-2xl border border-white/70 bg-white/85 p-4 shadow-sm shadow-slate-200/70 dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-black/10 xl:flex-row xl:items-center">
         <div>
-          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+          <p className="text-sm font-semibold text-slate-950 dark:text-white">
             Dead Letter Queue
           </p>
           <p className="text-xs text-slate-400">
@@ -407,12 +407,12 @@ export function AdminDlqPage() {
             {data ? ` ${data.total ?? 0} total.` : ""}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Select
             value={statusFilter}
             onValueChange={(v) => applyFilter(v as DlqStatus | "all", categoryFilter)}
           >
-            <SelectTrigger className="h-8 w-44 text-xs">
+            <SelectTrigger className="h-9 w-44 rounded-xl bg-white text-xs dark:bg-slate-950/70">
               <SelectValue placeholder="All statuses" />
             </SelectTrigger>
             <SelectContent>
@@ -428,7 +428,7 @@ export function AdminDlqPage() {
             value={categoryFilter}
             onValueChange={(v) => applyFilter(statusFilter, v as DlqErrorCategory | "all")}
           >
-            <SelectTrigger className="h-8 w-36 text-xs">
+            <SelectTrigger className="h-9 w-36 rounded-xl bg-white text-xs dark:bg-slate-950/70">
               <SelectValue placeholder="All categories" />
             </SelectTrigger>
             <SelectContent>
@@ -439,7 +439,7 @@ export function AdminDlqPage() {
               <SelectItem value="unknown">unknown</SelectItem>
             </SelectContent>
           </Select>
-          <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={reload}>
+          <Button size="sm" variant="outline" className="h-9 gap-1 rounded-xl text-xs" onClick={reload}>
             <RefreshCw className="size-3.5" />
             Refresh
           </Button>
@@ -447,7 +447,7 @@ export function AdminDlqPage() {
             <Button
               size="sm"
               variant="outline"
-              className="h-8 text-xs gap-1 text-blue-700 border-blue-300 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/20"
+              className="h-9 gap-1 rounded-xl border-blue-300 text-xs text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/20"
               disabled={replayingAll}
               onClick={replayAll}
             >
@@ -459,17 +459,18 @@ export function AdminDlqPage() {
       </div>
 
       {replayResult && (
-        <div className="text-xs px-3 py-2 rounded border border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-800 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
           {replayResult}
         </div>
       )}
 
-      <Card className="border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 shadow-sm rounded-lg overflow-hidden">
+      <Card className="gap-0 overflow-hidden rounded-2xl border-white/70 bg-white/85 shadow-sm shadow-slate-200/70 dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-black/10">
         {error ? (
           <ErrorState title="Unable to load DLQ messages" description={error} />
         ) : (
-          <Table>
-            <TableHeader className="bg-slate-50/75 dark:bg-slate-900/40">
+          <div className="overflow-x-auto">
+          <Table className="min-w-[960px]">
+            <TableHeader className="bg-slate-50/90 dark:bg-slate-950/50">
               <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-700">
                 <TableHead className="text-xs font-semibold text-slate-500 dark:text-slate-400">Topic</TableHead>
                 <TableHead className="text-xs font-semibold text-slate-500 dark:text-slate-400">Status</TableHead>
@@ -483,7 +484,7 @@ export function AdminDlqPage() {
             <TableBody>
               {loading && !data ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i} className="border-slate-200 dark:border-slate-700">
+                  <TableRow key={i} className="border-slate-200 dark:border-slate-800">
                     {Array.from({ length: 7 }).map((_, j) => (
                       <TableCell key={j}>
                         <div className="h-4 bg-slate-100 dark:bg-slate-700 rounded animate-pulse" />
@@ -502,13 +503,14 @@ export function AdminDlqPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         )}
       </Card>
 
       {(data?.nextCursor || cursor) && (
         <div className="flex items-center justify-between text-xs text-slate-500">
           {cursor && (
-            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setCursor(undefined)}>
+            <Button size="sm" variant="outline" className="h-8 rounded-xl text-xs" onClick={() => setCursor(undefined)}>
               ← First page
             </Button>
           )}
@@ -516,7 +518,7 @@ export function AdminDlqPage() {
             <Button
               size="sm"
               variant="outline"
-              className="h-7 text-xs ml-auto"
+              className="ml-auto h-8 rounded-xl text-xs"
               onClick={() => setCursor(data.nextCursor ?? undefined)}
             >
               Next page →

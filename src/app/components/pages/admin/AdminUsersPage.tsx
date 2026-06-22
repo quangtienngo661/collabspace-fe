@@ -1,9 +1,10 @@
-import { Ban, Trash2, UserCheck, Lock } from "lucide-react";
+import { Ban, Search, Trash2, UserCheck, Lock } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
-import { RoleBadge } from "../../shared/StatusBadge";import { UserAvatar } from "../../shared/UserAvatar";
+import { RoleBadge } from "../../shared/StatusBadge";
+import { UserAvatar } from "../../shared/UserAvatar";
 import { ErrorState } from "../../shared/EmptyState";
 import { Input } from "../../ui/input";
 import { DateDisplay } from "../../shared/DateDisplay";
@@ -27,28 +28,31 @@ export function AdminUsersPage() {
   } = useAdminWorkspace();
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 shadow-xs">
+      <div className="flex flex-col justify-between gap-3 rounded-2xl border border-white/70 bg-white/85 p-4 shadow-sm shadow-slate-200/70 dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-black/10 sm:flex-row sm:items-center">
         <div>
-          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">User Account Directory</p>
+          <p className="text-sm font-semibold text-slate-950 dark:text-white">User Account Directory</p>
           <p className="text-xs text-slate-400">
             Manage platform roles and ban status. Promoting to admin requires confirmation — workspace membership is not removed automatically.
-          </p>        </div>
+          </p>
+        </div>
         <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
           <Input
             placeholder="Search user profiles..."
             value={userSearch}
             onChange={e => setUserSearch(e.target.value)}
-            className="h-8 text-xs bg-slate-50 dark:bg-slate-900"
+            className="h-9 rounded-xl bg-white pl-9 text-xs dark:bg-slate-950/70"
           />
         </div>
       </div>
 
-      <Card className="border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 shadow-sm rounded-lg overflow-hidden">
+      <Card className="gap-0 overflow-hidden rounded-2xl border-white/70 bg-white/85 shadow-sm shadow-slate-200/70 dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-black/10">
         {usersState.error ? (
           <ErrorState title="Unable to load user accounts" description={usersState.error} />
         ) : (
-          <Table>
-            <TableHeader className="bg-slate-50/75 dark:bg-slate-900/40">
+          <div className="overflow-x-auto">
+          <Table className="min-w-[980px]">
+            <TableHeader className="bg-slate-50/90 dark:bg-slate-950/50">
               <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-700">
                 <TableHead className="text-xs font-semibold text-slate-500 dark:text-slate-400">User Profile</TableHead>
                 <TableHead className="text-xs font-semibold text-slate-500 dark:text-slate-400">Email Address</TableHead>
@@ -81,7 +85,7 @@ export function AdminUsersPage() {
                   const isAdmin = isPlatformAdminUser(user);
                   const platformRoles = roles.filter(role => isProtectedRole(role.name));
                   return (
-                    <TableRow key={user.id} className="border-slate-100 hover:bg-slate-50/20 dark:border-slate-700 dark:hover:bg-slate-900/10">
+                    <TableRow key={user.id} className="border-slate-100 transition-colors hover:bg-blue-50/40 dark:border-slate-800 dark:hover:bg-slate-800/70">
                       <TableCell>
                         <div className="flex items-center gap-2.5">
                           <UserAvatar
@@ -158,7 +162,7 @@ export function AdminUsersPage() {
                             }}
                             disabled={rolesLoading || platformRoles.length === 0}
                           >
-                            <SelectTrigger className="h-7 w-28 text-xs">
+                            <SelectTrigger className="h-8 w-32 rounded-xl text-xs">
                               <SelectValue placeholder="Role" />
                             </SelectTrigger>
                             <SelectContent>
@@ -169,7 +173,8 @@ export function AdminUsersPage() {
                               ))}
                             </SelectContent>
                           </Select>
-                        )}                      </TableCell>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Button
@@ -178,6 +183,7 @@ export function AdminUsersPage() {
                             className={`h-7 w-7 ${user.isActive ? "text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/20" : "text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"}`}
                             onClick={() => setToggleActiveTarget({ id: user.id, name: user.displayName || user.fullName || "User", isActive: user.isActive })}
                             title={user.isActive ? "Ban account" : "Reactivate account"}
+                            aria-label={user.isActive ? `Ban ${displayName}` : `Reactivate ${displayName}`}
                             disabled={isAdmin}
                           >
                             {user.isActive ? <Ban className="size-3.5" /> : <UserCheck className="size-3.5" />}
@@ -188,6 +194,7 @@ export function AdminUsersPage() {
                             className="h-7 w-7 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
                             onClick={() => setDeleteUserTarget({ id: user.id, name: user.displayName || user.fullName || "User" })}
                             title="Delete & anonymize user data"
+                            aria-label={`Delete and anonymize ${displayName}`}
                             disabled={isAdmin}
                           >
                             <Trash2 className="size-3.5" />
@@ -200,6 +207,7 @@ export function AdminUsersPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         )}
       </Card>
     </div>

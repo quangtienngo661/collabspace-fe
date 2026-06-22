@@ -3,7 +3,7 @@ import { Skeleton } from "../../ui/skeleton";
 
 function StatCardSkeleton({ dual = false, withSubtitle = false }: { dual?: boolean; withSubtitle?: boolean }) {
   return (
-    <Card className="flex min-h-[7.5rem] flex-col border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+    <Card className="flex min-h-[7.5rem] flex-col border-white/70 bg-white/85 p-4 shadow-sm shadow-slate-200/70 dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-black/10">
       <Skeleton className="mb-2 h-3 w-24" />
       {dual ? (
         <div className="flex gap-5">
@@ -58,7 +58,7 @@ function LineChartSkeleton() {
 
 function ChartCardSkeleton({ variant }: { variant: "donut" | "bar" | "line" }) {
   return (
-    <Card className="min-w-0 border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+    <Card className="min-w-0 border-white/70 bg-white/85 p-4 shadow-sm shadow-slate-200/70 dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-black/10">
       <Skeleton className="mb-3 h-4 w-36" />
       {variant === "donut" && <DonutChartSkeleton />}
       {variant === "bar" && <BarChartSkeleton />}
