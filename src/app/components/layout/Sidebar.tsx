@@ -133,14 +133,14 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     <TooltipProvider delayDuration={200}>
       <aside
         className={cn(
-          "flex flex-col h-full bg-slate-900 text-slate-100 transition-all duration-300 ease-in-out shrink-0 border-r border-slate-800/80",
+          "flex flex-col h-full bg-slate-950 text-slate-100 transition-all duration-300 ease-in-out shrink-0 border-r border-slate-800/80 shadow-2xl shadow-slate-950/20",
           collapsed ? "w-[72px]" : "w-60",
         )}
       >
         <div
           className={cn(
-            "flex items-center border-b border-slate-700/60",
-            collapsed ? "h-16 justify-center px-2" : "justify-between px-3 py-3",
+            "flex items-center border-b border-slate-800/80 bg-gradient-to-br from-slate-900 to-slate-950",
+            collapsed ? "h-16 justify-center px-2" : "justify-between px-3 py-3.5",
           )}
         >
           {collapsed ? (
@@ -148,7 +148,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               <TooltipTrigger asChild>
                 <button
                   onClick={onToggle}
-                  className="group relative flex size-10 items-center justify-center rounded-2xl bg-blue-600 text-xs font-bold text-white"
+                  className="group relative flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-xs font-bold text-white shadow-lg shadow-blue-950/40"
                   aria-label="Expand sidebar"
                 >
                   CS
@@ -162,7 +162,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           ) : (
             <>
               <span className="flex items-center gap-2 font-bold text-white tracking-tight">
-                <span className="w-7 h-7 rounded-lg bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                  <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-blue-950/40">
                   CS
                 </span>
                 <span className="min-w-0">
@@ -176,7 +176,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               </span>
               <button
                 onClick={onToggle}
-                className="p-1 rounded hover:bg-slate-700 text-slate-400 hover:text-white"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
                 aria-label="Collapse sidebar"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -187,12 +187,12 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
         {!isAdmin && (
           !collapsed ? (
-            <div className="px-2 py-2 border-b border-slate-700/60">
+              <div className="px-2.5 py-3 border-b border-slate-800/80">
               <button
                 onClick={() => setWsOpen(o => !o)}
-                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-slate-700/60 text-left transition-colors"
+                  className="w-full flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/70 px-2.5 py-2 text-left transition-colors hover:border-slate-700 hover:bg-slate-800/80"
               >
-                <span className="w-6 h-6 rounded bg-indigo-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                  <span className="w-7 h-7 rounded-lg bg-indigo-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
                   {activeWorkspace?.name[0] ?? "W"}
                 </span>
                 <span className="flex-1 text-sm font-medium text-slate-100 truncate">
@@ -337,7 +337,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           </div>
         </nav>
 
-        <div className="border-t border-slate-700/60 p-2">
+        <div className="border-t border-slate-800/80 p-2.5 bg-slate-950/60">
           {collapsed ? (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -356,7 +356,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <button
               type="button"
               onClick={() => void handleLogout()}
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-300"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2.5 text-xs font-medium text-red-300 transition-colors hover:bg-red-500/15 hover:text-red-200"
             >
               <LogOut className="w-3.5 h-3.5" />
               Logout

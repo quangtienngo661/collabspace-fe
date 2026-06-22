@@ -120,6 +120,7 @@ export function DashboardPage() {
   const totalDoing = tasks.filter(task => task.status === "DOING").length;
   const memberCount = membersState.data?.length ?? 0;
   const unreadCountDisplay = notificationsError ? "N/A" : unreadCount;
+  const completionRate = tasks.length > 0 ? Math.round((totalDone / tasks.length) * 100) : 0;
 
   const kpis = [
     { label: "Total Tasks", value: tasks.length, context: workspaceLabel, icon: CheckSquare, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20" },
@@ -166,19 +167,36 @@ export function DashboardPage() {
 
   return (
     <div className="max-w-full overflow-x-hidden p-4 md:p-6 space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">Dashboard</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+      <div className="relative overflow-hidden rounded-3xl border border-white/70 bg-white/80 p-5 shadow-xl shadow-slate-200/60 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-black/20 md:p-6">
+        <div className="absolute -right-20 -top-24 h-56 w-56 rounded-full bg-blue-500/15 blur-3xl" />
+        <div className="absolute right-20 top-10 h-24 w-24 rounded-full bg-indigo-500/10 blur-2xl" />
+        <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            <p className="mb-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300">
+              {hasWorkspace ? workspaceLabel : "CollabSpace"}
+            </p>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-950 dark:text-white md:text-3xl">Dashboard</h1>
+            <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
             Welcome back, {profile?.name ?? "there"}.
             {hasWorkspace ? ` Overview for ${workspaceLabel}.` : " Get started by creating or joining a workspace."}
-          </p>
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:flex sm:items-center">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/60">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Completion</p>
+              <p className="text-xl font-bold text-slate-950 dark:text-white">{completionRate}%</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/60">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Active tasks</p>
+              <p className="text-xl font-bold text-slate-950 dark:text-white">{totalDoing}</p>
+            </div>
+          </div>
         </div>
-        <div className="flex w-full min-w-0 gap-2 sm:w-auto sm:justify-end">
+        <div className="relative mt-5 flex w-full min-w-0 gap-2 sm:w-auto sm:justify-end">
           <Button size="sm" variant="outline" onClick={() => activeWorkspace && navigate(`/workspaces/${activeWorkspace.id}?tab=members`)} disabled={!activeWorkspace} className="hidden md:flex gap-1.5" title={!activeWorkspace ? "Create a workspace first" : undefined}>
             <UserPlus className="w-3.5 h-3.5" /> Invite
           </Button>
-          <Button size="sm" onClick={() => setCreateTask(true)} disabled={!activeWorkspace} className="w-full min-w-0 shrink gap-1.5 bg-blue-600 hover:bg-blue-700 text-white sm:w-auto sm:shrink-0">
+          <Button size="sm" onClick={() => setCreateTask(true)} disabled={!activeWorkspace} className="w-full min-w-0 shrink gap-1.5 rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 sm:w-auto sm:shrink-0">
             <Plus className="w-3.5 h-3.5" /> New Task
           </Button>
         </div>
@@ -247,24 +265,27 @@ export function DashboardPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
             {kpis.map(kpi => (
-              <Card key={kpi.label} className="min-w-0 p-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+              <Card key={kpi.label} className="group min-w-0 gap-3 overflow-hidden border-white/70 bg-white/85 p-4 shadow-sm shadow-slate-200/70 transition-all hover:-translate-y-0.5 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-black/10">
                 <div className="flex items-start justify-between mb-2">
-                  <div className={`w-8 h-8 rounded-lg ${kpi.bg} flex items-center justify-center`}>
+                  <div className={`w-9 h-9 rounded-xl ${kpi.bg} flex items-center justify-center ring-1 ring-black/5 dark:ring-white/5`}>
                     <kpi.icon className={`w-4 h-4 ${kpi.color}`} />
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{kpi.value}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{kpi.label}</p>
+                <p className="text-2xl font-bold tracking-tight text-slate-950 dark:text-white">{kpi.value}</p>
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-300 mt-0.5">{kpi.label}</p>
                 <p className="mt-1 truncate text-[10px] text-slate-400 dark:text-slate-500" title={kpi.context}>{kpi.context}</p>
               </Card>
             ))}
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
-            <Card className="min-w-0 p-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4">Task Status</h2>
+            <Card className="min-w-0 gap-4 border-white/70 bg-white/85 p-5 shadow-sm shadow-slate-200/70 dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-black/10">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-950 dark:text-white">Task Status</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Distribution across the current workspace.</p>
+              </div>
               <div className="h-[180px] w-full">
                 <ResponsiveContainer width="100%" height={180}>
                   <BarChart data={chartData} barSize={18}>
@@ -278,8 +299,11 @@ export function DashboardPage() {
               </div>
             </Card>
 
-            <Card className="min-w-0 p-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex flex-col h-[280px]">
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3 shrink-0">Recent Activity</h2>
+            <Card className="min-w-0 gap-4 border-white/70 bg-white/85 p-5 shadow-sm shadow-slate-200/70 dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-black/10 flex flex-col h-[280px]">
+              <div className="shrink-0">
+                <h2 className="text-sm font-semibold text-slate-950 dark:text-white">Recent Activity</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Latest workspace movement.</p>
+              </div>
               <div className="overflow-y-auto pr-2 flex-1">
                 <WorkspaceActivityFeed
                   items={activity}
@@ -290,16 +314,19 @@ export function DashboardPage() {
             </Card>
           </div>
 
-          <Card className="min-w-0 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">My Assigned Tasks</h2>
+          <Card className="min-w-0 gap-0 overflow-hidden border-white/70 bg-white/85 shadow-sm shadow-slate-200/70 dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-black/10">
+            <div className="flex items-center justify-between border-b border-slate-200/80 px-5 py-4 dark:border-slate-800">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-950 dark:text-white">My Assigned Tasks</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Your personal queue from this workspace.</p>
+              </div>
               <Button variant="ghost" size="sm" className="text-xs" onClick={() => activeWorkspace && navigate(`/workspaces/${activeWorkspace.id}/projects`)}>View all</Button>
             </div>
             <div className="divide-y divide-slate-100 dark:divide-slate-700">
               {myTasks.length === 0 ? (
                 <p className="py-8 text-center text-sm text-slate-400">No tasks assigned to you</p>
               ) : myTasks.map(task => (
-                <div key={task.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer" onClick={() => setSelectedTask(task)}>
+                <div key={task.id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-blue-50/50 dark:hover:bg-slate-800/70 transition-colors cursor-pointer" onClick={() => setSelectedTask(task)}>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{task.title}</p>
                     <p className="text-xs text-slate-400">{task.dueDate ? formatDueDate(task.dueDate) : "No due date"}</p>

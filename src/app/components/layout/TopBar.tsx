@@ -115,9 +115,9 @@ export function TopBar({ onMenuClick, dark, onToggleDark, onOpenCommandPalette }
   };
 
   return (
-    <header className="h-12 flex items-center gap-3 px-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shrink-0">
+    <header className="h-14 flex items-center gap-3 px-4 border-b border-white/70 bg-white/85 shadow-sm shadow-slate-200/60 backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/80 dark:shadow-black/20 shrink-0">
       {/* Mobile menu */}
-      <button onClick={onMenuClick} className="md:hidden p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500">
+      <button onClick={onMenuClick} className="md:hidden p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500" aria-label="Open navigation">
         <Menu className="w-4 h-4" />
       </button>
 
@@ -129,12 +129,12 @@ export function TopBar({ onMenuClick, dark, onToggleDark, onOpenCommandPalette }
               <button
                 type="button"
                 onClick={() => navigate(crumb.path!)}
-                className="truncate hover:text-slate-700 dark:hover:text-slate-200"
+                className="truncate rounded-md px-1.5 py-1 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
               >
                 {crumb.label}
               </button>
             ) : (
-              <span className="truncate text-slate-900 dark:text-slate-100 font-medium">{crumb.label}</span>
+              <span className="truncate rounded-md bg-slate-100 px-2 py-1 font-semibold text-slate-900 dark:bg-slate-800 dark:text-slate-100">{crumb.label}</span>
             )}
           </span>
         ))}
@@ -143,7 +143,7 @@ export function TopBar({ onMenuClick, dark, onToggleDark, onOpenCommandPalette }
       <button
         type="button"
         onClick={onOpenCommandPalette}
-        className="md:hidden p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500"
+        className="md:hidden p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
         aria-label="Search"
       >
         <Search className="w-4 h-4" />
@@ -152,7 +152,7 @@ export function TopBar({ onMenuClick, dark, onToggleDark, onOpenCommandPalette }
       <button
         type="button"
         onClick={onOpenCommandPalette}
-        className="hidden md:flex items-center gap-2 h-7 px-2.5 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-750"
+        className="hidden md:flex items-center gap-2 h-9 min-w-56 px-3 rounded-full border border-slate-200/80 bg-slate-50/90 text-xs text-slate-500 shadow-inner shadow-white hover:border-blue-200 hover:bg-white hover:text-slate-700 dark:border-slate-700/80 dark:bg-slate-900 dark:shadow-none dark:hover:border-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
       >
         <Search className="w-3.5 h-3.5" />
         <span>Search…</span>
@@ -160,14 +160,14 @@ export function TopBar({ onMenuClick, dark, onToggleDark, onOpenCommandPalette }
       </button>
 
       {/* Dark mode toggle */}
-      <button onClick={onToggleDark} className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors">
+      <button onClick={onToggleDark} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors" aria-label="Toggle color theme">
         {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
       </button>
 
       {/* Notifications */}
       <Popover open={notifOpen} onOpenChange={setNotifOpen}>
         <PopoverTrigger asChild>
-          <button className="relative p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors">
+          <button className="relative p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors" aria-label="Open notifications">
             <Bell className="w-4 h-4" />
             {unreadBadgeCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold">
@@ -176,7 +176,7 @@ export function TopBar({ onMenuClick, dark, onToggleDark, onOpenCommandPalette }
             )}
           </button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-80 p-0">
+        <PopoverContent align="end" className="w-80 overflow-hidden rounded-2xl border-slate-200/80 p-0 shadow-xl dark:border-slate-700">
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-200 dark:border-slate-700">
             <span className="text-sm font-semibold">Notifications</span>
             <button onClick={markAllRead} className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400">Mark all read</button>
@@ -223,7 +223,7 @@ export function TopBar({ onMenuClick, dark, onToggleDark, onOpenCommandPalette }
       {/* User menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="flex items-center gap-2 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+          <button className="flex items-center gap-2 rounded-full border border-transparent p-1 pr-2 transition-colors hover:border-slate-200 hover:bg-slate-100 dark:hover:border-slate-700 dark:hover:bg-slate-800" aria-label="Open user menu">
             {profile && <UserAvatar user={profile} size="xs" showPresence />}
             <span className="hidden md:block text-xs font-medium text-slate-700 dark:text-slate-300">{profile?.name ?? "User"}</span>
           </button>

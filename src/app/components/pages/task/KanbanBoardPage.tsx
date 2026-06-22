@@ -47,11 +47,11 @@ const KanbanCard = memo(function KanbanCard({ task, onClick, presenceStatus }: {
       ref={drag as any}
       onClick={() => onClick(task)}
       className={cn(
-        "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 cursor-pointer hover:shadow-md transition-all space-y-2 group",
+        "group cursor-pointer space-y-3 rounded-2xl border border-slate-200/80 bg-white/95 p-3.5 shadow-sm shadow-slate-200/60 transition-all hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg dark:border-slate-700/80 dark:bg-slate-900/90 dark:shadow-black/10 dark:hover:border-slate-600",
         isDragging && "opacity-40 scale-95"
       )}
     >
-      <p className="text-xs font-medium text-slate-900 dark:text-slate-100 leading-snug">{task.title}</p>
+      <p className="text-sm font-semibold leading-snug text-slate-900 dark:text-slate-100">{task.title}</p>
       <div className="flex items-center gap-1.5 flex-wrap">
         <PriorityBadge priority={task.priority} />
         {task.labels && task.labels.length > 0 && (
@@ -125,19 +125,19 @@ const KanbanColumn = memo(function KanbanColumn({ status, label, color, tasks, p
   const handleAdd = useCallback(() => onAdd(status), [onAdd, status]);
 
   return (
-    <div ref={drop as any} className={cn("flex flex-col min-w-[280px] md:min-w-0 md:flex-1 rounded-lg border-t-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700", color, isOver && "ring-2 ring-blue-400/50 bg-blue-50/30 dark:bg-blue-900/10")}>
-      <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-200 dark:border-slate-700">
+    <div ref={drop as any} className={cn("flex min-w-[300px] flex-col rounded-3xl border border-white/70 border-t-4 bg-white/60 shadow-sm shadow-slate-200/70 backdrop-blur md:min-w-0 md:flex-1 dark:border-slate-800 dark:bg-slate-950/50 dark:shadow-black/10", color, isOver && "ring-2 ring-blue-400/50 bg-blue-50/70 dark:bg-blue-900/10")}>
+      <div className="flex items-center justify-between border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{label}</span>
-          <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 text-xs flex items-center justify-center">{tasks.length}</span>
+          <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{label}</span>
+          <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-slate-100 px-2 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">{tasks.length}</span>
         </div>
-        <Button variant="ghost" size="icon" className="w-6 h-6" onClick={handleAdd}>
+        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl" onClick={handleAdd} aria-label={`Add task to ${label}`}>
           <Plus className="w-3.5 h-3.5" />
         </Button>
       </div>
-      <div className="flex-1 p-2 space-y-2 overflow-y-auto max-h-[calc(100vh-280px)]">
+      <div className="flex-1 space-y-3 overflow-y-auto p-3 max-h-[calc(100vh-300px)]">
         {tasks.length === 0 ? (
-          <div className="py-8 text-center text-xs text-slate-400">Drop tasks here</div>
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white/60 py-8 text-center text-xs text-slate-400 dark:border-slate-700 dark:bg-slate-900/50">Drop tasks here</div>
         ) : tasks.map(t => (
           <KanbanCard
             key={t.id}
@@ -249,25 +249,30 @@ export function KanbanBoardPage() {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="flex flex-col h-full">
-        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex-wrap">
-          <h1 className="text-sm font-bold text-slate-900 dark:text-slate-100 mr-2">{projectState.data?.name || "Workspace Tasks"}</h1>
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-md p-0.5">
-            <button onClick={() => setView("kanban")} className={cn("p-1.5 rounded transition-colors", view === "kanban" ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300")}>
+      <div className="flex h-full flex-col">
+        <div className="border-b border-white/70 bg-white/80 px-4 py-3 shadow-sm shadow-slate-200/60 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80 dark:shadow-black/10">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-bold tracking-tight text-slate-950 dark:text-white">{projectState.data?.name || "Workspace Tasks"}</h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Plan work, rebalance owners, and move tasks between stages.</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-900">
+            <button aria-label="Show kanban view" onClick={() => setView("kanban")} className={cn("rounded-lg p-2 transition-colors", view === "kanban" ? "bg-white text-blue-600 shadow-sm dark:bg-slate-800" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300")}>
               <Columns3 className="w-3.5 h-3.5" />
             </button>
-            <button onClick={() => setView("list")} className={cn("p-1.5 rounded transition-colors", view === "list" ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300")}>
+            <button aria-label="Show list view" onClick={() => setView("list")} className={cn("rounded-lg p-2 transition-colors", view === "list" ? "bg-white text-blue-600 shadow-sm dark:bg-slate-800" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300")}>
               <List className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          <div className="relative flex-1 min-w-[160px] max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-            <Input placeholder="Search tasks..." className="pl-8 h-7 text-xs" value={search} onChange={e => setSearch(e.target.value)} />
+          <div className="relative min-w-[200px] flex-1 xl:w-72 xl:flex-none">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <Input placeholder="Search tasks..." className="h-9 rounded-xl bg-white pl-9 text-xs dark:bg-slate-900" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
 
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="h-7 text-xs w-28"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9 w-32 rounded-xl bg-white text-xs dark:bg-slate-900"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All status</SelectItem>
               <SelectItem value="TODO">To Do</SelectItem>
@@ -277,7 +282,7 @@ export function KanbanBoardPage() {
           </Select>
 
           <Select value={filterAssignee} onValueChange={setFilterAssignee}>
-            <SelectTrigger className="h-7 text-xs w-36"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9 w-40 rounded-xl bg-white text-xs dark:bg-slate-900"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All assignees</SelectItem>
               {users.map(user => <SelectItem key={user.userId} value={user.userId}>{user.name}</SelectItem>)}
@@ -285,7 +290,7 @@ export function KanbanBoardPage() {
           </Select>
 
           <Select value={filterPriority} onValueChange={setFilterPriority}>
-            <SelectTrigger className="h-7 text-xs w-28"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9 w-32 rounded-xl bg-white text-xs dark:bg-slate-900"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All priority</SelectItem>
               <SelectItem value="low">Low</SelectItem>
@@ -295,12 +300,14 @@ export function KanbanBoardPage() {
             </SelectContent>
           </Select>
 
-          <Button size="sm" variant="outline" className="gap-1 h-7 text-xs px-3" onClick={() => void taskState.reload()}>
+          <Button size="sm" variant="outline" className="h-9 gap-1 rounded-xl px-3 text-xs" onClick={() => void taskState.reload()}>
             <RefreshCw className="w-3.5 h-3.5" /> Refresh
           </Button>
-          <Button size="sm" className="gap-1 bg-blue-600 hover:bg-blue-700 text-white h-7 text-xs px-3" onClick={() => setCreateOpen(true)} disabled={!wsId}>
+          <Button size="sm" className="h-9 gap-1 rounded-xl bg-blue-600 px-3 text-xs text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700" onClick={() => setCreateOpen(true)} disabled={!wsId}>
             <Plus className="w-3.5 h-3.5" /> Task
           </Button>
+            </div>
+          </div>
         </div>
 
         {taskState.error && (
@@ -309,11 +316,11 @@ export function KanbanBoardPage() {
           </div>
         )}
 
-        <div className="flex-1 overflow-auto p-4">
+        <div className="flex-1 overflow-auto p-4 md:p-5">
           {!taskState.error && filteredTasks.length === 0 && !taskState.loading ? (
             <EmptyState icon={List} title="No tasks found" description="Create a task or adjust the filters." action={{ label: "New Task", onClick: () => setCreateOpen(true) }} />
           ) : view === "kanban" ? (
-            <div className="flex gap-4 min-w-max md:min-w-0 h-full">
+            <div className="flex h-full min-w-max gap-4 md:min-w-0">
               {COLUMNS.map(col => (
                 <KanbanColumn
                   key={col.status}

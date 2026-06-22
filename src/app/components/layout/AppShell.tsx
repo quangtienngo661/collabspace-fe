@@ -27,7 +27,7 @@ export function AppShell({ dark, onToggleDark }: AppShellProps) {
       <NotificationsProvider>
         <ActiveWorkspaceSync />
         <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
-        <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden">
+        <div className="flex h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.10),transparent_34%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.18),transparent_32%),linear-gradient(180deg,#020617_0%,#0f172a_100%)]">
           <div className="hidden md:flex">
             <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(c => !c)} />
           </div>
