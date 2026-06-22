@@ -193,7 +193,7 @@ export function DashboardPage() {
           </div>
         </div>
         <div className="relative mt-5 flex w-full min-w-0 gap-2 sm:w-auto sm:justify-end">
-          <Button size="sm" variant="outline" onClick={() => activeWorkspace && navigate(`/workspaces/${activeWorkspace.id}?tab=members`)} disabled={!activeWorkspace} className="hidden md:flex gap-1.5" title={!activeWorkspace ? "Create a workspace first" : undefined}>
+          <Button size="sm" variant="outline" onClick={() => activeWorkspace && navigate(`/workspaces/${activeWorkspace.id}?tab=members&invite=1`)} disabled={!activeWorkspace} className="hidden md:flex gap-1.5" title={!activeWorkspace ? "Create a workspace first" : undefined}>
             <UserPlus className="w-3.5 h-3.5" /> Invite
           </Button>
           <Button size="sm" onClick={() => setCreateTask(true)} disabled={!activeWorkspace} className="w-full min-w-0 shrink gap-1.5 rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 sm:w-auto sm:shrink-0">

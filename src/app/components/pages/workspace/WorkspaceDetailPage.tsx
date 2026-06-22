@@ -110,6 +110,18 @@ export function WorkspaceDetailPage() {
     return members.some(m => m.userId === profile.id && m.role === "manager");
   }, [profile?.id, ws?.ownerId, members]);
 
+  useEffect(() => {
+    if (searchParams.get("invite") !== "1" || !id || (!isOwner && !isManager)) return;
+
+    setInviteOpen(true);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("tab", "members");
+      next.delete("invite");
+      return next;
+    }, { replace: true });
+  }, [id, isManager, isOwner, searchParams, setSearchParams]);
+
   function canRemoveMember(target: { userId: string; role: WorkspaceMember["role"] }) {
     if (!target.userId || target.role === "owner") return false;
 
