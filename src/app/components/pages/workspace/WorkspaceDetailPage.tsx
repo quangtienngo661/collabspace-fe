@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
-import { UserPlus, FolderOpen, Settings, Users, RefreshCw, ArrowLeft, Activity, MoreHorizontal, Trash2 } from "lucide-react";
+import { UserPlus, FolderOpen, Settings, Users, RefreshCw, ArrowLeft, Activity, MoreHorizontal, Trash2, ShieldCheck, ShieldMinus, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../ui/tabs";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
@@ -21,7 +21,7 @@ import { useAsyncData } from "../../../hooks/useAsyncData";
 import { usePresenceMap } from "../../../hooks/usePresenceMap";
 import { useAuth } from "../../../auth/AuthContext";
 import { useWorkspaces } from "../../../context/WorkspacesContext";
-import type { WorkspaceMember } from "../../../api/types";
+import type { WorkspaceMember, User } from "../../../api/types";
 import { toast } from "sonner";
 import { timeAgo } from "../../../utils/format";
 import { formatInviteError, findLocalInviteConflict } from "../../../utils/workspaceInviteErrors";
@@ -53,6 +53,11 @@ export function WorkspaceDetailPage() {
   } | null>(null);
   const [removing, setRemoving] = useState(false);
   const [updatingRoleUserId, setUpdatingRoleUserId] = useState<string | null>(null);
+  const [roleChangeTarget, setRoleChangeTarget] = useState<{
+    userId: string;
+    name: string;
+    nextRole: "manager" | "member";
+  } | null>(null);
 
   const workspaceState = useAsyncData(async () => {
     if (!id) throw new Error("Workspace id is missing");
@@ -137,6 +142,15 @@ export function WorkspaceDetailPage() {
     return false;
   }
 
+  /** Dropdown visible when at least one action is available (promote/demote OR remove). */
+  function canShowDropdown(target: { userId: string; role: WorkspaceMember["role"] }) {
+    if (!target.userId || target.role === "owner") return false;
+    // Owner can promote/demote any non-owner member.
+    if (isOwner && target.userId !== profile?.id) return true;
+    // Fall back to remove-only check.
+    return canRemoveMember(target);
+  }
+
   async function handleRemoveMember() {
     if (!id || !removeTarget) return;
     setRemoving(true);
@@ -185,18 +199,19 @@ export function WorkspaceDetailPage() {
       return {
         ...member,
         expiresAt: undefined,
-        user: member.profile
+        user: (member.profile
           ? { ...member.profile, status: liveStatus }
           : {
-          id: member.userId,
-          userId: member.userId,
-          name: fallbackName,
-          avatar: fallbackName.slice(0, 2).toUpperCase(),
-          role: member.role,
-          status: liveStatus,
-          title: "",
-          joinedAt: member.joinedAt,
-        },
+              id: member.userId,
+              userId: member.userId,
+              name: fallbackName,
+              email: "",
+              avatar: fallbackName.slice(0, 2).toUpperCase(),
+              role: "user" as const,
+              status: liveStatus,
+              title: "",
+              joinedAt: member.joinedAt,
+            }) as User,
       };
     });
 
@@ -204,7 +219,7 @@ export function WorkspaceDetailPage() {
       id: invitation.id,
       userId: "",
       workspaceId: id!,
-      role: "member",
+      role: "member" as const,
       joinedAt: invitation.createdAt,
       expiresAt: invitation.expiresAt,
       user: {
@@ -213,11 +228,13 @@ export function WorkspaceDetailPage() {
         name: invitation.email,
         email: invitation.email,
         avatar: "?",
-        role: "member",
-        status: "pending" as const,
+        role: "user" as const,
+        status: "offline" as const,
         title: "Pending Invitation",
         joinedAt: invitation.createdAt,
-      },
+        // Visual-only flag consumed by the table cells — not part of User type.
+        _pending: true,
+      } as unknown as User & { _pending?: boolean },
     }));
 
     return [...regularMembers, ...pendingMembers];
@@ -365,22 +382,24 @@ export function WorkspaceDetailPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {memberRows.map(member => (
-                  <TableRow key={member.id} className={`border-slate-100 dark:border-slate-700 ${member.user.status === "pending" ? "opacity-60 bg-amber-50/10 dark:bg-amber-950/5" : ""}`}>
+                {memberRows.map(member => {
+                  const isPending = "_pending" in member.user && Boolean(member.user._pending);
+                  return (
+                  <TableRow key={member.id} className={`border-slate-100 dark:border-slate-700 ${isPending ? "opacity-60 bg-amber-50/10 dark:bg-amber-950/5" : ""}`}>
                     <TableCell>
                       <div className="flex items-center gap-2.5 my-[5px] mx-[5px]" >
                         <UserAvatar user={member.user} size="sm" showPresence />
                         <div>
                           <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{member.user.name}</p>
                           <p className="text-xs text-slate-400">{member.user.email}</p>
-                          {member.user.status === "pending" && (
+                          {isPending && (
                             <p className="text-[10px] font-medium text-amber-600 dark:text-amber-400 mt-0.5">Pending invitation</p>
                           )}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      {member.user.status === "pending" ? (
+                      {isPending ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-900/50">
                           Pending
                         </span>
@@ -389,12 +408,12 @@ export function WorkspaceDetailPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className={`text-xs capitalize ${member.user.status === "pending" ? "text-amber-600 dark:text-amber-400 font-medium" : "text-slate-500"}`}>
-                        {member.user.status === "pending" ? "Invited" : member.user.status}
+                      <span className={`text-xs capitalize ${isPending ? "text-amber-600 dark:text-amber-400 font-medium" : "text-slate-500"}`}>
+                        {isPending ? "Invited" : member.user.status}
                       </span>
                     </TableCell>
                     <TableCell className="text-xs text-slate-500 hidden lg:table-cell">
-                      {member.user.status === "pending" ? (
+                      {isPending ? (
                         <span className="italic text-amber-600 dark:text-amber-400">
                           Invited {member.joinedAt ? timeAgo(member.joinedAt) : ""}
                           {member.expiresAt && ` (Expires ${formatDate(member.expiresAt)})`}
@@ -406,57 +425,65 @@ export function WorkspaceDetailPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {member.userId && canRemoveMember(member) ? (
+                      {member.userId && canShowDropdown(member) ? (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
                               size="icon"
                               className="w-7 h-7"
+                              disabled={updatingRoleUserId === member.userId}
                             >
-                              <MoreHorizontal className="w-4 h-4" />
+                              {updatingRoleUserId === member.userId
+                                ? <Loader2 className="w-4 h-4 animate-spin" />
+                                : <MoreHorizontal className="w-4 h-4" />}
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             {isOwner && member.role === "member" && (
                               <DropdownMenuItem
-                                onClick={() => void handleUpdateMemberRole(member.userId, "manager")}
+                                onClick={() => setRoleChangeTarget({ userId: member.userId, name: member.user.name, nextRole: "manager" })}
                                 disabled={updatingRoleUserId === member.userId}
                               >
-                                Make manager
+                                <ShieldCheck className="w-4 h-4 mr-2 text-blue-500" />
+                                Promote to manager
                               </DropdownMenuItem>
                             )}
 
                             {isOwner && member.role === "manager" && (
                               <DropdownMenuItem
-                                onClick={() => void handleUpdateMemberRole(member.userId, "member")}
+                                onClick={() => setRoleChangeTarget({ userId: member.userId, name: member.user.name, nextRole: "member" })}
                                 disabled={updatingRoleUserId === member.userId}
                               >
+                                <ShieldMinus className="w-4 h-4 mr-2 text-amber-500" />
                                 Demote to member
                               </DropdownMenuItem>
                             )}
 
-                            <DropdownMenuItem
-                              onClick={() =>
-                                setRemoveTarget({
-                                  userId: member.userId,
-                                  name: member.user.name,
-                                  role: member.role,
-                                })
-                              }
-                              className="text-red-600 dark:text-red-400"
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              {member.userId === profile?.id
-                                ? "Leave workspace"
-                                : "Remove from workspace"}
-                            </DropdownMenuItem>
+                            {canRemoveMember(member) && (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  setRemoveTarget({
+                                    userId: member.userId,
+                                    name: member.user.name,
+                                    role: member.role,
+                                  })
+                                }
+                                className="text-red-600 dark:text-red-400"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                {member.userId === profile?.id
+                                  ? "Leave workspace"
+                                  : "Remove from workspace"}
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       ) : null}
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
             </div>
@@ -584,6 +611,34 @@ export function WorkspaceDetailPage() {
         confirmLabel={deleting ? "Deleting..." : "Delete"}
         destructive
         onConfirm={() => void handleDeleteWorkspace()}
+      />
+
+      <ConfirmDialog
+        open={Boolean(roleChangeTarget)}
+        onOpenChange={open => { if (!open) setRoleChangeTarget(null); }}
+        title={
+          roleChangeTarget?.nextRole === "manager"
+            ? "Promote to manager?"
+            : "Demote to member?"
+        }
+        description={
+          roleChangeTarget
+            ? roleChangeTarget.nextRole === "manager"
+              ? `"${roleChangeTarget.name}" will be promoted to manager and gain additional permissions in this workspace.`
+              : `"${roleChangeTarget.name}" will be demoted to member and lose manager permissions.`
+            : ""
+        }
+        confirmLabel={
+          updatingRoleUserId === roleChangeTarget?.userId
+            ? "Updating..."
+            : roleChangeTarget?.nextRole === "manager"
+              ? "Promote"
+              : "Demote"
+        }
+        onConfirm={() => {
+          if (!roleChangeTarget) return;
+          void handleUpdateMemberRole(roleChangeTarget.userId, roleChangeTarget.nextRole).then(() => setRoleChangeTarget(null));
+        }}
       />
     </div>
   );
